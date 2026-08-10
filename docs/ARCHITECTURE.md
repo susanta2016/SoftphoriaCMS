@@ -1,9 +1,10 @@
 # Softphoria Platform Core — Modular Architecture
 
 **Status:** Established by CORE-002, on top of the CORE-001 Laravel baseline.
-**Scope:** Architecture and conventions only. No business modules, migrations,
-Filament panel, or public UI exist yet — see the completion status in each
-section below.
+The Filament admin panel foundation was added by ADMIN-001 (see §3 below and
+`app/Providers/Filament/AdminPanelProvider.php`).
+**Scope:** Architecture and conventions only. No business modules or public
+UI exist yet — see the completion status in each section below.
 
 This document is internally authored implementation guidance. It does not
 supersede the client-facing specifications in `docs/`; it explains how this
@@ -65,7 +66,7 @@ HTTP / Filament / Livewire   (presentation — thin)
 | `app/Http/` | Global HTTP-layer concerns not owned by any single module: the base `Controller` class, global middleware, a future base `FormRequest`. Module controllers/requests live inside their module, not here. |
 | `app/Providers/` | Framework/global bootstrapping only: `AppServiceProvider`, and any future platform-wide provider (e.g. a future Filament `PanelProvider`, a future `EventServiceProvider`). Per-module providers live inside their module and are wired through the Module Registry (§5) — they are never added here by hand. |
 | `resources/views/` | Shared/global Blade layouts, reusable components, and framework error pages used across modules. Module-specific views live inside the module and are exposed through a namespaced view path registered by that module's provider. |
-| Filament | Platform-wide Filament configuration (the future `PanelProvider`, shared form/table components) is central. Module-owned Resources/Pages/Widgets live inside `app/Modules/{Module}/Filament/` and are registered with the panel by that module's own provider. Not scaffolded yet (ADMIN-001). |
+| Filament | Platform-wide Filament configuration is central: the single panel is `App\Providers\Filament\AdminPanelProvider` (`/admin`), scaffolded by ADMIN-001. It discovers components from `app/Filament/{Resources,Pages,Widgets}` (genuinely core-wide assets) and, recursively, from `app/Modules/**/Filament/{Resources,Pages,Widgets}` — so a module registers its own Resources/Pages/Widgets simply by placing them at that conventional path, without editing `AdminPanelProvider`. No Resources/Pages/Widgets exist yet for any module or for Core; ADMIN-001 is foundation only (panel, auth gate, navigation/discovery wiring) — see `docs/Softphoria_Platform_Implementation_Guide_v1.4_Laravel_Jacob_Approved.md` §10 for the ADMIN-002+ scope that builds on it. |
 | `database/` | `migrations/`, `factories/`, `seeders/` stay centralized here as the single schema source of truth, per the Database Specification. Modules do not maintain parallel migration directories in Phase 1. |
 | Infrastructure/config (`docker/`, `compose.yaml`, root `config/*.php`, `.env*`) | Platform infrastructure — owned by Core, never module- or client-specific. Module-specific settings, only when genuinely required, are added as their own `config/{module}.php` merged by that module's provider (§8) — never hardcoded into shared platform config files. |
 
@@ -266,3 +267,43 @@ Membership, Payments, any Jacob-specific functionality, or any public
 frontend/homepage UI. Those belong to DB-*, ADMIN-*, and JACOB-* stages
 that follow, per
 `docs/Softphoria_Platform_Implementation_Guide_v1.4_Laravel_Jacob_Approved.md`.
+
+## 12. Filament Admin Panel Foundation (ADMIN-001)
+
+**Status:** Panel shell established. No admin-manageable content exists yet
+(no Users/Roles/Permissions/Settings/Media/Pages/SEO screens) — those are
+ADMIN-003 onward.
+
+- **Panel:** `App\Providers\Filament\AdminPanelProvider`, id `admin`, path
+  `/admin`, registered in `bootstrap/providers.php`. Login is Filament's
+  built-in auth page against the existing `web` guard/`users` table — this
+  is a separate login screen from any future public-facing auth flow
+  (AUTH-*), not a second authentication system.
+- **Authorization integration point:** `App\Models\User::canAccessPanel()`
+  implements `Filament\Models\Contracts\FilamentUser`, gating on
+  `status === 'active'` plus an existing `roles` relationship having the
+  reserved slug `admin`. This is deliberately minimal — it reuses the
+  DB-002/003 `roles`/`user_roles` tables as-is rather than introducing a new
+  concept, and does not add any UI to manage roles. Full role/permission
+  administration is ADMIN-004.
+- **Component discovery (module registration point):** the panel calls
+  `discoverResources()`/`discoverPages()`/`discoverWidgets()` against both
+  `app/Filament/*` (core-wide, non-module Filament assets — see
+  `app/Filament/README.md`) and, recursively, `app/Modules/*` (every
+  module's own `Filament/{Resources,Pages,Widgets}`, per §3 module
+  ownership). A future module registers with the admin panel purely by
+  placing its Resource/Page/Widget class at the conventional path —
+  `AdminPanelProvider` never needs to change.
+- **Notifications:** `->databaseNotifications()` is enabled, backed by the
+  existing `notifications` table (DB-002) and the `Notifiable` trait already
+  on `User` — no new table, no new package.
+- **Form/table/search/pagination/confirmation conventions** (for the first
+  ADMIN-*/JACOB-* task that adds a Resource): use Filament's own defaults —
+  `TextInput`/`Select`/etc. with `->required()`/`->maxLength()` validation
+  matching the migration's constraints; `Table` columns with `->searchable()`
+  and `->sortable()` on user-facing lookup fields; standard Filament
+  pagination (`10/25/50/all`, default `25`); every destructive `Action`
+  (`DeleteAction`, bulk delete, force-delete, restore) must call
+  `->requiresConfirmation()`. No shared base Resource/Table class exists —
+  per §6, one isn't justified until a second resource exists to prove out
+  the concrete pattern.
