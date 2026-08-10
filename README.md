@@ -129,8 +129,11 @@ docker compose exec app php artisan key:generate
 
 ## Project status
 
-This repository currently contains the Laravel application foundation only
-(CORE-001). No business modules, authentication, admin panel, or public
-pages have been implemented yet — see
+This repository contains the Laravel application foundation (CORE-001) and
+the modular Softphoria Platform Core architecture (CORE-002): module
+ownership conventions, the `app/Shared` layer, and a lightweight module
+registration mechanism. No business modules, authentication, admin panel, or
+public pages have been implemented yet — see
 `docs/Softphoria_Platform_Implementation_Guide_v1.4_Laravel_Jacob_Approved.md`
-for the full staged roadmap.
+for the full staged roadmap and `docs/ARCHITECTURE.md` for the architecture
+this codebase follows.
