@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['bio', 'timezone', 'locale'])]
+#[Fillable(['bio', 'phone_number', 'address', 'zip_code', 'avatar_media_id', 'timezone', 'locale'])]
 class UserProfile extends Model
 {
     public function user(): BelongsTo
