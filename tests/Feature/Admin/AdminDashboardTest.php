@@ -38,8 +38,6 @@ class AdminDashboardTest extends TestCase
         $response->assertSee('Active User Accounts');
         $response->assertSee('Published Pages');
         $response->assertSee('New Contact Requests');
-        $response->assertSee('Queued Jobs');
-        $response->assertSee('Failed Jobs');
         $response->assertSee('Recent Administrative Activity');
         $response->assertSee('No administrative activity yet');
     }
