@@ -297,6 +297,22 @@ first admin-manageable content built on it, and its UI conventions — see
 - **Notifications:** `->databaseNotifications()` is enabled, backed by the
   existing `notifications` table (DB-002) and the `Notifiable` trait already
   on `User` — no new table, no new package.
+- **Navigation shell** (docs/Reference UI/Admin/Admin navigation UI.docx):
+  `->sidebarCollapsibleOnDesktop()` and `->globalSearch()` are native
+  Filament panel config. The topbar's "View Site" link and "System Tools"
+  dropdown (cache management, Optimize Application, Clear All Sessions) are
+  custom, added via a `TOPBAR_START` render hook
+  (`resources/views/filament/admin/topbar/start.blade.php`) rendering
+  `App\Filament\Livewire\SystemToolsMenu` — a plain Livewire component that
+  opts into `Filament\Actions\Concerns\InteractsWithActions` the same way
+  `Filament\Pages\BasePage` does, purely so each tool gets a real
+  confirmation modal instead of `window.confirm()`. Two non-obvious
+  requirements for any future component built this way: the root Blade view
+  must have exactly one root element (Livewire throws
+  `MultipleRootElementsDetectedException` otherwise) and must include
+  `<x-filament-actions::modals />` inside that root, or mounted actions
+  execute with no visible modal. Available to any admin — no super-admin
+  tier exists (see the authorization bullet above).
 - **Form/table/search/pagination/confirmation conventions**: `TextInput`/
   `Select`/etc. with `->required()`/`->maxLength()` validation matching the
   migration's constraints; `Table` columns with `->searchable()` and
