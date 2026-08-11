@@ -270,9 +270,9 @@ that follow, per
 
 ## 12. Filament Admin Panel Foundation (ADMIN-001)
 
-**Status:** Panel shell established. No admin-manageable content exists yet
-(no Users/Roles/Permissions/Settings/Media/Pages/SEO screens) — those are
-ADMIN-003 onward.
+**Status:** Panel shell established. The Users resource (ADMIN-003) is the
+first admin-manageable content built on it, and its UI conventions — see
+§13 — are the reference every later Resource should follow.
 
 - **Panel:** `App\Providers\Filament\AdminPanelProvider`, id `admin`, path
   `/admin`, registered in `bootstrap/providers.php`. Login is Filament's
@@ -297,13 +297,81 @@ ADMIN-003 onward.
 - **Notifications:** `->databaseNotifications()` is enabled, backed by the
   existing `notifications` table (DB-002) and the `Notifiable` trait already
   on `User` — no new table, no new package.
-- **Form/table/search/pagination/confirmation conventions** (for the first
-  ADMIN-*/JACOB-* task that adds a Resource): use Filament's own defaults —
-  `TextInput`/`Select`/etc. with `->required()`/`->maxLength()` validation
-  matching the migration's constraints; `Table` columns with `->searchable()`
-  and `->sortable()` on user-facing lookup fields; standard Filament
-  pagination (`10/25/50/all`, default `25`); every destructive `Action`
-  (`DeleteAction`, bulk delete, force-delete, restore) must call
-  `->requiresConfirmation()`. No shared base Resource/Table class exists —
-  per §6, one isn't justified until a second resource exists to prove out
-  the concrete pattern.
+- **Form/table/search/pagination/confirmation conventions**: `TextInput`/
+  `Select`/etc. with `->required()`/`->maxLength()` validation matching the
+  migration's constraints; `Table` columns with `->searchable()` and
+  `->sortable()` on user-facing lookup fields; standard Filament pagination
+  (`10/25/50/all`, default `25`); every destructive/state-changing `Action`
+  must call `->requiresConfirmation()`. Beyond these Filament defaults, the
+  concrete list/form/action shape a Resource should follow is §13's — Users
+  (ADMIN-003) is the first Resource built and is the reference
+  implementation, not a one-off.
+
+## 13. Resource UI conventions, established by Users (ADMIN-003)
+
+Users (`app/Filament/Resources/Users/`) was the first Resource built on the
+ADMIN-001 panel foundation. Per §6's philosophy ("the first module to need
+one establishes the concrete pattern other modules follow"), every
+subsequent Resource — ADMIN-*, JACOB-*, or any future module's own
+`Filament/Resources` — should follow the same shape unless it has a
+specific, documented reason not to.
+
+- **List page**: a `StatsOverviewWidget` scoped to the resource
+  (`{Resource}/Widgets/{Resource}StatsWidget`, wired via the List page's
+  `getHeaderWidgets()`) showing the 2–4 counts an admin actually needs at a
+  glance — not a general analytics dashboard (§11's Phase 1 exclusion still
+  applies). The header `CreateAction` is relabeled to a specific verb
+  (`"Add User"`, not the generic "New user") with a `Heroicon::OutlinedPlus`
+  icon. Row actions are grouped into one `ActionGroup` (ellipsis-vertical
+  icon) instead of a row of separate buttons, and the built-in view action
+  is relabeled `"View Details"`.
+- **Create/Edit forms**: build the schema as
+  `$schema->columns(1)->components([Grid::make(['default' => 1, 'lg' => 12])->schema([...])])`.
+  The explicit `->columns(1)` on the root schema is required —
+  `EditRecord`/`CreateRecord::defaultForm()` silently applies its own
+  `columns(2)` to the root schema otherwise, which halves the width
+  available to a custom `Grid` (this shipped broken in ADMIN-003 before
+  being caught — don't repeat it). Lay the `Grid` out as three independent
+  `Group`s (`columnSpan` roughly `3 / 5 / 4` of 12): a narrow left column
+  for record-scoped media (avatar/thumbnail upload) and, on Edit only, a
+  card of record-scoped quick actions; a wide middle column for the primary
+  editable fields; a right column for status/relationship fields (e.g. a
+  role or category assignment). Override `getMaxContentWidth()` to
+  `Width::Full` on the Create/Edit page classes so the wide grid isn't
+  capped by Filament's default page width.
+- **Header actions, not a bottom bar**: override `getFormActions()` to
+  return `[]` and move Save/Cancel (and View, on Edit) into
+  `getHeaderActions()` via `$this->getSaveFormAction()`,
+  `$this->getCreateFormAction()`, `$this->getCancelFormAction()`, each given
+  a specific label (`"Save changes"`, `"Add {Resource}"`) rather than
+  Filament's generic defaults.
+- **Record-scoped quick actions embedded in the form**: use
+  `Filament\Schemas\Components\Actions::make([$action])->key('someKey')->fullWidth()`
+  for buttons that act on the record itself (send an email, regenerate
+  something, force a state change) instead of putting them in the page
+  header. Give each its own `->key()` — that's the only way Filament's
+  `callFormComponentAction()`/`assertFormComponentAction*` test helpers can
+  address it; a plain `assertActionHidden()` fails to resolve an action
+  whose whole containing component is hidden. Keep the button-building logic
+  as static methods on the Resource class (e.g. `UserResource::blockAction()`)
+  so List, Edit, and View pages reuse the exact same definition instead of
+  duplicating it.
+- **Self-protection + audit trail on every mutating action**: any action an
+  admin could use to lock themselves out (change their own status, role,
+  password, or sessions) must both hide itself for the acting admin's own
+  record (`->visible(fn ($record) => ! $record->is(Auth::user()))`) and
+  enforce the same guard at the domain layer — throw from the Action class
+  itself (see `App\Exceptions\Users\CannotModifySelfException`), not just
+  the Filament layer, so it can't be bypassed by calling the Action
+  directly. Every state-changing action calls
+  `->requiresConfirmation()->modalDescription(...)` and writes an entry via
+  `App\Shared\Services\AuditLogService` (§4 already requires the write;
+  this is which service to write through).
+- **No hard deletes**: on any table with a `status` column, "deleting" a
+  record from a Resource is a status transition to a deleted-equivalent
+  value, never `DeleteAction`/`forceDelete()`.
+
+No shared base Resource/Table/Form class exists yet. Once a second Resource
+is built against this pattern, revisit extracting one for the parts that
+turn out identical (the `columns(1)` + full-width `Grid` scaffold, in
+particular) — don't guess at the shape before then.
