@@ -38,7 +38,7 @@ class EditUser extends EditRecord
         return [];
     }
 
-    public function getMaxContentWidth(): Width | string | null
+    public function getMaxContentWidth(): Width|string|null
     {
         return Width::Full;
     }

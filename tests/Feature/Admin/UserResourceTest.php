@@ -3,6 +3,9 @@
 namespace Tests\Feature\Admin;
 
 use App\Actions\Users\ChangeUserStatusAction;
+use App\Actions\Users\ForceLogoutAllSessionsAction;
+use App\Actions\Users\GenerateNewPasswordAction;
+use App\Actions\Users\UpdateUserAction;
 use App\Exceptions\Users\CannotModifySelfException;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
@@ -350,7 +353,7 @@ class UserResourceTest extends TestCase
 
         $this->expectException(CannotModifySelfException::class);
 
-        app(\App\Actions\Users\UpdateUserAction::class)->handle(
+        app(UpdateUserAction::class)->handle(
             $admin,
             ['name' => $admin->name, 'email' => $admin->email, 'role_id' => $otherRole->id],
             $admin,
@@ -428,7 +431,7 @@ class UserResourceTest extends TestCase
 
         $this->expectException(CannotModifySelfException::class);
 
-        app(\App\Actions\Users\GenerateNewPasswordAction::class)->handle($admin, $admin);
+        app(GenerateNewPasswordAction::class)->handle($admin, $admin);
     }
 
     public function test_admin_can_force_logout_all_sessions_for_a_user(): void
@@ -455,7 +458,7 @@ class UserResourceTest extends TestCase
 
         $this->expectException(CannotModifySelfException::class);
 
-        app(\App\Actions\Users\ForceLogoutAllSessionsAction::class)->handle($admin, $admin);
+        app(ForceLogoutAllSessionsAction::class)->handle($admin, $admin);
     }
 
     public function test_admin_can_block_and_unblock_a_user(): void

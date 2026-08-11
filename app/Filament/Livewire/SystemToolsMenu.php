@@ -3,6 +3,7 @@
 namespace App\Filament\Livewire;
 
 use App\Actions\System\RevokeAllSessionsAction;
+use App\Models\User;
 use App\Shared\Services\AuditLogService;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -130,7 +131,7 @@ class SystemToolsMenu extends Component implements HasActions, HasRenderHookScop
             ->action(function (): void {
                 $revoked = app(RevokeAllSessionsAction::class)->handle(session()->getId());
 
-                /** @var \App\Models\User $actor */
+                /** @var User $actor */
                 $actor = Auth::user();
 
                 app(AuditLogService::class)->record($actor, 'system.sessions_cleared', $actor, [
@@ -150,7 +151,7 @@ class SystemToolsMenu extends Component implements HasActions, HasRenderHookScop
         // "optimize"/"config:cache" re-cache the config mid-request, which
         // has been observed to reset auth state for the remainder of the
         // request if Auth::user() is read afterward.
-        /** @var \App\Models\User $actor */
+        /** @var User $actor */
         $actor = Auth::user();
 
         Artisan::call($command);

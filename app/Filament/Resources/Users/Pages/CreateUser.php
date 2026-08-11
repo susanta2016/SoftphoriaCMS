@@ -31,7 +31,7 @@ class CreateUser extends CreateRecord
         return [];
     }
 
-    public function getMaxContentWidth(): Width | string | null
+    public function getMaxContentWidth(): Width|string|null
     {
         return Width::Full;
     }
