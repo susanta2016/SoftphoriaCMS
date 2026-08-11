@@ -14,4 +14,14 @@
     .fi-skip-link:not(:focus) {
         opacity: 0;
     }
+
+    /* The "dot": <x-filament-panels::topbar.item> (used for View Site) renders
+       a real <li>. Inside Filament's own nav it's wrapped in a <ul> that
+       resets list-style via Tailwind's preflight, but our TOPBAR_START render
+       hook (resources/views/filament/admin/topbar/start.blade.php) places it
+       directly in a <div> with no such wrapper, so the browser's default
+       disc marker was showing. */
+    li.fi-topbar-item {
+        list-style: none;
+    }
 </style>
