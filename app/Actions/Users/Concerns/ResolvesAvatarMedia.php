@@ -2,9 +2,8 @@
 
 namespace App\Actions\Users\Concerns;
 
-use App\Models\Media;
+use App\Actions\Media\StoreUploadedMediaAction;
 use App\Models\User;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Shared by CreateUserAction/UpdateUserAction: the avatar form field holds a
@@ -13,6 +12,13 @@ use Illuminate\Support\Facades\Storage;
  * needs a Media row created for it. Comparing against the profile's current
  * avatar path avoids creating a duplicate Media row when the field is
  * re-submitted unchanged.
+ *
+ * Media row creation itself is delegated to StoreUploadedMediaAction
+ * (ADMIN-005) — the same central entry point the Media Library resource
+ * uses — so avatar uploads get responsive WebP/AVIF variants for free
+ * without duplicating the Media-row-building logic here. This method's own
+ * signature/behavior (unchanged-path no-op, blank clears the avatar) is
+ * unchanged for CreateUserAction/UpdateUserAction.
  */
 trait ResolvesAvatarMedia
 {
@@ -31,15 +37,7 @@ trait ResolvesAvatarMedia
             return ['avatar_media_id' => null];
         }
 
-        $media = new Media;
-        $media->disk = 'public';
-        $media->path = $uploadedPath;
-        $media->original_filename = basename($uploadedPath);
-        $media->mime_type = Storage::disk('public')->mimeType($uploadedPath);
-        $media->size = Storage::disk('public')->size($uploadedPath);
-        $media->visibility = 'public';
-        $media->uploader_id = $actor->getKey();
-        $media->save();
+        $media = app(StoreUploadedMediaAction::class)->handle('public', $uploadedPath, $actor);
 
         return ['avatar_media_id' => $media->id];
     }
