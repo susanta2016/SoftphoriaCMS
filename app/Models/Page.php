@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\PageStatus;
+use App\Enums\PageTemplate;
 use App\Models\Concerns\HasPublicId;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,8 +21,20 @@ class Page extends Model
     protected function casts(): array
     {
         return [
+            'status' => PageStatus::class,
+            'template' => PageTemplate::class,
             'publish_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The only query ADMIN-007 Navigation is allowed to run against Pages —
+     * a `type=page` menu item may only reference a currently-published page
+     * (ADMIN-006 §H). No relation exists in the other direction.
+     */
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query->where('status', PageStatus::Published);
     }
 
     public function featuredImage(): BelongsTo

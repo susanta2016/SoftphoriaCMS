@@ -1,5 +1,7 @@
 <?php
 
+use App\Console\Commands\PublishDuePagesCommand;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,4 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
-    })->create();
+    })
+    // ADMIN-006: flips Scheduled pages to Published once publish_at passes.
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->command(PublishDuePagesCommand::class)->everyFiveMinutes();
+    })
+    ->create();

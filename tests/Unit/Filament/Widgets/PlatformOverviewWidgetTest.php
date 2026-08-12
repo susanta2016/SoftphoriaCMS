@@ -23,13 +23,13 @@ class PlatformOverviewWidgetTest extends TestCase
         Page::create([
             'title' => 'Published Page',
             'slug' => 'published-page',
-            'template' => 'default',
+            'template' => 'standard',
             'status' => 'published',
         ]);
         Page::create([
             'title' => 'Draft Page',
             'slug' => 'draft-page',
-            'template' => 'default',
+            'template' => 'standard',
             'status' => 'draft',
         ]);
 

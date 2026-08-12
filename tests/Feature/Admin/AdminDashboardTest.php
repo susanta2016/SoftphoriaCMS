@@ -49,7 +49,7 @@ class AdminDashboardTest extends TestCase
         Page::create([
             'title' => 'About',
             'slug' => 'about',
-            'template' => 'default',
+            'template' => 'standard',
             'status' => 'published',
         ]);
 
