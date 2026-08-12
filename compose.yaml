@@ -16,6 +16,27 @@ services:
       - mariadb
       - redis
 
+  # ADMIN-005 fix: GenerateImageVariantsJob (and any future queued job) was
+  # being dispatched onto the `redis` queue connection but nothing was ever
+  # consuming it — no worker process existed anywhere in this stack, so
+  # jobs sat in Redis forever and Media rows stayed stuck in "Processing".
+  # Same image as `app`, just running the queue worker instead of php-fpm.
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: softphoria_queue
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - softphoria_net
+    depends_on:
+      - mariadb
+      - redis
+    command: ["php", "artisan", "queue:work", "--tries=3", "--backoff=3", "--sleep=1"]
+
   nginx:
     image: nginx:stable-alpine
     container_name: softphoria_nginx

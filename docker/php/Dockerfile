@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
+    libwebp-dev \
+    libavif-dev \
     libzip-dev \
     libicu-dev \
     libonig-dev \
@@ -22,7 +24,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && rm -rf /var/lib/apt/lists/*
 
 # Core PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+# --with-webp/--with-avif (ADMIN-005): Intervention Image's GD driver needs
+# these compiled in to encode WebP/AVIF — libgd only reads them by default.
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp --with-avif \
     && docker-php-ext-install -j$(nproc) \
         pdo_mysql \
         mysqli \

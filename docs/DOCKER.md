@@ -8,6 +8,7 @@ PHP 8.4 without touching the host's global PHP 8.2 (XAMPP) installation.
 | Service | Image | Purpose |
 |---|---|---|
 | `app` | custom (`docker/php/Dockerfile`, `php:8.4-fpm` base) | Laravel application runtime (PHP-FPM) |
+| `queue` | same image as `app` | `php artisan queue:work` — processes jobs dispatched onto the `redis` queue connection (e.g. `GenerateImageVariantsJob`, ADMIN-005). Without this service, queued jobs are dispatched successfully but never run — nothing else in this stack consumes them. |
 | `nginx` | `nginx:stable-alpine` | Web server, proxies PHP requests to `app` |
 | `mariadb` | `mariadb:10.11.14` | Database (MariaDB 10.11 LTS, pinned) |
 | `redis` | `redis:7-alpine` | Cache, sessions, queues |
@@ -66,6 +67,12 @@ Start the stack:
 ```
 docker compose up -d
 ```
+
+This starts every service in `compose.yaml`, including `queue` — there is
+no separate step to start the queue worker. If `queue` is ever missing from
+`docker compose ps`, dispatched jobs (e.g. `GenerateImageVariantsJob`) will
+sit in Redis and never run; `docker compose up -d queue` starts just that
+one service without restarting the rest of the stack.
 
 Check status:
 
