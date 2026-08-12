@@ -13,6 +13,11 @@ use Illuminate\Support\Facades\Auth;
 /**
  * Save/Cancel are moved into the header (instead of Filament's default
  * bottom bar) for consistency with EditUser, matching the reference UI.
+ *
+ * The header Create button needs ->formId('form') for the same reason as
+ * EditUser's Save button: Filament's getCreateFormAction() only relies on
+ * native <button type="submit"> + ancestor-<form> lookup, which breaks once
+ * the button moves into the page header (see EditUser's docblock for detail).
  */
 class CreateUser extends CreateRecord
 {
@@ -21,7 +26,7 @@ class CreateUser extends CreateRecord
     protected function getHeaderActions(): array
     {
         return [
-            $this->getCreateFormAction()->label('Add User'),
+            $this->getCreateFormAction()->label('Add User')->formId('form'),
             $this->getCancelFormAction(),
         ];
     }

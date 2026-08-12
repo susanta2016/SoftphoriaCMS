@@ -19,6 +19,15 @@ use Illuminate\Support\Facades\Auth;
  * (UserForm) rather than the header, matching the reference UI. Save/Cancel
  * are moved into the header (instead of Filament's default bottom bar) to
  * match the reference UI's "View | Save changes | Cancel" row.
+ *
+ * The header Save button needs ->formId('form') because Filament's
+ * getSaveFormAction() only relies on native <button type="submit"> +
+ * ancestor-<form> lookup (see form-button.js's `$el.closest('form')`) —
+ * that only works when the button is a DOM descendant of the <form>, which
+ * is true for Filament's default bottom-of-form placement but false once
+ * Save is moved into the page header (a sibling region, not a descendant).
+ * Without formId('form'), the button silently does nothing: no wire:click,
+ * no request, no error — clicking it just no-ops.
  */
 class EditUser extends EditRecord
 {
@@ -28,7 +37,7 @@ class EditUser extends EditRecord
     {
         return [
             ViewAction::make(),
-            $this->getSaveFormAction()->label('Save changes'),
+            $this->getSaveFormAction()->label('Save changes')->formId('form'),
             $this->getCancelFormAction(),
         ];
     }
