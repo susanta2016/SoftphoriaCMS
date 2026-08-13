@@ -2,11 +2,12 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
+use App\Enums\MediaCategory;
 use App\Enums\UserStatus;
 use App\Filament\Resources\Users\UserResource;
+use App\Filament\Support\Media\MediaPicker;
 use App\Models\Role;
 use App\Models\User;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -37,17 +38,14 @@ class UserForm
                 Grid::make(['default' => 1, 'lg' => 12])
                     ->schema([
                         Group::make([
-                            Section::make('Profile Picture')
-                                ->schema([
-                                    FileUpload::make('avatar')
-                                        ->hiddenLabel()
-                                        ->avatar()
-                                        ->disk('public')
-                                        ->directory('avatars')
-                                        ->visibility('public')
-                                        ->maxSize(5120)
-                                        ->helperText('JPG, PNG, WebP or GIF · Max 5MB'),
-                                ]),
+                            // ADMIN-006 convention (docs/ARCHITECTURE.md §14):
+                            // every Media-referencing field goes through the
+                            // shared MediaPicker rather than a module-specific
+                            // FileUpload — this is what routes avatar uploads
+                            // through StoreUploadedMediaAction and gives the
+                            // same Upload New Media / Select from Media
+                            // Library UX as Pages.
+                            MediaPicker::make('avatar', 'Avatar', MediaCategory::Image),
                         ])->columnSpan(['default' => 12, 'lg' => 3]),
 
                         Group::make([

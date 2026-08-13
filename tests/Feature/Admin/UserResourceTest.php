@@ -2,16 +2,22 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Actions\Media\StoreUploadedMediaAction;
 use App\Actions\Users\ChangeUserStatusAction;
 use App\Actions\Users\ForceLogoutAllSessionsAction;
 use App\Actions\Users\GenerateNewPasswordAction;
 use App\Actions\Users\UpdateUserAction;
+use App\Enums\MediaCategory;
+use App\Enums\UserStatus;
 use App\Exceptions\Users\CannotModifySelfException;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\Pages\ViewUser;
+use App\Filament\Resources\Users\Tables\UsersTable;
 use App\Filament\Resources\Users\Widgets\UserStatsWidget;
+use App\Filament\Support\Media\MediaPicker;
+use App\Models\Media;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -378,6 +384,14 @@ class UserResourceTest extends TestCase
         $this->assertSame('+44 7700 900001', $target->fresh()->profile->phone_number);
     }
 
+    /**
+     * USER ADMIN — Media Picker & Avatar List Improvement: regression
+     * coverage for the pre-existing "admin can upload a user's avatar"
+     * behavior, adapted to the MediaPicker action-based upload flow (the
+     * avatar field no longer accepts a raw file directly via fillForm —
+     * see App\Filament\Support\Media\MediaPicker, the ADMIN-006 convention
+     * every Media-referencing field must now use, docs/ARCHITECTURE.md §14).
+     */
     public function test_admin_can_upload_a_users_avatar(): void
     {
         Storage::fake('public');
@@ -387,10 +401,13 @@ class UserResourceTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(EditUser::class, ['record' => $target->getRouteKey()])
+            ->callFormComponentAction('avatar__actions', 'avatar_upload', data: [
+                'file' => UploadedFile::fake()->image('avatar.jpg'),
+            ])
+            ->assertHasNoFormComponentActionErrors()
             ->fillForm([
                 'name' => $target->name,
                 'email' => $target->email,
-                'avatar' => UploadedFile::fake()->image('avatar.jpg'),
             ])
             ->call('save')
             ->assertHasNoFormErrors();
@@ -399,6 +416,267 @@ class UserResourceTest extends TestCase
 
         $this->assertNotNull($target->profile->avatar_media_id);
         Storage::disk('public')->assertExists($target->profile->avatar->path);
+    }
+
+    public function test_user_create_can_upload_a_new_avatar(): void
+    {
+        Storage::fake('public');
+
+        Livewire::actingAs($this->admin())
+            ->test(CreateUser::class)
+            ->callFormComponentAction('avatar__actions', 'avatar_upload', data: [
+                'file' => UploadedFile::fake()->image('avatar.jpg'),
+                'alt_text' => 'New user avatar',
+            ])
+            ->assertHasNoFormComponentActionErrors()
+            ->assertSet('data.avatar', fn (?int $value): bool => $value !== null)
+            ->fillForm([
+                'name' => 'Avatar Upload User',
+                'email' => 'avatar-upload@example.com',
+                'status' => UserStatus::Active->value,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $user = User::query()->where('email', 'avatar-upload@example.com')->firstOrFail();
+
+        $this->assertNotNull($user->profile->avatar_media_id);
+        $this->assertSame(1, Media::query()->count());
+        $this->assertSame('New user avatar', $user->profile->avatar->alt_text);
+        Storage::disk('public')->assertExists($user->profile->avatar->path);
+    }
+
+    public function test_user_create_can_select_an_existing_media_image_as_avatar(): void
+    {
+        Storage::fake('public');
+        $admin = $this->admin();
+        $existing = $this->storeImage($admin, 'media/images/existing-avatar.jpg');
+
+        Livewire::actingAs($admin)
+            ->test(CreateUser::class)
+            ->callFormComponentAction('avatar__actions', 'avatar_select', data: [
+                'media' => $existing->id,
+            ])
+            ->assertHasNoFormComponentActionErrors()
+            ->assertSet('data.avatar', $existing->id)
+            ->fillForm([
+                'name' => 'Avatar Select User',
+                'email' => 'avatar-select@example.com',
+                'status' => UserStatus::Active->value,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $user = User::query()->where('email', 'avatar-select@example.com')->firstOrFail();
+
+        $this->assertSame($existing->id, $user->profile->avatar_media_id);
+    }
+
+    public function test_selecting_an_existing_media_image_as_avatar_does_not_create_a_duplicate_media_record(): void
+    {
+        Storage::fake('public');
+        $admin = $this->admin();
+        $existing = $this->storeImage($admin, 'media/images/no-duplicate-avatar.jpg');
+
+        Livewire::actingAs($admin)
+            ->test(CreateUser::class)
+            ->callFormComponentAction('avatar__actions', 'avatar_select', data: [
+                'media' => $existing->id,
+            ])
+            ->fillForm([
+                'name' => 'No Duplicate User',
+                'email' => 'no-duplicate@example.com',
+                'status' => UserStatus::Active->value,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(1, Media::query()->count());
+    }
+
+    public function test_user_edit_displays_the_existing_avatar(): void
+    {
+        Storage::fake('public');
+        $admin = $this->admin();
+        $existing = $this->storeImage($admin, 'media/images/current-avatar.jpg');
+        $target = User::factory()->create();
+        $target->profile()->create(['avatar_media_id' => $existing->id]);
+
+        Livewire::actingAs($admin)
+            ->test(EditUser::class, ['record' => $target->getRouteKey()])
+            ->assertSet('data.avatar', $existing->id);
+    }
+
+    public function test_user_edit_can_replace_the_avatar_using_upload_new_media(): void
+    {
+        Storage::fake('public');
+        $admin = $this->admin();
+        $original = $this->storeImage($admin, 'media/images/original-avatar.jpg');
+        $target = User::factory()->create();
+        $target->profile()->create(['avatar_media_id' => $original->id]);
+
+        Livewire::actingAs($admin)
+            ->test(EditUser::class, ['record' => $target->getRouteKey()])
+            ->callFormComponentAction('avatar__actions', 'avatar_upload', data: [
+                'file' => UploadedFile::fake()->image('replacement-avatar.jpg'),
+            ])
+            ->assertHasNoFormComponentActionErrors()
+            ->fillForm(['name' => $target->name, 'email' => $target->email])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $target->refresh();
+
+        $this->assertNotNull($target->profile->avatar_media_id);
+        $this->assertNotSame($original->id, $target->profile->avatar_media_id);
+        $this->assertSame(2, Media::query()->count());
+    }
+
+    public function test_user_edit_can_replace_the_avatar_using_select_from_media_library(): void
+    {
+        Storage::fake('public');
+        $admin = $this->admin();
+        $original = $this->storeImage($admin, 'media/images/original-avatar-2.jpg');
+        $replacement = $this->storeImage($admin, 'media/images/replacement-from-library.jpg');
+        $target = User::factory()->create();
+        $target->profile()->create(['avatar_media_id' => $original->id]);
+
+        Livewire::actingAs($admin)
+            ->test(EditUser::class, ['record' => $target->getRouteKey()])
+            ->callFormComponentAction('avatar__actions', 'avatar_select', data: [
+                'media' => $replacement->id,
+            ])
+            ->assertHasNoFormComponentActionErrors()
+            ->fillForm(['name' => $target->name, 'email' => $target->email])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $target->refresh();
+
+        $this->assertSame($replacement->id, $target->profile->avatar_media_id);
+        $this->assertSame(2, Media::query()->count());
+    }
+
+    /**
+     * Mirrors PageMediaAndSeoTest's category-filtering coverage: the avatar
+     * field is built with MediaPicker::make('avatar', 'Avatar',
+     * MediaCategory::Image), so its "Select from Media Library" grid is
+     * backed by the exact same category-scoped MediaPicker::query() every
+     * other MediaPicker consumer uses — never a per-field reimplementation.
+     */
+    public function test_the_avatar_media_picker_only_allows_image_media(): void
+    {
+        Storage::fake('public');
+        $admin = $this->admin();
+        $image = $this->storeImage($admin, 'media/images/avatar-candidate.jpg');
+        $document = $this->storeDocument($admin, 'media/documents/not-an-avatar.pdf');
+
+        $ids = MediaPicker::query(MediaCategory::Image)->pluck('id');
+
+        $this->assertTrue($ids->contains($image->id));
+        $this->assertFalse($ids->contains($document->id));
+    }
+
+    public function test_users_list_displays_the_avatar_when_available(): void
+    {
+        Storage::fake('public');
+        $admin = $this->admin();
+        $existing = $this->storeImage($admin, 'media/images/list-avatar.jpg');
+        $target = User::factory()->create();
+        $target->profile()->create(['avatar_media_id' => $existing->id]);
+
+        Livewire::actingAs($admin)
+            ->test(ListUsers::class)
+            ->assertSuccessful()
+            ->assertSee(Storage::disk('public')->url($existing->path));
+    }
+
+    public function test_users_list_displays_a_fallback_when_no_avatar_exists(): void
+    {
+        User::factory()->create(['name' => 'No Avatar User']);
+
+        Livewire::actingAs($this->admin())
+            ->test(ListUsers::class)
+            ->assertSuccessful()
+            ->assertSee('No Avatar User')
+            ->assertSee(UsersTable::defaultAvatarUrl(), escape: false);
+    }
+
+    /**
+     * USER ADMIN — Media Picker & Avatar List Improvement (verification
+     * round): users whose avatar Media row predates the MediaPicker
+     * refactor — its path still under the legacy storage/app/public/avatars/
+     * directory rather than the new media/images/ (config('media.categories.image.directory'))
+     * — must keep displaying correctly. Neither MediaPicker's preview nor
+     * UsersTable's ImageColumn reads or assumes a directory: both resolve
+     * purely from the Media row's own disk/path columns.
+     */
+    public function test_a_legacy_avatars_directory_avatar_still_displays_in_user_edit_and_the_users_list(): void
+    {
+        Storage::fake('public');
+        $admin = $this->admin();
+        $legacy = $this->storeLegacyAvatarImage($admin, 'avatars/legacy-existing.jpg');
+        $target = User::factory()->create();
+        $target->profile()->create(['avatar_media_id' => $legacy->id]);
+
+        Livewire::actingAs($admin)
+            ->test(EditUser::class, ['record' => $target->getRouteKey()])
+            ->assertSet('data.avatar', $legacy->id);
+
+        Livewire::actingAs($admin)
+            ->test(ListUsers::class)
+            ->assertSuccessful()
+            ->assertSee(Storage::disk('public')->url($legacy->path));
+    }
+
+    public function test_replacing_a_legacy_avatar_does_not_assume_the_new_media_directory_and_leaves_the_original_record_untouched(): void
+    {
+        Storage::fake('public');
+        $admin = $this->admin();
+        $legacy = $this->storeLegacyAvatarImage($admin, 'avatars/legacy-to-replace.jpg');
+        $target = User::factory()->create();
+        $target->profile()->create(['avatar_media_id' => $legacy->id]);
+
+        Livewire::actingAs($admin)
+            ->test(EditUser::class, ['record' => $target->getRouteKey()])
+            ->callFormComponentAction('avatar__actions', 'avatar_upload', data: [
+                'file' => UploadedFile::fake()->image('new-avatar.jpg'),
+            ])
+            ->assertHasNoFormComponentActionErrors()
+            ->fillForm(['name' => $target->name, 'email' => $target->email])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $target->refresh();
+        $legacy->refresh();
+
+        $this->assertNotSame($legacy->id, $target->profile->avatar_media_id);
+        $this->assertSame('avatars/legacy-to-replace.jpg', $legacy->path);
+        Storage::disk('public')->assertExists($legacy->path);
+        $this->assertSame(2, Media::query()->count());
+    }
+
+    public function test_removing_a_legacy_avatar_clears_it_without_deleting_the_underlying_media_record_or_file(): void
+    {
+        Storage::fake('public');
+        $admin = $this->admin();
+        $legacy = $this->storeLegacyAvatarImage($admin, 'avatars/legacy-to-remove.jpg');
+        $target = User::factory()->create();
+        $target->profile()->create(['avatar_media_id' => $legacy->id]);
+
+        Livewire::actingAs($admin)
+            ->test(EditUser::class, ['record' => $target->getRouteKey()])
+            ->callFormComponentAction('avatar__actions', 'avatar_clear')
+            ->assertHasNoFormComponentActionErrors()
+            ->fillForm(['name' => $target->name, 'email' => $target->email])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $target->refresh();
+
+        $this->assertNull($target->profile->avatar_media_id);
+        $this->assertNotNull(Media::query()->find($legacy->id));
+        Storage::disk('public')->assertExists('avatars/legacy-to-remove.jpg');
     }
 
     public function test_admin_can_generate_a_new_password_for_a_user(): void
@@ -532,5 +810,53 @@ class UserResourceTest extends TestCase
         $user->roles()->attach($adminRole);
 
         return $user;
+    }
+
+    private function storeImage(User $admin, string $path): Media
+    {
+        Storage::disk('public')->put($path, UploadedFile::fake()->image(basename($path), 800, 600)->get());
+
+        return app(StoreUploadedMediaAction::class)->handle('public', $path, $admin);
+    }
+
+    private function storeDocument(User $admin, string $path): Media
+    {
+        Storage::disk('public')->put($path, 'fake-pdf-bytes');
+
+        $media = new Media;
+        $media->disk = 'public';
+        $media->path = $path;
+        $media->original_filename = basename($path);
+        $media->mime_type = 'application/pdf';
+        $media->size = 14;
+        $media->visibility = 'public';
+        $media->uploader_id = $admin->id;
+        $media->save();
+
+        return $media;
+    }
+
+    /**
+     * A Media row built directly (bypassing StoreUploadedMediaAction, which
+     * always writes into the current MediaCategory::Image directory) so its
+     * path lands under the pre-refactor storage/app/public/avatars/
+     * directory — simulating a real avatar Media row that predates the
+     * MediaPicker convention.
+     */
+    private function storeLegacyAvatarImage(User $admin, string $path): Media
+    {
+        Storage::disk('public')->put($path, UploadedFile::fake()->image(basename($path), 400, 400)->get());
+
+        $media = new Media;
+        $media->disk = 'public';
+        $media->path = $path;
+        $media->original_filename = basename($path);
+        $media->mime_type = 'image/jpeg';
+        $media->size = Storage::disk('public')->size($path);
+        $media->visibility = 'public';
+        $media->uploader_id = $admin->id;
+        $media->save();
+
+        return $media;
     }
 }

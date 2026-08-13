@@ -58,7 +58,7 @@ class EditUser extends EditRecord
         $data['profile_phone_number'] = $this->record->profile?->phone_number;
         $data['profile_address'] = $this->record->profile?->address;
         $data['profile_zip_code'] = $this->record->profile?->zip_code;
-        $data['avatar'] = $this->record->profile?->avatar?->path;
+        $data['avatar'] = $this->record->profile?->avatar_media_id;
         $data['role_id'] = $this->record->roles()->orderBy('roles.id')->value('roles.id');
 
         return $data;

@@ -47,7 +47,7 @@ class CreateUserAction
 
             $profileData = array_merge(
                 $profileData,
-                $this->resolveAvatarMediaId($user, $data['avatar'] ?? null, $actor),
+                $this->resolveAvatarMediaId($user, $data['avatar'] ?? null),
             );
 
             if ($profileData !== []) {

@@ -9,6 +9,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -20,6 +21,14 @@ class UsersTable
     {
         return $table
             ->columns([
+                // Reads the same profile->avatar (Media) relationship as
+                // UserInfolist's ImageEntry — no separate avatar storage/
+                // resolution, no new Media rows created here.
+                ImageColumn::make('profile.avatar.path')
+                    ->label('Avatar')
+                    ->disk('public')
+                    ->circular()
+                    ->defaultImageUrl(self::defaultAvatarUrl()),
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
@@ -75,5 +84,24 @@ class UsersTable
             ->defaultSort('created_at', 'desc')
             ->paginationPageOptions([10, 25, 50, 'all'])
             ->defaultPaginationPageOption(25);
+    }
+
+    /**
+     * A self-contained inline SVG (no external service, no stored asset) —
+     * ImageColumn's fallback for users with no profile->avatar. Public so
+     * tests can assert against the exact fallback string rather than the
+     * rendered HTML (see PageMediaAndSeoTest's `MediaPicker::query()`
+     * precedent for why — Livewire's HTML snapshot isn't a reliable place
+     * to assert dynamically-resolved image sources from).
+     */
+    public static function defaultAvatarUrl(): string
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">'
+            .'<circle cx="20" cy="20" r="20" fill="#e5e7eb"/>'
+            .'<circle cx="20" cy="16" r="7" fill="#9ca3af"/>'
+            .'<path d="M6 34c0-8 6-13 14-13s14 5 14 13" fill="#9ca3af"/>'
+            .'</svg>';
+
+        return 'data:image/svg+xml,'.rawurlencode($svg);
     }
 }
