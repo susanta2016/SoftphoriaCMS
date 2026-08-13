@@ -70,4 +70,39 @@ enum MediaCategory: string implements HasColor, HasIcon, HasLabel
             ->mapWithKeys(fn (self $category) => [$category->value => $category->getLabel()])
             ->all();
     }
+
+    /**
+     * Convenience accessors over config('media.categories') — still the sole
+     * source of truth (see config/media.php) — so reusable UI built on top
+     * of a category (MediaPicker, RichEditorMediaAttachments) reads the same
+     * values as StoreUploadedMediaAction/UploadMedia instead of duplicating
+     * the config lookups.
+     */
+    public function diskName(): string
+    {
+        return config("media.categories.{$this->value}.disk", 'public');
+    }
+
+    public function directory(): string
+    {
+        return config("media.categories.{$this->value}.directory", 'media/misc');
+    }
+
+    public function maxSizeKb(): ?int
+    {
+        return config("media.categories.{$this->value}.max_size");
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function acceptedMimeTypes(): array
+    {
+        return config("media.categories.{$this->value}.accepted_mime_types", []);
+    }
+
+    public function visibility(): string
+    {
+        return $this->diskName() === 'public' ? 'public' : 'protected';
+    }
 }

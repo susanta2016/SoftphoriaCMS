@@ -15,12 +15,15 @@ use App\Enums\MenuItemDestinationType;
 use App\Enums\PageStatus;
 use App\Enums\PageTemplate;
 use App\Exceptions\Page\PageInUseByNavigationException;
+use App\Filament\Resources\Pages\PageResource;
+use App\Filament\Resources\Pages\Pages\EditPage;
 use App\Models\Menu;
 use App\Models\PageRedirect;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -157,6 +160,38 @@ class PageWorkflowTest extends TestCase
         $this->assertSame('Original Title', $page->title);
         $this->assertSame('v1', $page->sections()->first()->content_json['quote']);
         $this->assertSame(3, $page->revisions()->count());
+    }
+
+    /**
+     * ADMIN-006 review fix: restoring writes straight to the database via
+     * RestorePageRevisionAction, bypassing the Edit form's own save cycle —
+     * so without a redirect, the mounted Livewire form kept showing the
+     * pre-restore title/sections/SEO until the admin manually refreshed the
+     * page. PageResource::restoreRevisionAction() now redirects back to the
+     * same edit page, forcing EditPage::mutateFormDataBeforeFill() to refill
+     * every field from the now-restored row.
+     */
+    public function test_restoring_a_revision_via_the_edit_page_action_redirects_so_the_form_reflects_the_restored_data(): void
+    {
+        $admin = $this->admin();
+        $page = app(CreatePageAction::class)->handle([
+            'title' => 'Original Title', 'slug' => 'restore-redirect-test', 'template' => PageTemplate::Standard->value,
+        ], $admin);
+        $v1 = $page->revisions()->first();
+
+        app(UpdatePageAction::class)->handle($page, [
+            'title' => 'Changed Title', 'slug' => 'restore-redirect-test',
+        ], $admin);
+
+        Livewire::actingAs($admin)
+            ->test(EditPage::class, ['record' => $page->getRouteKey()])
+            ->callFormComponentAction('restoreRevisionActions', 'restoreRevision', data: [
+                'revision_id' => $v1->id,
+            ])
+            ->assertHasNoFormComponentActionErrors()
+            ->assertRedirect(PageResource::getUrl('edit', ['record' => $page]));
+
+        $this->assertSame('Original Title', $page->fresh()->title);
     }
 
     public function test_publish_due_pages_command_publishes_only_scheduled_pages_whose_time_has_passed(): void

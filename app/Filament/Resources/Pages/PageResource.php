@@ -244,6 +244,24 @@ class PageResource extends Resource
             });
     }
 
+    /**
+     * ADMIN-006 review fix — opens the structured-content preview in a new
+     * browser tab (App\Http\Controllers\Page\PreviewPageController) rather
+     * than the old embedded admin-only summary panel. Left visible for
+     * Draft/Scheduled/Archived pages too — the preview route shows a banner
+     * for any non-Published status instead of restricting who can preview.
+     */
+    public static function previewAction(): Action
+    {
+        return Action::make('previewPage')
+            ->label('Preview')
+            ->icon(Heroicon::OutlinedEye)
+            ->color('gray')
+            ->url(fn (?Page $record): ?string => $record ? route('pages.preview', $record) : null)
+            ->openUrlInNewTab()
+            ->visible(fn (?Page $record): bool => $record !== null);
+    }
+
     public static function restoreRevisionAction(): Action
     {
         return Action::make('restoreRevision')
@@ -264,7 +282,7 @@ class PageResource extends Resource
             ])
             ->requiresConfirmation()
             ->modalDescription('Restore this version? The current content is saved as a new revision first, so nothing is lost.')
-            ->action(function (Page $record, array $data): void {
+            ->action(function (Page $record, array $data) {
                 /** @var User $actor */
                 $actor = Auth::user();
 
@@ -273,6 +291,17 @@ class PageResource extends Resource
                 app(RestorePageRevisionAction::class)->handle($record, $revision, $actor);
 
                 Notification::make()->title('Revision restored')->success()->send();
+
+                // Restoring writes straight to the database via the Action
+                // above, bypassing the Edit form's own save cycle entirely —
+                // so the mounted Livewire form (title, sections, SEO, etc.,
+                // all flattened once in EditPage::mutateFormDataBeforeFill())
+                // is left showing the pre-restore state until now. A full
+                // redirect back to the same edit page is the same fix
+                // deletePageAction() uses to leave the record's list/page in
+                // a state that matches the database, and is the simplest way
+                // to force every field to refill from the now-restored row.
+                return redirect(static::getUrl('edit', ['record' => $record]));
             });
     }
 }

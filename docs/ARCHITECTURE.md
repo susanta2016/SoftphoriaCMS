@@ -391,3 +391,116 @@ No shared base Resource/Table/Form class exists yet. Once a second Resource
 is built against this pattern, revisit extracting one for the parts that
 turn out identical (the `columns(1)` + full-width `Grid` scaffold, in
 particular) — don't guess at the shape before then.
+
+## 14. Media selection convention, established by the ADMIN-006 review fix
+
+Every Admin field that references a Media Library asset — a featured image,
+an Open Graph/Twitter image, a section image, a gallery, a rich-text inline
+attachment — **must** be built with `App\Filament\Support\Media\MediaPicker`
+(for a form field) or `App\Filament\Support\Media\RichEditorMediaAttachments`
+(for a `RichEditor`'s file attachments). This is a platform-wide rule, not
+an ADMIN-006-specific one: **no Admin module may implement its own image/file
+upload, storage, or selection mechanism.** There is exactly one place media
+gets uploaded and stored — ADMIN-005's `App\Actions\Media\StoreUploadedMediaAction`
+plus `config('media.categories')` — and every module-level picker calls
+through to it rather than reimplementing validation, disk/directory
+resolution, or variant generation.
+
+- **`MediaPicker::make(string $name, string $label, MediaCategory $category = MediaCategory::Image, bool $multiple = false)`**
+  gives a field two explicit actions: **Upload New Media** (a `FileUpload`
+  scoped to the category's `config('media.categories')` disk/directory/
+  size/mime rules, calling `StoreUploadedMediaAction` — creates exactly one
+  `Media` row, dispatches `GenerateImageVariantsJob` when it qualifies, same
+  as the Media Library's own `UploadMedia` page) and **Select from Media
+  Library**, which opens the shared grid browser below — never a plain
+  searchable `Select`/text field as the primary way to find an asset.
+  Returns a `Fieldset` wrapping a `Hidden` state field, a thumbnail
+  `Placeholder` preview, and a keyed `Actions` row (`{name}__actions`) —
+  give every module's own extra actions their own `->key()` too, per §13,
+  so tests can address them via `callFormComponentAction()`.
+- **`MediaPicker::libraryBrowserSchema(MediaCategory $category, bool $multiple, string $fieldName = 'media', bool|Closure $required = true)`**
+  is the actual Media Library browser — a visual grid, not a searchable
+  field. It renders every matching `Media` row **immediately** on open (no
+  search required first), with an optional live-filtered search box above
+  it and a "Load more" action below it (`MediaPicker::PER_PAGE` per page,
+  so an admin visiting a library with thousands of assets never loads them
+  unbounded). Selection is a `Filament\Forms\Components\ViewField` that
+  **is** the state holder — clicking a card in
+  `resources/views/filament/forms/components/media-library-grid.blade.php`
+  calls Livewire's native `$set('{{ $getStatePath() }}', …)` magic action
+  directly against the field's own path, so no separate hidden field or
+  nested Livewire component is needed just to capture a click. Category
+  filtering happens in `MediaPicker::query()` (a `whereIn('mime_type', …)`
+  against `MediaCategory::acceptedMimeTypes()`) — at the query level, never
+  by hiding cards with CSS/JS — so a Document-only field's browser can never
+  even fetch an image row, and vice versa. This schema fragment is embedded
+  as-is everywhere the admin needs to pick existing media: both
+  `MediaPicker::selectAction()`'s own modal and
+  `RichEditorMediaAttachments`' attach modal share this exact array — there
+  is one Media Library browser in the whole admin, not a per-consumer
+  reimplementation of "grid of media cards."
+- Action *names* are sanitized (`.` → `_`) before being passed to
+  `Action::make()`, even though the field's own state path keeps the real
+  dotted `$name` (e.g. `seo.og_image_media_id`, `content_json.media_id`) —
+  Filament's action resolution parses `.` as an action-nesting separator, so
+  a dotted action name breaks `getAction()`/`callFormComponentAction()`
+  lookups. Any new action name built from a dotted field name must go
+  through the same sanitization (see `MediaPicker::actionKey()`).
+- **`RichEditorMediaAttachments::configure(RichEditor $editor, MediaCategory $category = MediaCategory::Image)`**
+  must wrap every `RichEditor::make()` a module adds. A bare `RichEditor::make()`
+  ships with its file attachments unconfigured (no disk/directory — falls
+  back to Filament's own default, which never touches the Media Library at
+  all — this was the original ADMIN-006 "Attach File is not working" bug).
+  `configure()` sets `fileAttachmentsDisk`/`Visibility`/`AcceptedFileTypes`/
+  `MaxSize` from `config('media.categories')` and overrides
+  `saveUploadedFileAttachmentUsing()` to call `StoreUploadedMediaAction`
+  (one `Media` row per upload, same variant pipeline), plus replaces the
+  vendor `attachFiles` action (same action name, so `registerActions()`
+  overrides it rather than adding a second button — see
+  `Filament\Schemas\Components\Concerns\HasActions::cacheActions()`) with a
+  version that embeds `MediaPicker::libraryBrowserSchema()` — the identical
+  grid browser, not a separate rich-text-specific selection UX — alongside
+  the upload field. Both fields are optional there (`required: false`) since
+  either one satisfies the attachment; neither field in that modal is
+  `->live()`, because a live round-trip re-renders the `RichEditor` behind
+  the modal and can invalidate the Tiptap `editorSelection` captured when
+  the toolbar button was clicked.
+- No module may create a second Media table, a second upload Action/Service,
+  or a second variant-generation pipeline. If a module's picker needs
+  something `MediaPicker`/`RichEditorMediaAttachments` doesn't support yet,
+  extend those classes — don't build a parallel one next to them.
+
+## 15. SEO metadata convention, established by the ADMIN-006 review fix
+
+Every Admin content type that has a `seo()` `MorphOne` to `SeoMetadata`
+(Database Specification §18.6 — `seo_metadata` is a single shared
+polymorphic table, never a per-module SEO table) must build its SEO fields
+with `App\Filament\Support\Seo\SeoFields`, not ad hoc `TextInput`/`Textarea`
+calls:
+
+- **`SeoFields::metaTitle()`** / **`SeoFields::metaDescription()`** enforce
+  the platform-wide limits — `SeoFields::META_TITLE_MAX` (60) and
+  `SeoFields::META_DESCRIPTION_MAX` (160) — both in the UI (native
+  `maxlength` plus a live "n/limit" `hint()`, updating via `->live()` as the
+  admin types) and server-side (Filament's `->maxLength()` adds the matching
+  `max:` validation rule to the same schema the UI uses, so there is no
+  second validation path to keep in sync).
+- **`SeoFields::canonicalUrlFields(string $name, string $isAutoName, Closure $autoPathUsing)`**
+  gives a content type an automatically-generated, overridable canonical
+  URL: default value is `config('app.url')` (never a hardcoded domain) plus
+  the content's own path, via `SeoFields::autoCanonicalUrl()`. A sibling
+  `Hidden` field (`dehydrated(false)` — UI-only, never written to
+  `seo_metadata`) tracks whether the value is still automatic; typing
+  directly into the canonical URL field flips it to manual and a keyed
+  `Actions` row (`{name}_reset_actions`, same `.`→`_` action-name
+  sanitization as §14) offers "Use automatic URL" to flip back. The owning
+  module is responsible for calling `SeoFields::syncCanonicalUrlIfAuto()`
+  from its own slug/title field's `afterStateUpdated()` (see `PageForm`) —
+  once manually overridden, a slug/title change must never silently
+  overwrite the admin's custom value — and for computing
+  `SeoFields::isCanonicalUrlAuto()` in its Edit page's
+  `mutateFormDataBeforeFill()` so a previously-saved custom canonical URL is
+  still shown as manual after a reload.
+- Do not add a second SEO table or a per-module meta-title/description
+  column — every content type with SEO needs uses the one `seo_metadata`
+  table and these shared field builders.

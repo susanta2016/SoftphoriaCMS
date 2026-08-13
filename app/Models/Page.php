@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['title', 'slug', 'template', 'status', 'summary', 'publish_at'])]
+#[Fillable(['title', 'slug', 'template', 'status', 'summary', 'publish_at', 'featured_image_id'])]
 class Page extends Model
 {
     use HasPublicId, SoftDeletes;

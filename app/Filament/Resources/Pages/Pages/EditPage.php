@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Pages\Pages;
 
 use App\Actions\Page\UpdatePageAction;
 use App\Filament\Resources\Pages\PageResource;
+use App\Filament\Support\Seo\SeoFields;
 use App\Models\PageSection;
 use App\Models\User;
 use Filament\Resources\Pages\EditRecord;
@@ -53,18 +54,22 @@ class EditPage extends EditRecord
             ->all();
 
         $seo = $this->record->seo;
-        $data['seo'] = $seo ? [
-            'meta_title' => $seo->meta_title,
-            'meta_description' => $seo->meta_description,
-            'canonical_url' => $seo->canonical_url,
-            'robots' => $seo->robots,
-            'og_title' => $seo->og_title,
-            'og_description' => $seo->og_description,
-            'og_image_media_id' => $seo->og_image_media_id,
-            'twitter_title' => $seo->twitter_title,
-            'twitter_description' => $seo->twitter_description,
-            'twitter_image_media_id' => $seo->twitter_image_media_id,
-        ] : [];
+        $storedCanonicalUrl = $seo->canonical_url ?? null;
+        $slug = (string) ($this->record->slug ?? '');
+
+        $data['seo'] = [
+            'meta_title' => $seo->meta_title ?? null,
+            'meta_description' => $seo->meta_description ?? null,
+            'canonical_url' => $storedCanonicalUrl ?: SeoFields::autoCanonicalUrl($slug),
+            'canonical_url_is_auto' => SeoFields::isCanonicalUrlAuto($storedCanonicalUrl, $slug),
+            'robots' => $seo->robots ?? null,
+            'og_title' => $seo->og_title ?? null,
+            'og_description' => $seo->og_description ?? null,
+            'og_image_media_id' => $seo->og_image_media_id ?? null,
+            'twitter_title' => $seo->twitter_title ?? null,
+            'twitter_description' => $seo->twitter_description ?? null,
+            'twitter_image_media_id' => $seo->twitter_image_media_id ?? null,
+        ];
 
         return $data;
     }

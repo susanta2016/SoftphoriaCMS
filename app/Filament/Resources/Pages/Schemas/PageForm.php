@@ -7,7 +7,9 @@ use App\Enums\PageSectionType;
 use App\Enums\PageStatus;
 use App\Enums\PageTemplate;
 use App\Filament\Resources\Pages\PageResource;
-use App\Filament\Resources\Pages\Support\MediaSelect;
+use App\Filament\Support\Media\MediaPicker;
+use App\Filament\Support\Media\RichEditorMediaAttachments;
+use App\Filament\Support\Seo\SeoFields;
 use App\Models\Page;
 use App\Models\PageRevision;
 use App\Models\User;
@@ -25,6 +27,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
@@ -53,9 +56,11 @@ class PageForm
                                         ->required()
                                         ->maxLength(255)
                                         ->live(onBlur: true)
-                                        ->afterStateUpdated(function (string $operation, ?string $state, callable $set): void {
+                                        ->afterStateUpdated(function (string $operation, ?string $state, Set $set, Get $get): void {
                                             if ($operation === 'create') {
-                                                $set('slug', Str::slug($state ?? ''));
+                                                $slug = Str::slug($state ?? '');
+                                                $set('slug', $slug);
+                                                SeoFields::syncCanonicalUrlIfAuto($set, $get, 'seo.canonical_url', 'seo.canonical_url_is_auto', $slug);
                                             }
                                         })
                                         ->columnSpanFull(),
@@ -63,6 +68,8 @@ class PageForm
                                         ->required()
                                         ->maxLength(255)
                                         ->unique(table: Page::class, column: 'slug', ignoreRecord: true)
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(fn (?string $state, Set $set, Get $get) => SeoFields::syncCanonicalUrlIfAuto($set, $get, 'seo.canonical_url', 'seo.canonical_url_is_auto', $state ?? ''))
                                         ->helperText('Auto-filled from the title — override it if needed. Changing it on an existing page creates a redirect from the old slug.'),
                                     Select::make('template')
                                         ->options(PageTemplate::options())
@@ -72,7 +79,7 @@ class PageForm
                                         ->rows(2)
                                         ->maxLength(65535)
                                         ->columnSpanFull(),
-                                    MediaSelect::make('featured_image_id', 'Featured Image')
+                                    MediaPicker::make('featured_image_id', 'Featured Image')
                                         ->columnSpanFull(),
                                     Select::make('author_id')
                                         ->label('Author')
@@ -100,15 +107,19 @@ class PageForm
                                 ->description('Independent per-page metadata (title, description, canonical, Open Graph, Twitter card, structured data).')
                                 ->collapsed()
                                 ->schema([
-                                    TextInput::make('seo.meta_title')->label('Meta title')->maxLength(255),
-                                    TextInput::make('seo.canonical_url')->label('Canonical URL')->url()->maxLength(255),
-                                    Textarea::make('seo.meta_description')->label('Meta description')->rows(2)->maxLength(500)->columnSpanFull(),
+                                    SeoFields::metaTitle(),
+                                    ...SeoFields::canonicalUrlFields(
+                                        'seo.canonical_url',
+                                        'seo.canonical_url_is_auto',
+                                        fn (Get $get): string => (string) ($get('slug') ?? ''),
+                                    ),
+                                    SeoFields::metaDescription()->columnSpanFull(),
                                     TextInput::make('seo.robots')->label('Robots')->maxLength(255)->placeholder('index, follow'),
                                     TextInput::make('seo.og_title')->label('Open Graph title')->maxLength(255),
-                                    MediaSelect::make('seo.og_image_media_id', 'Open Graph image'),
+                                    MediaPicker::make('seo.og_image_media_id', 'Open Graph image'),
                                     Textarea::make('seo.og_description')->label('Open Graph description')->rows(2)->maxLength(500)->columnSpanFull(),
                                     TextInput::make('seo.twitter_title')->label('Twitter title')->maxLength(255),
-                                    MediaSelect::make('seo.twitter_image_media_id', 'Twitter image'),
+                                    MediaPicker::make('seo.twitter_image_media_id', 'Twitter image'),
                                     Textarea::make('seo.twitter_description')->label('Twitter description')->rows(2)->maxLength(500)->columnSpanFull(),
                                 ])
                                 ->columns(2),
@@ -150,12 +161,9 @@ class PageForm
                                 ->visible(fn (?string $operation): bool => $operation === 'edit'),
 
                             Section::make('Preview')
-                                ->description('Admin-only structured preview — not the final public design.')
-                                ->collapsed()
+                                ->description('Opens the structured content in a new browser tab — this page stays open.')
                                 ->schema([
-                                    Placeholder::make('preview_display')
-                                        ->hiddenLabel()
-                                        ->content(fn (?Page $record): HtmlString => self::renderPreview($record)),
+                                    Actions::make([PageResource::previewAction()])->key('previewActions')->fullWidth(),
                                 ])
                                 ->visible(fn (?string $operation): bool => $operation === 'edit'),
 
@@ -196,17 +204,27 @@ class PageForm
                 ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
             Textarea::make('content_json.subheading')->label('Subheading')->rows(2)
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
-            MediaSelect::make('content_json.media_id', 'Image')
+            MediaPicker::make('content_json.media_id', 'Image')
                 ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::ImageText->value], true)),
             TextInput::make('content_json.cta_label')->label('Button label')
                 ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
             TextInput::make('content_json.cta_url')->label('Button URL')->url()
                 ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
 
-            RichEditor::make('content_json.body')->label('Content')->columnSpanFull()
+            RichEditorMediaAttachments::configure(RichEditor::make('content_json.body')->label('Content')->columnSpanFull())
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::RichText->value),
 
-            Textarea::make('content_json.body')->label('Text')->rows(4)->columnSpanFull()
+            // A distinct key from RichText's content_json.body above, even
+            // though both are only ever visible one-at-a-time — Filament
+            // renders every conditionally-visible field into the DOM
+            // (toggling CSS visibility client-side), so sharing a key here
+            // means two DOM nodes both claim schema-component key
+            // "content_json.body". That's invisible to a plain form save,
+            // but RichEditor's own file-attachment JS looks up its schema
+            // component by that same key and throws "Multiple schema
+            // components found" the moment two DOM nodes match — which is
+            // why "Attach File" never worked at all (ADMIN-006 review fix).
+            Textarea::make('content_json.text')->label('Text')->rows(4)->columnSpanFull()
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::ImageText->value),
 
             Repeater::make('content_json.items')
@@ -224,7 +242,7 @@ class PageForm
             TextInput::make('content_json.attribution')->label('Attribution')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Quote->value),
 
-            MediaSelect::make('content_json.media_ids', 'Images', multiple: true)
+            MediaPicker::make('content_json.media_ids', 'Images', multiple: true)
                 ->columnSpanFull()
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Gallery->value),
 
@@ -242,43 +260,6 @@ class PageForm
                     PageSectionType::ContactForm->value,
                 ], true)),
         ];
-    }
-
-    private static function renderPreview(?Page $record): HtmlString
-    {
-        if (! $record) {
-            return new HtmlString('<p style="color:#6b7280;margin:0">Save the page to preview its sections.</p>');
-        }
-
-        $record->loadMissing('sections', 'featuredImage');
-
-        $html = '';
-
-        if ($record->featuredImage) {
-            $html .= '<p style="font-weight:600;margin:0 0 0.25rem">Featured image</p><p style="margin:0 0 1rem">'.e($record->featuredImage->original_filename).'</p>';
-        }
-
-        if ($record->sections->isEmpty()) {
-            $html .= '<p style="color:#6b7280;margin:0">No sections yet.</p>';
-
-            return new HtmlString($html);
-        }
-
-        foreach ($record->sections->sortBy('sort_order') as $section) {
-            $type = PageSectionType::tryFrom($section->section_type)?->getLabel() ?? $section->section_type;
-            $state = $section->is_enabled ? '' : ' (disabled)';
-
-            $html .= '<div style="margin-bottom:0.75rem;padding:0.5rem;border:1px solid #e5e7eb;border-radius:0.375rem">';
-            $html .= '<p style="font-weight:600;margin:0">'.e($type.$state).'</p>';
-
-            if ($section->title) {
-                $html .= '<p style="margin:0.25rem 0 0;color:#6b7280">'.e($section->title).'</p>';
-            }
-
-            $html .= '</div>';
-        }
-
-        return new HtmlString($html);
     }
 
     private static function renderRevisions(?Page $record): HtmlString
