@@ -10,6 +10,13 @@
 **CDN / WAF:** Cloudflare  
 **Coding Agent:** Claude Code  
 
+**Addendum (approved 2026-08-13):** ADMIN-007's "Site identity / Global
+settings" scope is formalized as **Website Setup** — see the expanded
+ADMIN-007 entry in §10 below, and `docs/ARCHITECTURE.md` §16 for the
+implementation-level detail (Filament Cluster structure, settings storage,
+maintenance mode, Email Settings, and the Email Template registry). This is
+a Core Platform requirement, not Jacob-specific.
+
 ---
 
 # 1. Authoritative Source Hierarchy
@@ -555,6 +562,58 @@ Manage:
 - Global settings
 - Social links
 - Integration settings
+
+### ADMIN-007 Addendum — Website Setup (approved 2026-08-13)
+
+"Site identity / Global settings / Integration settings" above is formalized
+as **Website Setup**: one Core Admin sidebar item (a Filament Cluster — see
+`docs/ARCHITECTURE.md` §16.1), never split into multiple top-level nav
+entries. It contains a tabbed Settings page and the Email Template registry
+below. This is a **Core Platform** rule, reusable by any future Softphoria
+client — not Jacob-specific functionality.
+
+**Priority 1 — General Settings.** Site Name, Tagline, Site URL, Logo and
+Favicon (both via the existing MediaPicker/Media Library — ADMIN-005/§14,
+never a separate upload field), a Maintenance Mode toggle, and a Maintenance
+Page selector scoped to existing published CMS Pages (ADMIN-006). When
+Maintenance Mode is on, public requests must render the selected page
+instead of the normal site; the admin area must always remain reachable;
+the maintenance page must never be able to recursively re-enter maintenance
+mode. No separate maintenance-page content system may be created — reuse
+Pages/CMS as-is.
+
+**Priority 1 — Email Settings.** Enable/disable email sending, provider
+type, SMTP host/port/encryption/username/password, sender name/email,
+reply-to name/email, a test recipient address, and a Send Test Email action.
+SMTP passwords must be encrypted at rest and never returned in plaintext.
+Test-sending must work against the currently saved configuration and,
+where practical, the currently edited-but-unsaved configuration. Reuse
+Laravel's own mailer/provider abstraction (`config('mail.mailers.*')`) —
+do not build a bespoke provider abstraction or a module-specific SMTP
+implementation.
+
+**Priority 2 — Email Templates.** A fixed, seeded registry — administrators
+may edit existing templates (subject, HTML body, plain-text fallback,
+enabled state) but may not create or delete system templates. Each template
+key may have a **User** and/or **Admin** recipient variant, edited via two
+tabs when both exist (e.g. "New Registration" → User: Welcome email, Admin:
+new-registration alert). Initial templates cover only currently-approved
+Phase 1 events (Verify Email, New Registration/Welcome, Password
+Reset/Generate New Password, Profile Update, Newsletter
+Confirmation/Registration, Contact Form Confirmation, Contact Form Admin
+Notification) — module-specific notifications (comments, membership,
+payments, Music, Community, etc.) are added only once their owning module
+exists and its notification copy is approved; do not build fake
+functionality for a module that doesn't exist yet.
+
+**Platform-wide reuse rule:** every future module that sends email or reads
+a site-wide setting must reuse the centralized Settings storage, the
+centralized mail-provider configuration, the centralized Email Template
+registry, the centralized User/Admin recipient model, the centralized
+variable-substitution mechanism, and the existing queue/Media
+Library/audit-logging infrastructure — never a module-specific settings
+table, SMTP config, template table, or notification system. See
+`docs/ARCHITECTURE.md` §16 for the concrete class/table design.
 
 ## ADMIN-008 — SEO
 

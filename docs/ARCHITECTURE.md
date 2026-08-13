@@ -504,3 +504,273 @@ calls:
 - Do not add a second SEO table or a per-module meta-title/description
   column — every content type with SEO needs uses the one `seo_metadata`
   table and these shared field builders.
+
+## 16. Website Setup (Core Admin Settings), approved 2026-08-13
+
+**Status:** Authoritative requirement, documented ahead of implementation per
+the client-approved instruction of 2026-08-13. This is a **Core Platform**
+convention (§1) — Website Setup, centralized Email Settings, the Email
+Template registry, and the notification-sending mechanism it establishes are
+generic across any future Softphoria client, not Jacob-specific, and every
+later module that needs to send an email or read a site-wide setting reuses
+what this section defines rather than building its own.
+
+### 16.1 One sidebar item, built as a Filament Cluster
+
+"Website Setup" is **one** Core Admin sidebar entry
+(`app/Filament/Clusters/WebsiteSetup.php`, a `Filament\Clusters\Cluster`) —
+never three separate top-level nav items for General/Email/Templates. It
+contains:
+
+- **`Settings` page** (`app/Filament/Clusters/WebsiteSetup/Pages/Settings.php`)
+  — a single Filament Page whose schema is one
+  `Filament\Schemas\Components\Tabs` with two tabs, **General** and
+  **Email**, per the approved "existing tab convention" (Filament's native
+  `Tabs` component is the established mechanism for this — the first use of
+  `Tabs` in this codebase; every later multi-section settings-style screen
+  should follow the same shape rather than inventing another layout).
+- **`EmailTemplateResource`** (`app/Filament/Clusters/WebsiteSetup/Resources/EmailTemplates/`)
+  — the fixed template registry (§16.4), nested in the same cluster so it
+  still reads as part of the one "Website Setup" sidebar entry, not a
+  separate resource floating elsewhere in the nav.
+
+This is the first Cluster in the app — `docs/ARCHITECTURE.md` §13's Resource
+conventions (Grid/Group layout, header actions not a bottom bar,
+self-protection + audit trail on mutating actions) still apply everywhere
+they're relevant inside it.
+
+### 16.2 Settings storage — reuses the existing `settings` table, no new migration
+
+General and Email Settings are **key/value rows in the existing `settings`
+table** (`group`, `key`, `value`, `type` — DB-002/003, already migrated,
+already exactly the shape this needs). No new table or column is introduced
+for either tab. Concretely:
+
+- `group = 'general'`: `site_name`, `tagline`, `site_url`, `logo_media_id`,
+  `favicon_media_id`, `maintenance_mode` (`type = 'boolean'`),
+  `maintenance_page_id`.
+- `group = 'email'`: `enabled` (`type = 'boolean'`), `provider` (currently
+  only `smtp` is admin-configurable — see §16.3), `smtp_host`, `smtp_port`,
+  `smtp_encryption`, `smtp_username`, `smtp_password` (`type = 'encrypted'`
+  — see below), `from_name`, `from_email`, `reply_to_name`,
+  `reply_to_email`, `test_recipient_email`.
+- **`App\Shared\Services\Settings\SettingsRepository`** (new, platform-wide,
+  `app/Shared/Services/Settings/`) is the single read/write entry point —
+  `get(string $group, string $key, mixed $default = null)` /
+  `set(string $group, string $key, mixed $value)` / `all(string $group)` —
+  so no module ever queries the `settings` table directly. It is
+  `type`-aware: `type = 'boolean'` round-trips through PHP bool casting,
+  `type = 'encrypted'` round-trips through Laravel's `Crypt` facade
+  (`Crypt::encryptString()` on write, `Crypt::decryptString()` on read) so
+  `smtp_password` is never stored or returned in plaintext — this satisfies
+  the "encrypted at rest, never returned in plaintext" requirement without a
+  dedicated encrypted column, reusing the `type` discriminator the `Setting`
+  model already has.
+- Logo and Favicon fields are built with **`MediaPicker::make('logo_media_id', 'Logo', MediaCategory::Image)`** /
+  the equivalent for favicon — per §14, no other upload mechanism is
+  permitted here. `SettingsRepository` stores/reads the selected `media.id`
+  the same way `Page::featured_image_id` already does.
+
+### 16.3 Maintenance Mode
+
+- **Fields:** `maintenance_mode` (bool) and `maintenance_page_id` — a
+  `Select`/`MediaPicker`-style existing-record picker scoped to
+  `Page::query()->where('status', PageStatus::Published)` (see §16.5 for why
+  it must be published). **No separate maintenance-page content system is
+  created** — the selected record is an ordinary `pages` row, edited through
+  the existing Pages Resource like any other page.
+- **Enforcement:** `App\Http\Middleware\CheckMaintenanceMode` (new), applied
+  globally to the `web` middleware group in `bootstrap/app.php`. It exits
+  immediately (`return $next($request)`) when:
+  - the request path is `admin` or `admin/*` (the entire Filament panel —
+    login included, so an admin can always turn maintenance mode back off),
+  - the request path matches Livewire's own AJAX/asset endpoint prefix —
+    **not** a hardcoded `livewire/*`. Livewire 4 derives a per-installation
+    prefix from `APP_KEY` (`Livewire\Mechanisms\HandleRequests\EndpointResolver::prefix()`,
+    e.g. `/livewire-f1db4272`) specifically so the endpoint can't be
+    guessed — a hardcoded path silently misses it. (Caught in browser
+    verification: enabling Maintenance Mode intercepted the admin's own
+    Save request and rendered the maintenance page into the middle of the
+    Settings form. `EndpointResolver::prefix()` is called at request time
+    so the exclusion is correct regardless of what it resolves to.)
+  - or `maintenance_mode` is off. This check is wrapped in a
+    `try`/`catch (QueryException)` that fails open (treats the request as
+    "maintenance mode off") — every request passes through this middleware,
+    including on a freshly deployed, not-yet-migrated environment where the
+    `settings` table doesn't exist yet, and that must never turn into a hard
+    500 on every page.
+
+  Otherwise it renders the selected page directly through the **existing**
+  `App\Shared\Support\Pages\PageContentRenderer` (the same renderer
+  `PreviewPageController` already uses — ADMIN-006 review fix) and returns
+  it with HTTP **503** (standard practice for site-wide maintenance, and
+  consistent with the Implementation Guide §12's "never publicly index...
+  draft content" — a 503 tells crawlers this is temporary and not the
+  page's real status).
+- **No recursion is possible by construction:** the middleware renders the
+  page's content directly: it does not re-dispatch the request through
+  routing/middleware a second time, so the selected maintenance page can
+  never trigger its own maintenance check again regardless of its own
+  content.
+- **Known scope boundary:** Stage D (public frontend) does not exist yet —
+  today the only non-admin route is `/` (the framework's default `welcome`
+  view). This middleware is written to guard the `web` group generically
+  (by path exclusion, not by an allowlist of specific public routes) so it
+  needs no changes once Stage D adds real public pages/routes — but until
+  then, enabling maintenance mode only visibly affects `/`. This is not a
+  gap to "fix" now — building out Stage D routes early would violate the
+  Implementation Guide §2 Critical Rule.
+
+### 16.4 Email Settings — provider abstraction
+
+- **No new mail provider abstraction is built.** "Provider type" is
+  Laravel's own existing `config('mail.mailers.*')` transport abstraction —
+  Phase 1 exposes exactly one admin-configurable provider, `smtp`, matching
+  the fields the client approved (host/port/encryption/username/password).
+  A future provider (Postmark, SES, etc.) is added as another
+  `config('mail.mailers.*')` entry Laravel already supports, never a
+  module- or provider-specific bespoke implementation.
+- **Runtime application:** `App\Shared\Services\Settings\MailSettingsApplier`
+  (new) reads `SettingsRepository`'s `email` group and calls
+  `config(['mail.mailers.smtp' => [...], 'mail.default' => ..., 'mail.from' => [...]])`
+  — host/port/encryption-scheme/username/password/from only, since those
+  are Laravel's real global mail config keys. Reply-To has no equivalent
+  global config key in Laravel; it is applied per-message
+  (`->replyTo($email, $name)`) by whichever code is about to send
+  (`TemplatedMailer`, the Send Test Email action), reading it directly from
+  `SettingsRepository`. `MailSettingsApplier::apply()` is called
+  **immediately before mail is sent** — from inside `TemplatedMailer::send()`
+  and the Send Test Email action — rather than unconditionally on every
+  request, so a page load that sends no mail costs no extra `settings`
+  lookup. No queued-job/worker-restart synchronization problem exists
+  because a queue worker re-boots the framework (and re-reads `settings`)
+  on every job per Laravel's normal queue lifecycle.
+- **"Enable/Disable Email Sending":** when disabled, `MailSettingsApplier`
+  forces `mail.default` to Laravel's built-in `log` driver regardless of the
+  stored provider config — mail is composed and logged, never actually
+  delivered, without every call site needing its own enabled/disabled
+  branch.
+- **Send Test Email** is a Filament `Action` on the Email tab. It reads the
+  values directly from the **live form state** (`Get $get`, not the
+  database) to build a one-off mailer config and send through it — so
+  testing works against an edited-but-unsaved configuration as well as a
+  previously-saved one, per the approved requirement. If a field is blank in
+  the live form, it falls back to the saved `SettingsRepository` value for
+  that key (e.g. testing after only changing the port shouldn't require
+  retyping the host).
+
+### 16.5 Email Templates — fixed, seeded registry
+
+- **New table `email_templates`** (new migration — the only genuinely new
+  migration in this feature; a structured, independently-editable,
+  seed-then-lock registry does not fit the generic `settings` key/value
+  shape): `notification_key` (string), `recipient_type` (`user`|`admin`),
+  `is_enabled` (bool, default true), `subject` (string), `html_body`
+  (longtext), `text_body` (longtext, nullable), `available_variables`
+  (json — informational, not admin-editable, documents which `{{token}}`
+  placeholders this key supports), audit columns (`created_by`/`updated_by`
+  per §3's audit-column convention), unique on
+  (`notification_key`, `recipient_type`).
+- **Fixed registry, not admin-CRUD:** `EmailTemplateResource` has
+  `canCreate() => false` and no delete action — administrators edit
+  `subject`/`html_body`/`text_body`/`is_enabled` on existing rows only. New
+  rows are added exclusively by extending the seeder (§16.6) when a new
+  module's notification requirements are approved, never through the admin
+  UI. This directly satisfies "Administrators may edit templates but may not
+  arbitrarily create or delete system templates."
+- **Edit UI:** opening a template (grouped/listed by `notification_key`)
+  shows a `Tabs` component with **User** and **Admin** tabs (same native
+  Filament `Tabs` convention as §16.1), each editing that key's `user`/
+  `admin` row where one exists for that key — a key with only one recipient
+  variant (e.g. `email_verification` is user-only) simply has no tab for the
+  variant that doesn't apply, rather than showing an empty/disabled one.
+- **Variable substitution is plain token replacement, never Blade/PHP
+  execution.** `App\Shared\Services\Notifications\TemplatedMailer` (new,
+  the single centralized sending entry point every module must call) resolves
+  `{{token}}` occurrences in `subject`/`html_body`/`text_body` via a literal
+  `str_replace()` against the caller-supplied variable array — admin-edited
+  template content is never passed to `Blade::render()` or `eval()`-adjacent
+  mechanisms, which would let an admin-editable field execute arbitrary
+  server-side code. This is a deliberate security boundary, not an
+  oversight.
+- **`TemplatedMailer::send(string $notificationKey, EmailRecipientType $recipientType, string $to, array $variables = []): void`**
+  looks up the enabled row for `(notificationKey, recipientType)`, skips
+  silently if disabled or missing (a template being off must never throw),
+  substitutes variables, and sends via `App\Shared\Mail\TemplatedNotificationMail`
+  — a small real `Mailable`, not a raw `Mail::send($view, ...)` array call.
+  This matters beyond style: Laravel's `Mail::fake()` only records sends
+  that are an actual `Mailable` instance (`MailFake::sendMail()` silently
+  no-ops otherwise), so routing through one real Mailable class is what
+  keeps every Email Template send — and the `ResetPassword::toMailUsing()`
+  integration below, which must return a Mailable anyway — observable in
+  tests via `Mail::assertSent(TemplatedNotificationMail::class, ...)`.
+  `TemplatedMailer::renderAsMailable()` builds the same `TemplatedNotificationMail`
+  for integration points that must return a Mailable rather than have
+  `send()` deliver it directly. This is the **one** notification-sending
+  path every current and future module must call — see §16.7.
+- **`ResetPassword::toMailUsing()` integration** (`AppServiceProvider::boot()`)
+  — the first real (non-inert) consumer, replacing Laravel's own built-in
+  markdown content for the `password_reset`/`user` template, already
+  triggered today by `SendUserPasswordResetLinkAction`/`GenerateNewPasswordAction`
+  via `Password::broker()`. Falls back to Laravel's default `MailMessage`
+  content if the template is disabled or missing — unlike a "welcome"
+  email, password-reset delivery is functionally required for account
+  recovery, so "disabled" must not silently break the reset flow. The
+  `{{reset_url}}` variable degrades to `config('app.url')` when
+  `Route::has('password.reset')` is false, since that route doesn't exist
+  until AUTH-001 ships — guarded rather than fabricated ahead of that
+  stage.
+
+### 16.6 Initial seeded registry
+
+`database/seeders/EmailTemplateSeeder.php` (new, called from
+`DatabaseSeeder`) seeds exactly these keys — chosen because they map to
+functionality that exists or is explicitly approved for Phase 1, per the
+Implementation Guide's AUTH-001/ADMIN-003 scope; nothing here is invented
+ahead of its owning feature:
+
+| `notification_key` | Recipients | Approved event |
+|---|---|---|
+| `email_verification` | user | Verify Email |
+| `user_registered` | user + admin | New Registration / Welcome |
+| `password_reset` | user | Password Reset / Generate New Password |
+| `profile_updated` | user | Profile Update |
+| `newsletter_subscribed` | user | Newsletter Confirmation/Registration |
+| `contact_form_submitted` | user + admin | Contact Form Confirmation / Contact Form Admin Notification |
+
+`password_reset` is the one key with a real sender today: it replaces the
+default `Illuminate\Auth\Notifications\ResetPassword` mail content already
+triggered by `SendUserPasswordResetLinkAction`/`GenerateNewPasswordAction`
+(via `Password::broker()`), by customizing that notification's
+`toMailUsing()` to call `TemplatedMailer` instead of Laravel's own built-in
+markdown template — the first real (non-inert) consumer of this system.
+`email_verification`, `user_registered`, and `newsletter_subscribed` have no
+trigger point yet (AUTH-001/registration and the public newsletter
+subscribe flow are not built) — their rows exist and are editable now, per
+the approved requirement to seed them ahead of time, but sending them is
+inert until the owning feature ships; **do not fabricate a fake trigger** to
+exercise them early. `contact_form_submitted` is seeded but likewise has no
+public Contact form yet (ADMIN-010/JACOB-009) to call it.
+
+### 16.7 Platform-wide rule
+
+Every future module that needs to email a user or an admin, or read a
+site-wide setting, reuses:
+
+- `SettingsRepository` for any `settings`-table value (never a
+  module-specific settings table or hardcoded config),
+- `MailSettingsApplier`'s effect (automatic — no module calls this
+  directly, it applies once per request),
+- `TemplatedMailer::send()` for anything sent by email (never
+  `Mail::raw()`/a bespoke `Mailable` with inline hardcoded copy, never a
+  module-specific template table),
+- `MediaPicker`/`RichEditorMediaAttachments` (§14) for any upload/selection
+  the settings or template screens need,
+- `AuditLogService` for settings/template changes, matching §13's existing
+  "every mutating action" convention.
+
+A module that needs a new *kind* of notification adds a seeded
+`notification_key` (and, if genuinely module-specific, an `available_variables`
+entry) to `EmailTemplateSeeder` when that module ships and its notification
+copy is approved — it never creates a parallel table, a parallel sending
+path, or a module-specific SMTP config.

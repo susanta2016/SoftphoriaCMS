@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\PublishDuePagesCommand;
+use App\Http\Middleware\CheckMaintenanceMode;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -14,7 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Website Setup's Maintenance Mode (docs/ARCHITECTURE.md §16.3) —
+        // excludes /admin/*, /livewire/*, and /up internally.
+        $middleware->web(append: [
+            CheckMaintenanceMode::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

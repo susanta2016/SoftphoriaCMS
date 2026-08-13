@@ -60,6 +60,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Modules'), for: 'App\Modules')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->discoverPages(in: app_path('Modules'), for: 'App\Modules')
+            ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\Filament\Clusters')
             ->pages([
                 Dashboard::class,
             ])

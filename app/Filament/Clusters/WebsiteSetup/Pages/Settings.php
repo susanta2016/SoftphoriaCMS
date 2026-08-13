@@ -1,0 +1,344 @@
+<?php
+
+namespace App\Filament\Clusters\WebsiteSetup\Pages;
+
+use App\Enums\MediaCategory;
+use App\Filament\Clusters\WebsiteSetup;
+use App\Filament\Support\Media\MediaPicker;
+use App\Models\Page as PageModel;
+use App\Models\Setting;
+use App\Shared\Services\AuditLogService;
+use App\Shared\Services\Settings\MailSettingsApplier;
+use App\Shared\Services\Settings\SettingsRepository;
+use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\EmbeddedSchema;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Throwable;
+
+/**
+ * Website Setup's General + Email Settings tabs (docs/ARCHITECTURE.md §16).
+ * Not a Resource — a single Filament Page storing everything as rows in the
+ * existing `settings` table via SettingsRepository, never a new table.
+ */
+class Settings extends Page
+{
+    protected static ?string $cluster = WebsiteSetup::class;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
+
+    protected static ?string $title = 'Settings';
+
+    /**
+     * @var array<string, mixed>|null
+     */
+    public ?array $data = [];
+
+    public function mount(): void
+    {
+        $this->form->fill($this->loadFormState());
+    }
+
+    public function defaultForm(Schema $schema): Schema
+    {
+        return $schema->statePath('data');
+    }
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema->components([
+            Tabs::make('WebsiteSetupTabs')
+                ->tabs([
+                    Tab::make('General')
+                        ->schema($this->generalTabSchema()),
+                    Tab::make('Email')
+                        ->schema($this->emailTabSchema()),
+                ]),
+        ]);
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $schema->components([
+            EmbeddedSchema::make('form'),
+        ]);
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('save')
+                ->label('Save changes')
+                ->action(fn () => $this->save()),
+        ];
+    }
+
+    /**
+     * @return array<int, Component>
+     */
+    protected function generalTabSchema(): array
+    {
+        return [
+            TextInput::make('general.site_name')
+                ->label('Site Name')
+                ->required()
+                ->maxLength(255),
+            TextInput::make('general.tagline')
+                ->label('Tagline')
+                ->maxLength(255),
+            TextInput::make('general.site_url')
+                ->label('Site URL')
+                ->url()
+                ->required()
+                ->maxLength(255),
+            MediaPicker::make('general.logo_media_id', 'Logo', MediaCategory::Image),
+            MediaPicker::make('general.favicon_media_id', 'Favicon', MediaCategory::Image),
+            Toggle::make('general.maintenance_mode')
+                ->label('Maintenance Mode')
+                ->live()
+                ->helperText('When on, every public request shows the selected Maintenance Page instead of the normal site. The admin area always stays reachable.'),
+            Select::make('general.maintenance_page_id')
+                ->label('Maintenance Page')
+                ->options(fn (): array => PageModel::query()->published()->orderBy('title')->pluck('title', 'id')->all())
+                ->searchable()
+                ->helperText('Only published pages can be selected — reuses the existing Pages/CMS, never a separate maintenance content system.')
+                ->required(fn (Get $get): bool => (bool) $get('general.maintenance_mode'))
+                ->visible(fn (Get $get): bool => (bool) $get('general.maintenance_mode')),
+        ];
+    }
+
+    /**
+     * @return array<int, Component>
+     */
+    protected function emailTabSchema(): array
+    {
+        return [
+            Toggle::make('email.enabled')
+                ->label('Enable Email Sending')
+                ->live()
+                ->helperText('When off, mail is composed and logged, never actually delivered.'),
+            Select::make('email.provider')
+                ->label('Provider')
+                ->options(['smtp' => 'SMTP'])
+                ->default('smtp')
+                ->required(),
+            TextInput::make('email.smtp_host')
+                ->label('Host')
+                ->maxLength(255),
+            TextInput::make('email.smtp_port')
+                ->label('Port')
+                ->numeric()
+                ->maxLength(10),
+            Select::make('email.smtp_encryption')
+                ->label('Encryption')
+                ->options(['none' => 'None', 'tls' => 'TLS', 'ssl' => 'SSL'])
+                ->default('tls'),
+            TextInput::make('email.smtp_username')
+                ->label('Username')
+                ->maxLength(255),
+            TextInput::make('email.smtp_password')
+                ->label('Password')
+                ->password()
+                ->revealable()
+                ->maxLength(255)
+                ->helperText('Leave blank to keep the currently saved password. Never displayed once saved.'),
+            TextInput::make('email.from_name')
+                ->label('Sender Name')
+                ->maxLength(255),
+            TextInput::make('email.from_email')
+                ->label('Sender Email')
+                ->email()
+                ->maxLength(255),
+            TextInput::make('email.reply_to_name')
+                ->label('Reply-To Name')
+                ->maxLength(255),
+            TextInput::make('email.reply_to_email')
+                ->label('Reply-To Email')
+                ->email()
+                ->maxLength(255),
+            TextInput::make('email.test_recipient_email')
+                ->label('Test Recipient Email')
+                ->email()
+                ->maxLength(255),
+            Actions::make([$this->sendTestEmailAction()])->key('sendTestEmailActions'),
+        ];
+    }
+
+    /**
+     * Reads live, unsaved form values first (Get $get) and falls back to the
+     * saved configuration for any field left blank — so testing works
+     * against an edited-but-unsaved configuration as well as a previously
+     * saved one, per the approved requirement. Always attempts a real send
+     * regardless of the "Enable Email Sending" toggle's current state,
+     * since that is the point of a test.
+     */
+    protected function sendTestEmailAction(): Action
+    {
+        return Action::make('sendTestEmail')
+            ->label('Send Test Email')
+            ->color('gray')
+            ->action(function (Get $get): void {
+                $to = $get('email.test_recipient_email');
+
+                if (blank($to)) {
+                    Notification::make()->title('Enter a test recipient email first.')->danger()->send();
+
+                    return;
+                }
+
+                $saved = app(SettingsRepository::class)->all('email');
+                $pick = fn (string $key): mixed => filled($get("email.{$key}")) ? $get("email.{$key}") : ($saved[$key] ?? null);
+
+                app(MailSettingsApplier::class)->applyFromArray([
+                    'enabled' => true,
+                    'smtp_host' => $pick('smtp_host'),
+                    'smtp_port' => $pick('smtp_port'),
+                    'smtp_encryption' => $pick('smtp_encryption'),
+                    'smtp_username' => $pick('smtp_username'),
+                    'smtp_password' => $pick('smtp_password'),
+                    'from_name' => $pick('from_name'),
+                    'from_email' => $pick('from_email'),
+                ]);
+
+                $replyToEmail = $pick('reply_to_email');
+                $replyToName = $pick('reply_to_name');
+
+                try {
+                    Mail::raw(
+                        'This is a test email sent from Website Setup to confirm the current Email Settings configuration.',
+                        function ($message) use ($to, $replyToEmail, $replyToName): void {
+                            $message->to($to)->subject('Softphoria — Test Email');
+
+                            if (filled($replyToEmail)) {
+                                $message->replyTo($replyToEmail, $replyToName ?: null);
+                            }
+                        },
+                    );
+
+                    Notification::make()->title("Test email sent to {$to}")->success()->send();
+                } catch (Throwable $exception) {
+                    Notification::make()
+                        ->title('Test email failed to send')
+                        ->body($exception->getMessage())
+                        ->danger()
+                        ->send();
+                }
+            });
+    }
+
+    public function save(): void
+    {
+        $state = $this->form->getState();
+        $settings = app(SettingsRepository::class);
+
+        $general = $state['general'];
+        $settings->set('general', 'site_name', $general['site_name']);
+        $settings->set('general', 'tagline', $general['tagline']);
+        $settings->set('general', 'site_url', $general['site_url']);
+        $settings->set('general', 'logo_media_id', $general['logo_media_id'], 'integer');
+        $settings->set('general', 'favicon_media_id', $general['favicon_media_id'], 'integer');
+        $settings->set('general', 'maintenance_mode', (bool) $general['maintenance_mode'], 'boolean');
+
+        // The Maintenance Page field is only visible (and therefore only
+        // dehydrated into form state) while Maintenance Mode is on — when
+        // it's hidden, leave the previously saved selection untouched
+        // rather than wiping it, so toggling the mode back on later still
+        // shows the admin's last choice.
+        if (array_key_exists('maintenance_page_id', $general)) {
+            $settings->set('general', 'maintenance_page_id', $general['maintenance_page_id'], 'integer');
+        }
+
+        $email = $state['email'];
+        $settings->set('email', 'enabled', (bool) $email['enabled'], 'boolean');
+        $settings->set('email', 'provider', $email['provider']);
+        $settings->set('email', 'smtp_host', $email['smtp_host']);
+        $settings->set('email', 'smtp_port', $email['smtp_port']);
+        $settings->set('email', 'smtp_encryption', $email['smtp_encryption']);
+        $settings->set('email', 'smtp_username', $email['smtp_username']);
+
+        // Only overwrite the encrypted password if the admin typed a new
+        // one — an intentionally blank field means "keep the saved value",
+        // never "clear it", since the field is never prefilled (§16.2).
+        if (filled($email['smtp_password'] ?? null)) {
+            $settings->set('email', 'smtp_password', $email['smtp_password'], 'encrypted');
+        }
+
+        $settings->set('email', 'from_name', $email['from_name']);
+        $settings->set('email', 'from_email', $email['from_email']);
+        $settings->set('email', 'reply_to_name', $email['reply_to_name']);
+        $settings->set('email', 'reply_to_email', $email['reply_to_email']);
+        $settings->set('email', 'test_recipient_email', $email['test_recipient_email']);
+
+        $this->recordAudit('general', array_keys($general));
+        // Never log the password value itself, even in metadata.
+        $this->recordAudit('email', array_keys(array_diff_key($email, ['smtp_password' => true])));
+
+        Notification::make()->title('Settings saved')->success()->send();
+
+        $this->form->fill($this->loadFormState());
+    }
+
+    /**
+     * @param  array<int, string>  $changedKeys
+     */
+    private function recordAudit(string $group, array $changedKeys): void
+    {
+        $entity = Setting::query()->where('group', $group)->first();
+
+        if (! $entity) {
+            return;
+        }
+
+        app(AuditLogService::class)->record(Auth::user(), 'settings.updated', $entity, [
+            'group' => $group,
+            'keys' => $changedKeys,
+        ]);
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function loadFormState(): array
+    {
+        $settings = app(SettingsRepository::class);
+
+        return [
+            'general' => [
+                'site_name' => $settings->get('general', 'site_name'),
+                'tagline' => $settings->get('general', 'tagline'),
+                'site_url' => $settings->get('general', 'site_url', config('app.url')),
+                'logo_media_id' => $settings->get('general', 'logo_media_id'),
+                'favicon_media_id' => $settings->get('general', 'favicon_media_id'),
+                'maintenance_mode' => $settings->get('general', 'maintenance_mode', false),
+                'maintenance_page_id' => $settings->get('general', 'maintenance_page_id'),
+            ],
+            'email' => [
+                'enabled' => $settings->get('email', 'enabled', false),
+                'provider' => $settings->get('email', 'provider', 'smtp'),
+                'smtp_host' => $settings->get('email', 'smtp_host'),
+                'smtp_port' => $settings->get('email', 'smtp_port'),
+                'smtp_encryption' => $settings->get('email', 'smtp_encryption', 'tls'),
+                'smtp_username' => $settings->get('email', 'smtp_username'),
+                'smtp_password' => null,
+                'from_name' => $settings->get('email', 'from_name'),
+                'from_email' => $settings->get('email', 'from_email'),
+                'reply_to_name' => $settings->get('email', 'reply_to_name'),
+                'reply_to_email' => $settings->get('email', 'reply_to_email'),
+                'test_recipient_email' => $settings->get('email', 'test_recipient_email'),
+            ],
+        ];
+    }
+}
