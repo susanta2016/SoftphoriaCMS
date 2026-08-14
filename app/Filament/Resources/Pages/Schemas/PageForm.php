@@ -208,8 +208,20 @@ class PageForm
                 ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::ImageText->value], true)),
             TextInput::make('content_json.cta_label')->label('Button label')
                 ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
-            TextInput::make('content_json.cta_url')->label('Button URL')->url()
+            TextInput::make('content_json.cta_url')->label('Button URL')->maxLength(255)
+                ->helperText('An absolute URL, a relative path (e.g. /music), or # while the destination isn\'t built yet.')
                 ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
+
+            TextInput::make('content_json.secondary_cta_label')->label('Secondary button label')
+                ->helperText('Optional — a second, outlined button shown next to the primary one.')
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
+            TextInput::make('content_json.secondary_cta_url')->label('Secondary button URL')->maxLength(255)
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
+            TextInput::make('content_json.tertiary_label')->label('Additional link label')
+                ->helperText('Optional — a plain link shown below the buttons (e.g. "Watch Introduction").')
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
+            TextInput::make('content_json.tertiary_url')->label('Additional link URL')->maxLength(255)
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
 
             RichEditorMediaAttachments::configure(RichEditor::make('content_json.body')->label('Content')->columnSpanFull())
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::RichText->value),

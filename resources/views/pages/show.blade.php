@@ -71,6 +71,12 @@
                             @if (!empty($content['cta_label']) && !empty($content['cta_url']))
                                 <a class="cta-button" href="{{ $content['cta_url'] }}">{{ $content['cta_label'] }}</a>
                             @endif
+                            @if (!empty($content['secondary_cta_label']) && !empty($content['secondary_cta_url']))
+                                <a class="cta-button" href="{{ $content['secondary_cta_url'] }}" style="background:transparent;color:#111827;border:1px solid #111827;margin-left:0.5rem">{{ $content['secondary_cta_label'] }}</a>
+                            @endif
+                            @if (!empty($content['tertiary_label']) && !empty($content['tertiary_url']))
+                                <p style="margin-top:0.75rem"><a href="{{ $content['tertiary_url'] }}">{{ $content['tertiary_label'] }}</a></p>
+                            @endif
                         </div>
                         @break
 

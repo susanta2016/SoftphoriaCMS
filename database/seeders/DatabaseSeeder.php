@@ -24,5 +24,6 @@ class DatabaseSeeder extends Seeder
 
         $this->call(NavigationMenuSeeder::class);
         $this->call(EmailTemplateSeeder::class);
+        $this->call(HomePageSeeder::class);
     }
 }
