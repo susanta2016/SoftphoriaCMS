@@ -25,17 +25,20 @@
         'YouTube' => ['href' => '#', 'path' => 'M21.6 8.2a2.5 2.5 0 0 0-1.8-1.8C18.1 6 12 6 12 6s-6.1 0-7.8.4A2.5 2.5 0 0 0 2.4 8.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 3.8 2.5 2.5 0 0 0 1.8 1.8C6.1 18 12 18 12 18s6.1 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-3.8ZM10 15V9l5 3-5 3Z'],
         'Twitter' => ['href' => '#', 'path' => 'M18.9 6.1a5.4 5.4 0 0 1-1.6.5 2.8 2.8 0 0 0 1.2-1.6c-.6.3-1.2.6-1.9.7a2.8 2.8 0 0 0-4.8 2.6A8 8 0 0 1 5.9 5.8a2.8 2.8 0 0 0 .9 3.8 2.8 2.8 0 0 1-1.3-.4v.1a2.8 2.8 0 0 0 2.3 2.8 2.8 2.8 0 0 1-1.3.1 2.8 2.8 0 0 0 2.6 2 5.7 5.7 0 0 1-4.2 1.2 8 8 0 0 0 4.4 1.3c5.2 0 8.1-4.4 8.1-8.2v-.4a5.9 5.9 0 0 0 1.5-1.5Z'],
     ];
+
+    // Approved footer artwork, uploaded via the media library (docs/Reference UI/Frontend/footer-background.png).
+    $footerBackgroundMedia = \App\Models\Media::query()->where('public_id', '01m05vdtr3n2p1vkdrrd0bch59')->first();
+    $footerBackgroundUrl = $footerBackgroundMedia
+        ? \Illuminate\Support\Facades\Storage::disk($footerBackgroundMedia->disk)->url($footerBackgroundMedia->path)
+        : null;
 @endphp
 
-<footer class="relative isolate overflow-hidden bg-brand-sky">
-    {{-- Decorative watermark ring behind the Community column, matching the approved footer artwork. --}}
-    <div
-        aria-hidden="true"
-        class="pointer-events-none absolute top-1/2 left-1/2 -z-10 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-brand-gold/25 sm:h-80 sm:w-80"
-    ></div>
-
+<footer
+    class="relative isolate overflow-hidden bg-brand-sky bg-[length:auto_206%] bg-[position:20%_center] bg-no-repeat"
+    @style([$footerBackgroundUrl ? "background-image: url('$footerBackgroundUrl')" : ''])
+>
     <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
+        <div class="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5 lg:divide-x lg:divide-brand-navy/15 lg:[&>div]:pl-8 lg:[&>div]:first:pl-0">
             <div class="col-span-2 sm:col-span-3 lg:col-span-1">
                 <x-site.brand-mark :site-name="$siteName" :tagline="$tagline" :on-dark="false"/>
                 <p class="mt-4 max-w-xs text-sm text-brand-navy/70">
@@ -98,11 +101,8 @@
                         Subscribe
                     </button>
                 </div>
+                <p class="mt-4 text-xs text-brand-navy/60">&copy; {{ now()->year }} {{ $siteName }}. All rights reserved.</p>
             </div>
-        </div>
-
-        <div class="mt-12 flex flex-col items-center justify-between gap-4 border-t border-brand-navy/15 pt-6 sm:flex-row">
-            <p class="text-xs text-brand-navy/60">&copy; {{ now()->year }} {{ $siteName }}. All rights reserved.</p>
         </div>
     </div>
 </footer>
