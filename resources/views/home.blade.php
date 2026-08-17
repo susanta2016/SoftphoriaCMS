@@ -18,9 +18,6 @@
                 class="absolute inset-0 z-0 h-full w-full object-cover"
             >
         @endif
-        {{-- Header sits on the photo; this blends its navy bar smoothly into the bright sky below rather than a hard edge. --}}
-        <div class="absolute inset-x-0 top-0 z-10 h-64 bg-gradient-to-b from-brand-navy-dark via-brand-navy-dark/60 to-transparent sm:h-72"></div>
-
         <x-site.header transparent :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
 
         <div class="relative z-20 mx-auto max-w-7xl px-4 pt-14 pb-24 sm:px-6 lg:grid lg:grid-cols-12 lg:gap-10 lg:px-8 lg:pt-20 lg:pb-32">
@@ -84,7 +81,7 @@
         </div>
     </div>
 
-    <div class="relative z-10 mx-auto -mt-14 max-w-6xl px-4 sm:-mt-16 sm:px-6 lg:px-8">
+    <div class="relative z-10 mx-auto -mt-14 max-w-7xl px-4 sm:-mt-16 sm:px-6 lg:px-8">
         <div class="rounded-2xl bg-white p-5 shadow-xl ring-1 ring-brand-navy/5 sm:p-7">
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2 text-brand-navy">
@@ -117,7 +114,7 @@
         </div>
     </div>
 
-    <div class="h-14 bg-white sm:h-20" aria-hidden="true"></div>
+    <div class="h-7 bg-white sm:h-10" aria-hidden="true"></div>
 
     <x-site.footer :site-name="$siteName" :tagline="$tagline"/>
 </x-layouts.site>

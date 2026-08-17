@@ -14,3 +14,9 @@
     --color-brand-gold-light: #f0c877;
     --color-brand-sky: #dceafa;
 }
+
+@layer utilities {
+    .bg-\[position\:20\%_center\] {
+        background-position: 56%;
+    }
+}
