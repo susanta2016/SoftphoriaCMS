@@ -54,14 +54,32 @@
             <a href="#" class="inline-flex items-center gap-1.5 rounded-md bg-brand-gold px-3 py-2 text-sm font-semibold whitespace-nowrap text-white transition hover:bg-brand-gold-light sm:px-4">
                 Enter Here <span aria-hidden="true">→</span>
             </a>
+
+            <button
+                type="button"
+                data-mobile-menu-toggle
+                aria-label="Toggle menu"
+                aria-expanded="false"
+                aria-controls="mobile-menu"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/30 text-white/90 transition hover:border-white hover:text-white lg:hidden"
+            >
+                <svg data-mobile-menu-icon-open xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+                    <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/>
+                </svg>
+                <svg data-mobile-menu-icon-close xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden h-4 w-4">
+                    <path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/>
+                </svg>
+            </button>
         </div>
     </div>
 
-    <nav aria-label="Primary" class="-mx-4 flex gap-6 overflow-x-auto px-4 pb-3 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden">
-        @foreach ($navItems as $label => $href)
-            <a href="{{ $href }}" class="shrink-0 text-sm font-medium whitespace-nowrap text-white/90 transition hover:text-brand-gold-light">
-                {{ $label }}
-            </a>
-        @endforeach
-    </nav>
+    <div id="mobile-menu" data-mobile-menu class="hidden border-t border-white/10 bg-brand-navy lg:hidden">
+        <nav aria-label="Primary" class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 sm:px-6">
+            @foreach ($navItems as $label => $href)
+                <a href="{{ $href }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/10 hover:text-white">
+                    {{ $label }}
+                </a>
+            @endforeach
+        </nav>
+    </div>
 </header>
