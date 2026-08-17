@@ -64,6 +64,8 @@ class Settings extends Page
                 ->tabs([
                     Tab::make('General')
                         ->schema($this->generalTabSchema()),
+                    Tab::make('Footer')
+                        ->schema($this->footerTabSchema()),
                     Tab::make('Email')
                         ->schema($this->emailTabSchema()),
                 ]),
@@ -117,6 +119,20 @@ class Settings extends Page
                 ->helperText('Only published pages can be selected — reuses the existing Pages/CMS, never a separate maintenance content system.')
                 ->required(fn (Get $get): bool => (bool) $get('general.maintenance_mode'))
                 ->visible(fn (Get $get): bool => (bool) $get('general.maintenance_mode')),
+        ];
+    }
+
+    /**
+     * @return array<int, Component>
+     */
+    protected function footerTabSchema(): array
+    {
+        return [
+            MediaPicker::make('footer.logo_media_id', 'Footer Logo', MediaCategory::Image),
+            TextInput::make('footer.subheading')
+                ->label('Sub-heading text')
+                ->maxLength(255)
+                ->helperText('Shown under the logo in the footer, e.g. "A creative home for music, writing, reflection, thinking, and community."'),
         ];
     }
 
@@ -261,6 +277,10 @@ class Settings extends Page
             $settings->set('general', 'maintenance_page_id', $general['maintenance_page_id'], 'integer');
         }
 
+        $footer = $state['footer'];
+        $settings->set('footer', 'logo_media_id', $footer['logo_media_id'], 'integer');
+        $settings->set('footer', 'subheading', $footer['subheading']);
+
         $email = $state['email'];
         $settings->set('email', 'enabled', (bool) $email['enabled'], 'boolean');
         $settings->set('email', 'provider', $email['provider']);
@@ -283,6 +303,7 @@ class Settings extends Page
         $settings->set('email', 'test_recipient_email', $email['test_recipient_email']);
 
         $this->recordAudit('general', array_keys($general));
+        $this->recordAudit('footer', array_keys($footer));
         // Never log the password value itself, even in metadata.
         $this->recordAudit('email', array_keys(array_diff_key($email, ['smtp_password' => true])));
 
@@ -324,6 +345,10 @@ class Settings extends Page
                 'favicon_media_id' => $settings->get('general', 'favicon_media_id'),
                 'maintenance_mode' => $settings->get('general', 'maintenance_mode', false),
                 'maintenance_page_id' => $settings->get('general', 'maintenance_page_id'),
+            ],
+            'footer' => [
+                'logo_media_id' => $settings->get('footer', 'logo_media_id'),
+                'subheading' => $settings->get('footer', 'subheading'),
             ],
             'email' => [
                 'enabled' => $settings->get('email', 'enabled', false),

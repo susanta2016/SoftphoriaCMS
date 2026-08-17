@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use App\Enums\MenuItemDestinationType;
+use App\Enums\ModuleKey;
+use App\Shared\Support\Modules\ModuleNavigationResolver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Route;
 
 #[Fillable([
     'label', 'destination_type', 'page_id', 'route_key', 'url', 'route_name',
@@ -45,6 +48,26 @@ class MenuItem extends Model
     public function children(): HasMany
     {
         return $this->hasMany(MenuItem::class, 'parent_id');
+    }
+
+    /**
+     * The real href for this item, or null when it isn't clickable (Group)
+     * or its target isn't resolvable yet (a Page not yet publicly routable,
+     * or a Module whose routes aren't registered — see
+     * ModuleNavigationResolver). Callers render null as a non-link/`#`.
+     */
+    public function resolvedUrl(): ?string
+    {
+        return match ($this->destination_type) {
+            MenuItemDestinationType::Url => $this->url,
+            MenuItemDestinationType::Page => ($this->page && Route::has('pages.show'))
+                ? route('pages.show', $this->page->slug)
+                : null,
+            MenuItemDestinationType::Module => $this->route_key
+                ? app(ModuleNavigationResolver::class)->resolve(ModuleKey::from($this->route_key))
+                : null,
+            MenuItemDestinationType::Group => null,
+        };
     }
 
     public function createdBy(): BelongsTo

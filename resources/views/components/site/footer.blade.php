@@ -1,30 +1,33 @@
 @props(['siteName' => 'All The Things Light', 'tagline' => null])
 
 @php
-    $explore = [
-        'About' => '#',
-        'Music' => '#',
-        'Podcast' => '#',
-        'Poetry/Prose' => '#',
-        'Inspirational Resources' => '#',
-        'Contact' => '#',
-    ];
-    $community = [
-        'Latest Comments' => '#',
-        'Join Our Community' => '#',
-    ];
-    $support = [
-        'Privacy Policy' => '#',
-        'Terms of Use' => '#',
-        'Cookie Policy' => '#',
-        'Contact Us' => '#',
-    ];
-    $social = [
-        'Facebook' => ['href' => '#', 'path' => 'M13.5 9H15V6.5h-1.5C11.6 6.5 10 8.1 10 10.1V12H8v2.5h2V21h2.5v-6.5H15l.5-2.5h-3v-1.4c0-.6.4-1.1 1-1.1Z'],
-        'Instagram' => ['href' => '#', 'path' => 'M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm0 1.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4Zm4.75-3.5a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8ZM8 4h8a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4Zm0 1.5A2.5 2.5 0 0 0 5.5 8v8A2.5 2.5 0 0 0 8 18.5h8a2.5 2.5 0 0 0 2.5-2.5V8A2.5 2.5 0 0 0 16 5.5H8Z'],
-        'YouTube' => ['href' => '#', 'path' => 'M21.6 8.2a2.5 2.5 0 0 0-1.8-1.8C18.1 6 12 6 12 6s-6.1 0-7.8.4A2.5 2.5 0 0 0 2.4 8.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 3.8 2.5 2.5 0 0 0 1.8 1.8C6.1 18 12 18 12 18s6.1 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-3.8ZM10 15V9l5 3-5 3Z'],
-        'Twitter' => ['href' => '#', 'path' => 'M18.9 6.1a5.4 5.4 0 0 1-1.6.5 2.8 2.8 0 0 0 1.2-1.6c-.6.3-1.2.6-1.9.7a2.8 2.8 0 0 0-4.8 2.6A8 8 0 0 1 5.9 5.8a2.8 2.8 0 0 0 .9 3.8 2.8 2.8 0 0 1-1.3-.4v.1a2.8 2.8 0 0 0 2.3 2.8 2.8 2.8 0 0 1-1.3.1 2.8 2.8 0 0 0 2.6 2 5.7 5.7 0 0 1-4.2 1.2 8 8 0 0 0 4.4 1.3c5.2 0 8.1-4.4 8.1-8.2v-.4a5.9 5.9 0 0 0 1.5-1.5Z'],
-    ];
+    $settings = app(\App\Shared\Services\Settings\SettingsRepository::class);
+
+    $footerLogoMediaId = $settings->get('footer', 'logo_media_id');
+    $footerLogo = $footerLogoMediaId ? \App\Models\Media::find($footerLogoMediaId) : null;
+    $footerSubheading = $settings->get('footer', 'subheading')
+        ?: 'A creative home for music, writing, reflection, thinking, and community.';
+
+    $socialLinks = \App\Models\SocialLink::query()
+        ->with('icon')
+        ->where('is_enabled', true)
+        ->orderBy('sort_order')
+        ->get();
+
+    $footerMenu = \App\Models\Menu::query()
+        ->where('slug', 'footer-navigation')
+        ->where('is_active', true)
+        ->with(['items' => fn ($query) => $query
+            ->whereNull('parent_id')
+            ->where('is_enabled', true)
+            ->orderBy('sort_order')
+            ->with(['children' => fn ($children) => $children
+                ->where('is_enabled', true)
+                ->orderBy('sort_order')]),
+        ])
+        ->first();
+
+    $footerSections = $footerMenu?->items ?? collect();
 
     // Approved footer artwork, uploaded via the media library (docs/Reference UI/Frontend/footer-background.png).
     $footerBackgroundMedia = \App\Models\Media::query()->where('public_id', '01m05vdtr3n2p1vkdrrd0bch59')->first();
@@ -40,45 +43,48 @@
     <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div class="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5 lg:divide-x lg:divide-brand-navy/15 lg:[&>div]:pl-8 lg:[&>div]:first:pl-0">
             <div class="col-span-2 sm:col-span-3 lg:col-span-1">
-                <x-site.brand-mark :site-name="$siteName" :tagline="$tagline" :on-dark="false"/>
+                @if ($footerLogo)
+                    <img
+                        src="{{ \Illuminate\Support\Facades\Storage::disk($footerLogo->disk)->url($footerLogo->path) }}"
+                        alt="{{ $siteName }}"
+                        class="h-10 w-auto object-contain"
+                    >
+                @else
+                    <x-site.brand-mark :site-name="$siteName" :tagline="$tagline" :on-dark="false"/>
+                @endif
                 <p class="mt-4 max-w-xs text-sm text-brand-navy/70">
-                    A creative home for music, writing, reflection, thinking, and community.
+                    {{ $footerSubheading }}
                 </p>
                 <div class="mt-5 flex gap-2">
-                    @foreach ($social as $name => $item)
-                        <a href="{{ $item['href'] }}" aria-label="{{ $name }}" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-navy text-white transition hover:bg-brand-gold">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="{{ $item['path'] }}"/></svg>
+                    @foreach ($socialLinks as $link)
+                        <a href="{{ $link->url }}" aria-label="{{ $link->label }}" target="_blank" rel="noopener" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-navy text-white transition hover:bg-brand-gold">
+                            @if ($link->icon)
+                                <img
+                                    src="{{ \Illuminate\Support\Facades\Storage::disk($link->icon->disk)->url($link->icon->path) }}"
+                                    alt=""
+                                    class="h-4 w-4 object-contain"
+                                >
+                            @else
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+                                    <path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11.5 4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.36-1.36" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            @endif
                         </a>
                     @endforeach
                 </div>
             </div>
 
-            <div>
-                <h3 class="text-xs font-semibold tracking-wider text-brand-navy uppercase">Explore <span class="text-brand-gold" aria-hidden="true">✦</span></h3>
-                <ul class="mt-4 space-y-2.5">
-                    @foreach ($explore as $label => $href)
-                        <li><a href="{{ $href }}" class="text-sm text-brand-navy/75 transition hover:text-brand-gold">{{ $label }}</a></li>
-                    @endforeach
-                </ul>
-            </div>
-
-            <div>
-                <h3 class="text-xs font-semibold tracking-wider text-brand-navy uppercase">Community <span class="text-brand-gold" aria-hidden="true">✦</span></h3>
-                <ul class="mt-4 space-y-2.5">
-                    @foreach ($community as $label => $href)
-                        <li><a href="{{ $href }}" class="text-sm text-brand-navy/75 transition hover:text-brand-gold">{{ $label }}</a></li>
-                    @endforeach
-                </ul>
-            </div>
-
-            <div>
-                <h3 class="text-xs font-semibold tracking-wider text-brand-navy uppercase">Support <span class="text-brand-gold" aria-hidden="true">✦</span></h3>
-                <ul class="mt-4 space-y-2.5">
-                    @foreach ($support as $label => $href)
-                        <li><a href="{{ $href }}" class="text-sm text-brand-navy/75 transition hover:text-brand-gold">{{ $label }}</a></li>
-                    @endforeach
-                </ul>
-            </div>
+            @foreach ($footerSections as $section)
+                <div>
+                    <h3 class="text-xs font-semibold tracking-wider text-brand-navy uppercase">{{ $section->label }} <span class="text-brand-gold" aria-hidden="true">✦</span></h3>
+                    <ul class="mt-4 space-y-2.5">
+                        @foreach ($section->children as $link)
+                            <li><a href="{{ $link->resolvedUrl() ?? '#' }}" class="text-sm text-brand-navy/75 transition hover:text-brand-gold">{{ $link->label }}</a></li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endforeach
 
             <div class="col-span-2 sm:col-span-3 lg:col-span-1">
                 <h3 class="text-xs font-semibold tracking-wider text-brand-navy uppercase">Join Our Newsletter</h3>
