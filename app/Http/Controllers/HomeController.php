@@ -6,6 +6,7 @@ use App\Enums\PageSectionType;
 use App\Models\Media;
 use App\Models\Page;
 use App\Shared\Services\Settings\SettingsRepository;
+use App\Shared\Support\Seo\SeoTagBuilder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\QueryException;
 
@@ -22,9 +23,16 @@ class HomeController extends Controller
 {
     public function __invoke(SettingsRepository $settings): View
     {
+        $hero = null;
+        $seo = null;
+
         // A freshly deployed/not-yet-migrated environment has neither table
         // yet — same "fail open onto the approved defaults" reasoning as
-        // CheckMaintenanceMode, so the homepage never hard-500s here.
+        // CheckMaintenanceMode, so the homepage never hard-500s here. Every
+        // settings/Page/SeoTagBuilder lookup below touches the database, so
+        // it all has to stay inside this same try — SeoTagBuilder's own
+        // site-wide settings reads (twitter handle, default share image...)
+        // would otherwise throw past this guard on an unmigrated database.
         try {
             $page = Page::query()
                 ->published()
@@ -32,13 +40,38 @@ class HomeController extends Controller
                 ->with([
                     'sections' => fn ($query) => $query->where('is_enabled', true)->orderBy('sort_order'),
                     'seo',
+                    'featuredImage',
                 ])
                 ->first();
 
-            $siteName = $settings->get('general', 'site_name') ?: 'All The Things Light';
-            $tagline = $settings->get('general', 'tagline') ?: 'I AM. WE ARE. IT IS.';
-            $logoMediaId = $settings->get('general', 'logo_media_id');
+            // Fetched once and reused for both this method's own site_name/
+            // tagline/logo chrome and SeoTagBuilder's site-wide fallbacks
+            // below — one query instead of the ~7 individual per-key ones
+            // this used to add up to across both call sites.
+            $general = $settings->all('general');
+
+            $siteName = ($general['site_name'] ?? null) ?: 'All The Things Light';
+            $tagline = ($general['tagline'] ?? null) ?: 'I AM. WE ARE. IT IS.';
+            $logoMediaId = $general['logo_media_id'] ?? null;
             $logo = $logoMediaId ? Media::find($logoMediaId) : null;
+
+            $hero = $this->heroContent($page);
+
+            $seo = SeoTagBuilder::build($page?->seo, [
+                'title' => $page?->title ?: $siteName,
+                'description' => $page?->summary ?: $hero['subheading'],
+                'canonical' => url('/'),
+                // The "home" Page's own SeoMetadata row stores an
+                // auto-generated canonical_url built from its slug
+                // ("/home") — irrelevant here since PageController
+                // redirects that URL to "/" precisely to avoid a second
+                // indexable copy, so this fallback always wins regardless
+                // of what's saved in the admin (affects canonical, og:url,
+                // and the WebSite JSON-LD's url alike).
+                'force_canonical' => true,
+                'image' => $hero['media'] ?? $page?->featuredImage,
+                'type' => 'website',
+            ], $general);
         } catch (QueryException) {
             $page = null;
             $siteName = 'All The Things Light';
@@ -46,14 +79,39 @@ class HomeController extends Controller
             $logo = null;
         }
 
+        $hero ??= $this->heroContent(null);
+
+        // Deliberately not a SeoTagBuilder::build() call — that reads
+        // site-wide settings too, which would throw the same QueryException
+        // this whole method exists to fail open around. A plain static
+        // array is the only thing safe to fall back to here.
+        $seo ??= [
+            'title' => $siteName,
+            'description' => $hero['subheading'],
+            'keywords' => null,
+            'canonical' => url('/'),
+            'robots' => 'index, follow',
+            'site_name' => $siteName,
+            'og_title' => $siteName,
+            'og_description' => $hero['subheading'],
+            'og_image' => null,
+            'og_type' => 'website',
+            'twitter_card' => 'summary',
+            'twitter_site' => null,
+            'twitter_title' => $siteName,
+            'twitter_description' => $hero['subheading'],
+            'twitter_image' => null,
+            'fb_app_id' => null,
+            'structured_data' => null,
+        ];
+
         return view('home', [
-            'hero' => $this->heroContent($page),
+            'hero' => $hero,
             'community' => $this->communityContent($page),
             'siteName' => $siteName,
             'tagline' => $tagline,
             'logo' => $logo,
-            'seoTitle' => $page?->seo?->meta_title ?: $page?->title ?: 'Home',
-            'seoDescription' => $page?->seo?->meta_description ?: $page?->summary,
+            'seo' => $seo,
         ]);
     }
 

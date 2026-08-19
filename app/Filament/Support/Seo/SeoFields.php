@@ -50,6 +50,19 @@ class SeoFields
     }
 
     /**
+     * Modern search engines no longer use this for ranking, but it's kept
+     * for the crawlers/tools/legacy integrations that still read it —
+     * cheap to offer, never required.
+     */
+    public static function metaKeywords(string $name = 'seo.keywords'): TextInput
+    {
+        return TextInput::make($name)
+            ->label('Meta Keywords')
+            ->maxLength(255)
+            ->helperText('Optional, comma-separated. Ignored by Google/Bing ranking today — kept for other tools that still read it.');
+    }
+
+    /**
      * Never hardcodes the domain — always built from config('app.url'), the
      * application's own configured base URL.
      */

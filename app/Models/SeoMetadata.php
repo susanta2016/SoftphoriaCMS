@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 #[Fillable([
-    'meta_title', 'meta_description', 'canonical_url', 'robots',
+    'meta_title', 'meta_description', 'keywords', 'canonical_url', 'robots',
     'og_title', 'og_description', 'twitter_title', 'twitter_description', 'structured_data',
 ])]
 class SeoMetadata extends Model

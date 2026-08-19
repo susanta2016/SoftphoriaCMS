@@ -64,6 +64,8 @@ class Settings extends Page
                 ->tabs([
                     Tab::make('General')
                         ->schema($this->generalTabSchema()),
+                    Tab::make('SEO')
+                        ->schema($this->seoTabSchema()),
                     Tab::make('Footer')
                         ->schema($this->footerTabSchema()),
                     Tab::make('Email')
@@ -119,6 +121,32 @@ class Settings extends Page
                 ->helperText('Only published pages can be selected — reuses the existing Pages/CMS, never a separate maintenance content system.')
                 ->required(fn (Get $get): bool => (bool) $get('general.maintenance_mode'))
                 ->visible(fn (Get $get): bool => (bool) $get('general.maintenance_mode')),
+        ];
+    }
+
+    /**
+     * Site-wide identifiers used on every public page's <head>
+     * (App\Shared\Support\Seo\SeoTagBuilder) that don't belong on a
+     * per-page SeoMetadata row — Twitter Card's twitter:site/creator,
+     * Open Graph's fb:app_id, and the og:image/twitter:image fallback for
+     * any page that hasn't set its own social image.
+     *
+     * @return array<int, Component>
+     */
+    protected function seoTabSchema(): array
+    {
+        return [
+            MediaPicker::make('general.default_share_image_media_id', 'Default Social Share Image', MediaCategory::Image)
+                ->columnSpanFull(),
+            TextInput::make('general.twitter_handle')
+                ->label('Twitter/X Handle')
+                ->placeholder('allthethingslight')
+                ->maxLength(255)
+                ->helperText('Without the @ — used for the twitter:site and twitter:creator tags on every page.'),
+            TextInput::make('general.fb_app_id')
+                ->label('Facebook App ID')
+                ->maxLength(255)
+                ->helperText('Optional — only needed if this site is linked to a Facebook app.'),
         ];
     }
 
@@ -272,6 +300,9 @@ class Settings extends Page
         $settings->set('general', 'logo_media_id', $general['logo_media_id'], 'integer');
         $settings->set('general', 'favicon_media_id', $general['favicon_media_id'], 'integer');
         $settings->set('general', 'maintenance_mode', (bool) $general['maintenance_mode'], 'boolean');
+        $settings->set('general', 'default_share_image_media_id', $general['default_share_image_media_id'], 'integer');
+        $settings->set('general', 'twitter_handle', $general['twitter_handle']);
+        $settings->set('general', 'fb_app_id', $general['fb_app_id']);
 
         // The Maintenance Page field is only visible (and therefore only
         // dehydrated into form state) while Maintenance Mode is on — when
@@ -352,6 +383,9 @@ class Settings extends Page
                 'favicon_media_id' => $settings->get('general', 'favicon_media_id'),
                 'maintenance_mode' => $settings->get('general', 'maintenance_mode', false),
                 'maintenance_page_id' => $settings->get('general', 'maintenance_page_id'),
+                'default_share_image_media_id' => $settings->get('general', 'default_share_image_media_id'),
+                'twitter_handle' => $settings->get('general', 'twitter_handle'),
+                'fb_app_id' => $settings->get('general', 'fb_app_id'),
             ],
             'footer' => [
                 'logo_media_id' => $settings->get('footer', 'logo_media_id'),

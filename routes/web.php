@@ -6,9 +6,14 @@ use App\Http\Controllers\Media\StreamMediaController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\Page\PageController;
 use App\Http\Controllers\Page\PreviewPageController;
+use App\Http\Controllers\RobotsController;
+use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
+Route::get('/robots.txt', RobotsController::class)->name('robots');
 
 // Public newsletter signup (footer form) — sends the "newsletter_subscribed"
 // Email Template (docs/ARCHITECTURE.md §16.5/§16.6) via TemplatedMailer.

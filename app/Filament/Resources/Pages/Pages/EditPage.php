@@ -60,6 +60,7 @@ class EditPage extends EditRecord
         $data['seo'] = [
             'meta_title' => $seo->meta_title ?? null,
             'meta_description' => $seo->meta_description ?? null,
+            'keywords' => $seo->keywords ?? null,
             'canonical_url' => $storedCanonicalUrl ?: SeoFields::autoCanonicalUrl($slug),
             'canonical_url_is_auto' => SeoFields::isCanonicalUrlAuto($storedCanonicalUrl, $slug),
             'robots' => $seo->robots ?? null,

@@ -2,7 +2,10 @@
 
 namespace App\Shared\Support\Pages;
 
+use App\Enums\PageStatus;
+use App\Filament\Support\Seo\SeoFields;
 use App\Models\Page;
+use App\Shared\Support\Seo\SeoTagBuilder;
 use Illuminate\Contracts\View\View;
 
 /**
@@ -22,8 +25,27 @@ class PageContentRenderer
             'sections' => fn ($query) => $query->orderBy('sort_order'),
             'featuredImage',
             'seo',
+            'author',
         ]);
 
-        return view('pages.show', ['page' => $page]);
+        $seo = SeoTagBuilder::build($page->seo, [
+            'title' => $page->title,
+            'description' => $page->summary,
+            'canonical' => SeoFields::autoCanonicalUrl($page->slug),
+            'image' => $page->featuredImage,
+            'type' => 'article',
+            'published_at' => $page->publish_at ?? $page->created_at,
+            'modified_at' => $page->updated_at,
+            'author_name' => $page->author?->name,
+        ]);
+
+        // An unpublished page (admin preview) is never indexable, whatever
+        // its own saved SEO robots value says — same rule the preview
+        // banner/title prefix already enforce.
+        if ($page->status !== PageStatus::Published) {
+            $seo['robots'] = 'noindex, nofollow';
+        }
+
+        return view('pages.show', ['page' => $page, 'seo' => $seo]);
     }
 }

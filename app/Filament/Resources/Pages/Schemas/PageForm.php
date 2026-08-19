@@ -115,6 +115,7 @@ class PageForm
                                         fn (Get $get): string => (string) ($get('slug') ?? ''),
                                     ),
                                     SeoFields::metaDescription()->columnSpanFull(),
+                                    SeoFields::metaKeywords(),
                                     TextInput::make('seo.robots')->label('Robots')->maxLength(255)->placeholder('index, follow'),
                                     TextInput::make('seo.og_title')->label('Open Graph title')->maxLength(255),
                                     MediaPicker::make('seo.og_image_media_id', 'Open Graph image'),

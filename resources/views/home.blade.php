@@ -9,7 +9,7 @@
     ];
 @endphp
 
-<x-layouts.site :title="$seoTitle" :description="$seoDescription">
+<x-layouts.site :seo="$seo">
     <div class="relative isolate overflow-hidden bg-brand-navy">
         @if ($bannerUrl)
             <img
