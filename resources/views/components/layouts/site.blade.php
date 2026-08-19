@@ -1,6 +1,6 @@
 @props(['title' => null, 'description' => null])
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="overflow-x-hidden">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +16,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
 </head>
-<body class="bg-white font-sans text-brand-navy antialiased">
+<body class="flex min-h-screen flex-col overflow-x-hidden bg-white font-sans text-brand-navy antialiased">
     {{ $slot }}
 </body>
 </html>

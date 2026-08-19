@@ -37,10 +37,10 @@
 @endphp
 
 <footer
-    class="relative isolate overflow-hidden bg-cover bg-center bg-no-repeat"
+    class="relative isolate mt-auto overflow-hidden bg-cover bg-center bg-no-repeat"
     @style([$footerBackgroundUrl ? "background-image: url('$footerBackgroundUrl')" : ''])
 >
-    <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-7xl px-4 pt-14 pb-8 sm:px-6 lg:px-8">
         <div class="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
             <div class="col-span-2 sm:col-span-3 lg:col-span-1">
                 @if ($footerLogo)
