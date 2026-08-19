@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Pages\Schemas;
 
+use App\Enums\MediaCategory;
 use App\Enums\ModuleKey;
 use App\Enums\PageSectionType;
 use App\Enums\PageStatus;
@@ -221,6 +222,9 @@ class PageForm
                 ->helperText('Optional — a plain link shown below the buttons (e.g. "Watch Introduction").')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
             TextInput::make('content_json.tertiary_url')->label('Additional link URL')->maxLength(255)
+                ->helperText('Used if no video is uploaded/selected below. A YouTube/Vimeo link opens in the same on-page popup as an uploaded video; any other URL opens as a normal link. Ignored when a video is set.')
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
+            MediaPicker::make('content_json.tertiary_video_media_id', 'Introduction Video', MediaCategory::Video)
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
 
             RichEditorMediaAttachments::configure(RichEditor::make('content_json.body')->label('Content')->columnSpanFull())

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Media\PublicHeroVideoStreamController;
 use App\Http\Controllers\Media\StreamMediaController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\Page\PageController;
@@ -21,6 +22,13 @@ Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
 Route::get('/admin/media/{media}/stream', StreamMediaController::class)
     ->middleware('web')
     ->name('media.stream');
+
+// Public playback for a Hero section's "Watch Introduction" video (Range
+// requests supported for scrubbing). No auth — gated inside the controller
+// on the video being attached to a published Hero section right now.
+Route::get('/media/{media}/watch', PublicHeroVideoStreamController::class)
+    ->middleware('web')
+    ->name('media.watch');
 
 // ADMIN-006 review fix: admin-only Page preview, opened in a new tab from
 // the edit form's Preview action. Same reasoning as media.stream above.

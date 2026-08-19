@@ -72,6 +72,7 @@ class HomeController extends Controller
             'secondary_cta_url' => '#',
             'tertiary_label' => 'Watch Introduction',
             'tertiary_url' => '#',
+            'tertiary_video_media_id' => null,
         ];
 
         $content = $page?->sections
@@ -81,8 +82,34 @@ class HomeController extends Controller
         $merged = [...$defaults, ...array_filter($content, fn (mixed $value): bool => $value !== null && $value !== '')];
 
         $merged['media'] = $merged['media_id'] ? Media::find($merged['media_id']) : null;
+        $merged['tertiary_video'] = $merged['tertiary_video_media_id'] ? Media::find($merged['tertiary_video_media_id']) : null;
+        $merged['tertiary_embed_url'] = $merged['tertiary_video'] ? null : self::resolveEmbedUrl($merged['tertiary_url'] ?? null);
 
         return $merged;
+    }
+
+    /**
+     * YouTube/Vimeo links play in the same on-page popup as an uploaded
+     * video (rather than navigating away to a new tab/window) — this turns
+     * a normal watch/share URL into its embeddable player URL. Any other
+     * URL (or no match) falls back to a plain outbound link in the view.
+     */
+    private static function resolveEmbedUrl(?string $url): ?string
+    {
+        if (! $url) {
+            return null;
+        }
+
+        if (preg_match('#youtu\.be/([\w-]+)#', $url, $matches)
+            || preg_match('#youtube\.com/(?:watch\?v=|embed/|shorts/)([\w-]+)#', $url, $matches)) {
+            return "https://www.youtube.com/embed/{$matches[1]}?rel=0";
+        }
+
+        if (preg_match('#vimeo\.com/(?:video/)?(\d+)#', $url, $matches)) {
+            return "https://player.vimeo.com/video/{$matches[1]}";
+        }
+
+        return null;
     }
 
     /**

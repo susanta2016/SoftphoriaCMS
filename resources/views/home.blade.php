@@ -48,12 +48,21 @@
                 </div>
 
                 @if ($hero['tertiary_label'])
-                    <a href="{{ $hero['tertiary_url'] }}" class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-navy transition hover:text-brand-gold">
-                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-brand-navy/70">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-2.5 w-2.5"><path d="M8 5v14l11-7z"/></svg>
-                        </span>
-                        {{ $hero['tertiary_label'] }}
-                    </a>
+                    @if ($hero['tertiary_video'] || $hero['tertiary_embed_url'])
+                        <button type="button" data-video-modal-toggle class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-navy transition hover:text-brand-gold">
+                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-brand-navy/70">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-2.5 w-2.5"><path d="M8 5v14l11-7z"/></svg>
+                            </span>
+                            {{ $hero['tertiary_label'] }}
+                        </button>
+                    @else
+                        <a href="{{ $hero['tertiary_url'] }}" class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-navy transition hover:text-brand-gold">
+                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-brand-navy/70">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-2.5 w-2.5"><path d="M8 5v14l11-7z"/></svg>
+                            </span>
+                            {{ $hero['tertiary_label'] }}
+                        </a>
+                    @endif
                 @endif
             </div>
 
@@ -117,4 +126,28 @@
     <div class="h-7 bg-white sm:h-10" aria-hidden="true"></div>
 
     <x-site.footer :site-name="$siteName" :tagline="$tagline"/>
+
+    @if ($hero['tertiary_video'] || $hero['tertiary_embed_url'])
+        <div data-video-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4">
+            <div class="relative w-full max-w-3xl">
+                <button type="button" data-video-modal-close aria-label="Close video" class="absolute -top-10 right-0 text-white transition hover:text-brand-gold">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-7 w-7"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+                @if ($hero['tertiary_video'])
+                    <video data-video-modal-player controls playsinline preload="none" class="aspect-video w-full rounded-lg bg-black">
+                        <source src="{{ route('media.watch', $hero['tertiary_video']) }}" type="{{ $hero['tertiary_video']->mime_type }}">
+                    </video>
+                @else
+                    <iframe
+                        data-video-modal-iframe
+                        data-src="{{ $hero['tertiary_embed_url'] }}"
+                        class="aspect-video w-full rounded-lg bg-black"
+                        allow="autoplay; fullscreen; picture-in-picture"
+                        allowfullscreen
+                        frameborder="0"
+                    ></iframe>
+                @endif
+            </div>
+        </div>
+    @endif
 </x-layouts.site>
