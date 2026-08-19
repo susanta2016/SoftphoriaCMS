@@ -8,8 +8,8 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Preview: {{ $page->title }}</title>
-    <meta name="robots" content="noindex, nofollow">
+    <title>{{ $page->status->value === 'published' ? '' : 'Preview: ' }}{{ $page->title }}</title>
+    <meta name="robots" content="{{ $page->status->value === 'published' ? 'index, follow' : 'noindex, nofollow' }}">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; color: #111827; background: #f9fafb; }
         .preview-banner { background: #fef3c7; color: #92400e; padding: 0.75rem 1.5rem; font-size: 0.875rem; font-weight: 600; text-align: center; }

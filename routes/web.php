@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Media\StreamMediaController;
+use App\Http\Controllers\Page\PageController;
 use App\Http\Controllers\Page\PreviewPageController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,3 +20,7 @@ Route::get('/admin/media/{media}/stream', StreamMediaController::class)
 Route::get('/admin/pages/{page}/preview', PreviewPageController::class)
     ->middleware('web')
     ->name('pages.preview');
+
+// Public CMS page viewer (Stage D) — kept last so it never shadows a more
+// specific route above; PageController itself 404s anything not published.
+Route::get('/{page:slug}', PageController::class)->name('pages.show');
