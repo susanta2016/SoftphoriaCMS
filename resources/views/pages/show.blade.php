@@ -1,27 +1,27 @@
 {{--
-    ADMIN-006 review fix — minimal, self-contained structured-content
-    renderer for the admin Preview action (opens in a new tab). Not the
-    final public design; Stage D's public frontend can restyle this same
-    section markup once it exists — see App\Shared\Support\Pages\PageContentRenderer.
+    Public CMS page renderer — shares the real site header/footer chrome
+    (x-layouts.site, same as home.blade.php) with every other public page,
+    except the page currently selected as the Maintenance Page ($showChrome
+    false — see PageContentRenderer), which always renders standalone.
+    Also used by the admin-only preview route (PreviewPageController) via
+    the same PageContentRenderer, so a preview shows exactly what visitors
+    will see, plus the banner/title-prefix/noindex handled there for an
+    unpublished page. See App\Shared\Support\Pages\PageContentRenderer.
 --}}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $page->status->value === 'published' ? '' : 'Preview: ' }}{{ $seo['title'] }}</title>
-    <x-seo.head-tags :seo="$seo"/>
-    @php
-        $faviconMediaId = app(\App\Shared\Services\Settings\SettingsRepository::class)->get('general', 'favicon_media_id');
-        $faviconMedia = $faviconMediaId ? \App\Models\Media::find($faviconMediaId) : null;
-    @endphp
-    @if ($faviconMedia)
-        <link rel="icon" href="{{ \Illuminate\Support\Facades\Storage::disk($faviconMedia->disk)->url($faviconMedia->path) }}">
+<x-layouts.site :seo="$seo">
+    @unless ($page->status->value === 'published')
+        <div class="bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-800">
+            Preview only — this page is currently <strong>{{ $page->status->getLabel() }}</strong> and is not visible to the public.
+        </div>
+    @endunless
+
+    @if ($showChrome)
+        <x-site.header :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
     @endif
+
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; color: #111827; background: #f9fafb; }
-        .preview-banner { background: #fef3c7; color: #92400e; padding: 0.75rem 1.5rem; font-size: 0.875rem; font-weight: 600; text-align: center; }
-        main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; background: #fff; }
+        .page-content { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #111827; }
+        main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
         .page-title { font-size: 2rem; margin: 1.5rem 0 0.5rem; }
         .page-summary { color: #4b5563; font-size: 1.125rem; margin: 0 0 2rem; }
         .featured-image { width: 100%; max-height: 420px; object-fit: cover; border-radius: 0.5rem; }
@@ -42,15 +42,8 @@
         .inert-notice { color: #9ca3af; font-size: 0.875rem; border: 1px dashed #d1d5db; padding: 1rem; border-radius: 0.375rem; }
         .disabled-badge { display: inline-block; margin-left: 0.5rem; font-size: 0.75rem; color: #9ca3af; }
     </style>
-</head>
-<body>
-    @unless ($page->status->value === 'published')
-        <div class="preview-banner">
-            Preview only — this page is currently <strong>{{ $page->status->getLabel() }}</strong> and is not visible to the public.
-        </div>
-    @endunless
 
-    <main>
+    <main class="page-content">
         @if ($page->featuredImage)
             <img class="featured-image" src="{{ \Illuminate\Support\Facades\Storage::disk($page->featuredImage->disk)->url($page->featuredImage->path) }}" alt="{{ $page->featuredImage->alt_text ?? $page->title }}">
         @endif
@@ -148,5 +141,8 @@
             <p class="inert-notice">This page has no sections yet.</p>
         @endforelse
     </main>
-</body>
-</html>
+
+    @if ($showChrome)
+        <x-site.footer :site-name="$siteName" :tagline="$tagline"/>
+    @endif
+</x-layouts.site>
