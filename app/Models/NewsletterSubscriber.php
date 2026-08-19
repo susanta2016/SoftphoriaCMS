@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable(['email', 'name'])]
+#[Fillable(['email', 'name', 'status', 'consented_at', 'unsubscribed_at'])]
 class NewsletterSubscriber extends Model
 {
     protected function casts(): array

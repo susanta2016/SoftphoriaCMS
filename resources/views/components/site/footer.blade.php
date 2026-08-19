@@ -90,27 +90,44 @@
                 </div>
             @endforeach
 
-            <div class="col-span-2 sm:col-span-3 lg:col-span-1">
+            <div id="newsletter-subscribe" class="col-span-2 sm:col-span-3 lg:col-span-1 scroll-mt-24">
                 <h3 class="text-xs font-semibold tracking-wider text-brand-navy uppercase">Join Our Newsletter</h3>
                 <p class="mt-4 text-sm text-brand-navy/75">Sign up for updates from {{ $siteName }}.</p>
-                <div class="mt-3 flex overflow-hidden rounded-md border border-brand-navy/20 bg-white">
-                    <label for="footer-newsletter-email" class="sr-only">Email address</label>
-                    <input
-                        id="footer-newsletter-email"
-                        type="email"
-                        placeholder="Enter your email"
-                        disabled
-                        class="w-full min-w-0 border-0 px-3 py-2.5 text-sm text-brand-navy placeholder:text-brand-navy/40 focus:outline-none disabled:cursor-not-allowed disabled:bg-white"
-                    >
-                    <button
-                        type="button"
-                        disabled
-                        title="Newsletter sign-up is coming soon"
-                        class="shrink-0 cursor-not-allowed bg-brand-gold px-4 py-2.5 text-sm font-semibold text-white opacity-70"
-                    >
-                        Subscribe
-                    </button>
-                </div>
+
+                @if (session('newsletter_status'))
+                    <p class="mt-3 rounded-md border border-brand-gold/30 bg-brand-gold/10 px-3 py-2.5 text-sm text-brand-navy">
+                        {{ session('newsletter_status') }}
+                    </p>
+                @else
+                    <form method="POST" action="{{ route('newsletter.subscribe') }}" class="mt-3">
+                        @csrf
+                        <div @class([
+                            'flex overflow-hidden rounded-md border bg-white',
+                            'border-red-400' => $errors->has('email'),
+                            'border-brand-navy/20' => ! $errors->has('email'),
+                        ])>
+                            <label for="footer-newsletter-email" class="sr-only">Email address</label>
+                            <input
+                                id="footer-newsletter-email"
+                                name="email"
+                                type="email"
+                                value="{{ old('email') }}"
+                                placeholder="Enter your email"
+                                required
+                                class="w-full min-w-0 border-0 px-3 py-2.5 text-sm text-brand-navy placeholder:text-brand-navy/40 focus:outline-none"
+                            >
+                            <button
+                                type="submit"
+                                class="shrink-0 bg-brand-gold px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-gold-light"
+                            >
+                                Subscribe
+                            </button>
+                        </div>
+                        @error('email')
+                            <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </form>
+                @endif
                 <p class="mt-4 text-xs text-brand-navy/60">{{ $footerCopyrightText }}</p>
             </div>
         </div>
