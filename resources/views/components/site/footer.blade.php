@@ -51,7 +51,7 @@
                     <img
                         src="{{ \Illuminate\Support\Facades\Storage::disk($footerLogo->disk)->url($footerLogo->path) }}"
                         alt="{{ $siteName }}"
-                        class="h-10 w-auto object-contain"
+                        class="h-16 w-auto max-w-[220px] object-contain"
                     >
                 @else
                     <x-site.brand-mark :site-name="$siteName" :tagline="$tagline" :on-dark="false"/>
