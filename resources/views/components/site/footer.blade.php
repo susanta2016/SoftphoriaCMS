@@ -34,6 +34,10 @@
     $footerBackgroundUrl = $footerBackgroundMedia
         ? \Illuminate\Support\Facades\Storage::disk($footerBackgroundMedia->disk)->url($footerBackgroundMedia->path)
         : null;
+
+    $footerCopyrightText = $settings->get('footer', 'copyright_text')
+        ?: '© {year} '.$siteName.'. All rights reserved.';
+    $footerCopyrightText = str_replace('{year}', now()->year, $footerCopyrightText);
 @endphp
 
 <footer
@@ -107,7 +111,7 @@
                         Subscribe
                     </button>
                 </div>
-                <p class="mt-4 text-xs text-brand-navy/60">&copy; {{ now()->year }} {{ $siteName }}. All rights reserved.</p>
+                <p class="mt-4 text-xs text-brand-navy/60">{{ $footerCopyrightText }}</p>
             </div>
         </div>
     </div>

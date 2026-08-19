@@ -134,6 +134,10 @@ class Settings extends Page
                 ->maxLength(255)
                 ->helperText('Shown under the logo in the footer, e.g. "A creative home for music, writing, reflection, thinking, and community."'),
             MediaPicker::make('footer.background_media_id', 'Footer Background Image', MediaCategory::Image),
+            TextInput::make('footer.copyright_text')
+                ->label('Copyright Text')
+                ->maxLength(255)
+                ->helperText('Shown at the bottom of the footer. Use {year} anywhere in the text and it will always be replaced with the current year, e.g. "© {year} All The Things Light. All rights reserved."'),
         ];
     }
 
@@ -282,6 +286,7 @@ class Settings extends Page
         $settings->set('footer', 'logo_media_id', $footer['logo_media_id'], 'integer');
         $settings->set('footer', 'subheading', $footer['subheading']);
         $settings->set('footer', 'background_media_id', $footer['background_media_id'], 'integer');
+        $settings->set('footer', 'copyright_text', $footer['copyright_text']);
 
         $email = $state['email'];
         $settings->set('email', 'enabled', (bool) $email['enabled'], 'boolean');
@@ -352,6 +357,7 @@ class Settings extends Page
                 'logo_media_id' => $settings->get('footer', 'logo_media_id'),
                 'subheading' => $settings->get('footer', 'subheading'),
                 'background_media_id' => $settings->get('footer', 'background_media_id'),
+                'copyright_text' => $settings->get('footer', 'copyright_text'),
             ],
             'email' => [
                 'enabled' => $settings->get('email', 'enabled', false),
