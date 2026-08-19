@@ -34,9 +34,18 @@ class MediaTable
                 ImageColumn::make('path')
                     ->label('Files')
                     ->disk(fn (?Media $record): string => $record?->disk ?? 'public')
-                    ->height(48)
-                    ->width(48)
-                    ->extraImgAttributes(['class' => 'rounded object-cover'])
+                    // A true max-width/max-height cap (not a fixed square
+                    // crop) — a large original scales down to fit the list
+                    // row instead of blowing it out, while a small image
+                    // stays its own size rather than being upscaled, and
+                    // nothing gets stretched or cropped. ->height('auto')
+                    // only exists to stop ImageColumn's own default (a
+                    // hardcoded 2.5rem it injects whenever ->height() isn't
+                    // called) from overriding the max-height below — ->width()
+                    // is deliberately left unset, since setting it would add
+                    // its own competing fixed-width style.
+                    ->height('auto')
+                    ->extraImgAttributes(['class' => 'rounded', 'style' => 'max-width:150px;max-height:150px;'])
                     // A column-level ->visible(fn (?Media $record) ...) is
                     // evaluated once with $record = null to decide whether
                     // the column exists in the table at all, not per row —
