@@ -35,7 +35,7 @@
 
         <nav aria-label="Primary" class="hidden lg:flex lg:items-center lg:gap-7">
             @foreach ($navItems as $label => $href)
-                <a href="{{ $href }}" class="text-sm font-medium whitespace-nowrap text-white/90 transition hover:text-brand-gold-light">
+                <a href="{{ $href }}" class="text-sm font-medium whitespace-nowrap text-gray-400 transition hover:text-brand-gold-light">
                     {{ $label }}
                 </a>
             @endforeach
@@ -76,7 +76,7 @@
     <div id="mobile-menu" data-mobile-menu class="hidden border-t border-white/10 bg-brand-navy lg:hidden">
         <nav aria-label="Primary" class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 sm:px-6">
             @foreach ($navItems as $label => $href)
-                <a href="{{ $href }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/10 hover:text-white">
+                <a href="{{ $href }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-gray-400 transition hover:bg-white/10 hover:text-white">
                     {{ $label }}
                 </a>
             @endforeach
