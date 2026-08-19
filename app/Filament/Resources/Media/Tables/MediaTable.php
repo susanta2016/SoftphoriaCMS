@@ -2,17 +2,27 @@
 
 namespace App\Filament\Resources\Media\Tables;
 
+use App\Actions\Media\DeleteMediaAction;
 use App\Enums\MediaCategory;
+use App\Exceptions\Media\MediaInUseException;
 use App\Models\Media;
+use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
-use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
+use Filament\Support\Enums\IconSize;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Number;
 
 class MediaTable
@@ -22,16 +32,30 @@ class MediaTable
         return $table
             ->columns([
                 ImageColumn::make('path')
-                    ->label('')
+                    ->label('Files')
                     ->disk(fn (?Media $record): string => $record?->disk ?? 'public')
                     ->height(48)
                     ->width(48)
                     ->extraImgAttributes(['class' => 'rounded object-cover'])
-                    ->visible(fn (?Media $record): bool => $record?->category() === MediaCategory::Image),
-                TextColumn::make('original_filename')
-                    ->label('Filename')
+                    // A column-level ->visible(fn (?Media $record) ...) is
+                    // evaluated once with $record = null to decide whether
+                    // the column exists in the table at all, not per row —
+                    // that made the whole thumbnail column vanish for every
+                    // row instead of just non-image ones. Making the STATE
+                    // itself null for non-image rows is what actually
+                    // renders an empty cell there while the column stays.
+                    ->getStateUsing(fn (Media $record): ?string => $record->category() === MediaCategory::Image ? $record->path : null),
+                IconColumn::make('category_icon')
+                    ->label('')
+                    ->icon(fn (?Media $record): string|BackedEnum|null => $record && $record->category() !== MediaCategory::Image ? $record->category()?->getIcon() : null)
+                    ->color(fn (?Media $record): ?string => $record?->category()?->getColor())
+                    ->size(IconSize::TwoExtraLarge),
+                TextColumn::make('alt_text')
+                    ->label('Alt text')
+                    ->placeholder('—')
                     ->searchable()
-                    ->sortable(),
+                    ->limit(40)
+                    ->toggleable(),
                 TextColumn::make('mime_type')
                     ->label('Category')
                     ->badge()
@@ -71,16 +95,89 @@ class MediaTable
             ->recordActions([
                 ActionGroup::make([
                     EditAction::make()->label('View / Edit'),
-                    DeleteAction::make()
-                        ->requiresConfirmation()
-                        ->modalDescription(fn (Media $record): string => "Delete {$record->original_filename}? It will no longer be available for reuse."),
+                    self::deleteAction(),
                 ])
                     ->icon(Heroicon::OutlinedEllipsisVertical)
                     ->label('Actions'),
             ])
-            ->toolbarActions([])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    self::deleteBulkAction(),
+                ]),
+            ])
             ->defaultSort('created_at', 'desc')
             ->paginationPageOptions([10, 25, 50, 'all'])
             ->defaultPaginationPageOption(25);
+    }
+
+    /**
+     * A plain Action rather than Filament's stock DeleteAction — deletion
+     * must go through DeleteMediaAction so it's blocked when the file is
+     * still referenced elsewhere (MediaInUseException) and so the physical
+     * file/variants actually get cleaned up, not just the DB row.
+     */
+    private static function deleteAction(): Action
+    {
+        return Action::make('deleteMedia')
+            ->label('Delete')
+            ->icon(Heroicon::OutlinedTrash)
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalDescription(fn (Media $record): string => "Delete \"{$record->original_filename}\"? It will no longer be available for reuse.")
+            ->action(function (Media $record) {
+                /** @var User $actor */
+                $actor = Auth::user();
+
+                try {
+                    app(DeleteMediaAction::class)->handle($record, $actor);
+
+                    Notification::make()->title('Media deleted')->success()->send();
+                } catch (MediaInUseException $exception) {
+                    Notification::make()->title($exception->getMessage())->danger()->send();
+                }
+            });
+    }
+
+    private static function deleteBulkAction(): BulkAction
+    {
+        return BulkAction::make('deleteSelectedMedia')
+            ->label('Delete selected')
+            ->icon(Heroicon::OutlinedTrash)
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalDescription('Delete the selected media files? Any still in use elsewhere will be skipped.')
+            ->action(function (Collection $records) {
+                /** @var User $actor */
+                $actor = Auth::user();
+                $action = app(DeleteMediaAction::class);
+
+                $deleted = 0;
+                $skipped = [];
+
+                foreach ($records as $record) {
+                    try {
+                        $action->handle($record, $actor);
+                        $deleted++;
+                    } catch (MediaInUseException) {
+                        $skipped[] = $record->original_filename;
+                    }
+                }
+
+                if ($deleted > 0) {
+                    Notification::make()
+                        ->title($deleted === 1 ? '1 file deleted' : "{$deleted} files deleted")
+                        ->success()
+                        ->send();
+                }
+
+                if ($skipped !== []) {
+                    Notification::make()
+                        ->title(count($skipped) === 1 ? '1 file skipped' : count($skipped).' files skipped')
+                        ->body('Still in use, so not deleted: '.implode(', ', $skipped))
+                        ->warning()
+                        ->send();
+                }
+            })
+            ->deselectRecordsAfterCompletion();
     }
 }
