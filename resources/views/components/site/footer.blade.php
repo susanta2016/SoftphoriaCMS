@@ -29,19 +29,19 @@
 
     $footerSections = $footerMenu?->items ?? collect();
 
-    // Approved footer artwork, uploaded via the media library (docs/Reference UI/Frontend/footer-background.png).
-    $footerBackgroundMedia = \App\Models\Media::query()->where('public_id', '01m05vdtr3n2p1vkdrrd0bch59')->first();
+    $footerBackgroundMediaId = $settings->get('footer', 'background_media_id');
+    $footerBackgroundMedia = $footerBackgroundMediaId ? \App\Models\Media::find($footerBackgroundMediaId) : null;
     $footerBackgroundUrl = $footerBackgroundMedia
         ? \Illuminate\Support\Facades\Storage::disk($footerBackgroundMedia->disk)->url($footerBackgroundMedia->path)
         : null;
 @endphp
 
 <footer
-    class="relative isolate overflow-hidden bg-brand-sky bg-[length:auto_206%] bg-[position:20%_center] bg-no-repeat"
+    class="relative isolate overflow-hidden bg-cover bg-center bg-no-repeat"
     @style([$footerBackgroundUrl ? "background-image: url('$footerBackgroundUrl')" : ''])
 >
     <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5 lg:divide-x lg:divide-brand-navy/15 lg:[&>div]:pl-8 lg:[&>div]:first:pl-0">
+        <div class="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
             <div class="col-span-2 sm:col-span-3 lg:col-span-1">
                 @if ($footerLogo)
                     <img

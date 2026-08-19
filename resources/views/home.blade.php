@@ -114,7 +114,5 @@
         </div>
     </div>
 
-    <div class="h-7 bg-white sm:h-10" aria-hidden="true"></div>
-
     <x-site.footer :site-name="$siteName" :tagline="$tagline"/>
 </x-layouts.site>

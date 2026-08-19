@@ -133,6 +133,7 @@ class Settings extends Page
                 ->label('Sub-heading text')
                 ->maxLength(255)
                 ->helperText('Shown under the logo in the footer, e.g. "A creative home for music, writing, reflection, thinking, and community."'),
+            MediaPicker::make('footer.background_media_id', 'Footer Background Image', MediaCategory::Image),
         ];
     }
 
@@ -280,6 +281,7 @@ class Settings extends Page
         $footer = $state['footer'];
         $settings->set('footer', 'logo_media_id', $footer['logo_media_id'], 'integer');
         $settings->set('footer', 'subheading', $footer['subheading']);
+        $settings->set('footer', 'background_media_id', $footer['background_media_id'], 'integer');
 
         $email = $state['email'];
         $settings->set('email', 'enabled', (bool) $email['enabled'], 'boolean');
@@ -349,6 +351,7 @@ class Settings extends Page
             'footer' => [
                 'logo_media_id' => $settings->get('footer', 'logo_media_id'),
                 'subheading' => $settings->get('footer', 'subheading'),
+                'background_media_id' => $settings->get('footer', 'background_media_id'),
             ],
             'email' => [
                 'enabled' => $settings->get('email', 'enabled', false),
