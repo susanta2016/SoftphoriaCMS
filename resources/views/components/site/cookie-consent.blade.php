@@ -8,6 +8,8 @@
         $cookies = array_merge(config('cookies_policy'), $settings->all('cookies'));
         $paragraphs = fn (?string $text): array => array_filter(array_map('trim', preg_split('/\n\s*\n/', (string) $text)));
 
+        $siteName = ($settings->get('general', 'site_name') ?? null) ?: 'All The Things Light';
+
         $privacyPolicyPage = \App\Models\Page::query()->published()->where('slug', 'privacy-policy')->first();
 
         $categories = [
@@ -40,7 +42,7 @@
         <div class="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
             <div class="flex items-start justify-between border-b border-brand-navy/10 px-6 py-5">
                 <div>
-                    <p class="text-sm text-brand-navy/50">Softphoria</p>
+                    <p class="text-sm text-brand-navy/50">{{ $siteName }}</p>
                     <h2 class="text-xl font-bold text-brand-navy">Cookies Preferences Center</h2>
                 </div>
                 <button type="button" data-cookie-preferences-close aria-label="Close" class="text-brand-navy/50 transition hover:text-brand-navy">
