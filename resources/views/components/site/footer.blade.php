@@ -66,7 +66,7 @@
                                 <img
                                     src="{{ \Illuminate\Support\Facades\Storage::disk($link->icon->disk)->url($link->icon->path) }}"
                                     alt=""
-                                    class="h-4 w-4 object-contain"
+                                    class="object-contain"
                                 >
                             @else
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
