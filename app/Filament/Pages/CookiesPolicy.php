@@ -34,6 +34,8 @@ class CookiesPolicy extends Page
 {
     protected static string|UnitEnum|null $navigationGroup = 'Website Setup';
 
+    protected static ?int $navigationSort = 4;
+
     protected static ?string $slug = 'website-setup/cookies-policy';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;

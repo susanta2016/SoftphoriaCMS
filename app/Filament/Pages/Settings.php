@@ -38,6 +38,8 @@ class Settings extends Page
 {
     protected static string|UnitEnum|null $navigationGroup = 'Website Setup';
 
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $slug = 'website-setup/settings';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;

@@ -28,6 +28,8 @@ class SocialLinkResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Website Setup';
 
+    protected static ?int $navigationSort = 3;
+
     protected static ?string $slug = 'website-setup/social-links';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShare;
