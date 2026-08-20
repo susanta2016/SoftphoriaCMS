@@ -21,7 +21,7 @@
 
     <style>
         .page-content { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #111827; }
-        main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+        main { max-width: 860px; margin: 0 auto; padding: 7rem 1.5rem 4rem; }
         .page-title { font-size: 2rem; margin: 1.5rem 0 0.5rem; }
         .page-summary { color: #4b5563; font-size: 1.125rem; margin: 0 0 2rem; }
         .featured-image { width: 100%; max-height: 420px; object-fit: cover; border-radius: 0.5rem; }

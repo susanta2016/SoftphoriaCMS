@@ -20,7 +20,7 @@
         @endif
         <x-site.header transparent :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
 
-        <div class="relative z-20 mx-auto max-w-7xl px-4 pt-14 pb-24 sm:px-6 lg:grid lg:grid-cols-12 lg:gap-10 lg:px-8 lg:pt-20 lg:pb-32">
+        <div class="relative z-20 mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 lg:grid lg:grid-cols-12 lg:gap-10 lg:px-8 lg:pt-40 lg:pb-32">
             <div class="lg:col-span-8">
                 <h1 class="max-w-2xl text-[2.5rem] leading-[1.15] font-serif text-brand-navy [text-wrap:balance] sm:text-5xl">
                     {{ $hero['heading'] }}

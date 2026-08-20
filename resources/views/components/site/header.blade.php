@@ -15,8 +15,9 @@
 @endphp
 
 <header
+    @if ($transparent) data-transparent-header @endif
     {{ $attributes->class([
-        'relative z-20 w-full',
+        'fixed inset-x-0 top-0 z-30 w-full transition-colors duration-200',
         'bg-transparent' => $transparent,
         'bg-white shadow-sm' => ! $transparent,
     ]) }}

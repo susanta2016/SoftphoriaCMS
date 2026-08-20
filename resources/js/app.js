@@ -24,6 +24,42 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+    const header = document.querySelector('[data-transparent-header]');
+
+    if (!header) return;
+
+    const SOLID_THRESHOLD = 24;
+
+    const applyScrollState = () => {
+        const solid = window.scrollY > SOLID_THRESHOLD;
+        header.classList.toggle('bg-white', solid);
+        header.classList.toggle('shadow-sm', solid);
+        header.classList.toggle('bg-transparent', !solid);
+    };
+
+    applyScrollState();
+    window.addEventListener('scroll', applyScrollState, { passive: true });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const button = document.querySelector('[data-scroll-to-top]');
+
+    if (!button) return;
+
+    const VISIBLE_THRESHOLD = 400;
+
+    const applyScrollState = () => {
+        button.classList.toggle('hidden', window.scrollY <= VISIBLE_THRESHOLD);
+        button.classList.toggle('flex', window.scrollY > VISIBLE_THRESHOLD);
+    };
+
+    applyScrollState();
+    window.addEventListener('scroll', applyScrollState, { passive: true });
+
+    button.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+});
+
+document.addEventListener('DOMContentLoaded', () => {
     const modal = document.querySelector('[data-video-modal]');
     const toggle = document.querySelector('[data-video-modal-toggle]');
 
