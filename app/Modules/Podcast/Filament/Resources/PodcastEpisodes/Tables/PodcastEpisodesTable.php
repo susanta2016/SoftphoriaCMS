@@ -20,9 +20,13 @@ class PodcastEpisodesTable
                 ImageColumn::make('artwork.path')
                     ->label('')
                     ->disk(fn ($record): string => $record->artwork?->disk ?? 'public')
-                    ->height(40)
-                    ->width(40)
-                    ->extraImgAttributes(['class' => 'rounded object-cover']),
+                    // A true max-width/max-height cap (not a fixed square
+                    // crop), same convention as the Media list — see
+                    // MediaTable::configure(). ->width() is deliberately
+                    // left unset since it would add its own competing
+                    // fixed-width style.
+                    ->height('auto')
+                    ->extraImgAttributes(['class' => 'rounded object-cover', 'style' => 'max-width:180px;max-height:180px;']),
                 TextColumn::make('title')
                     ->searchable()
                     ->sortable()

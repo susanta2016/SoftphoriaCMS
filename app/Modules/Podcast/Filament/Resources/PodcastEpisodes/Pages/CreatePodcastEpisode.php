@@ -13,6 +13,20 @@ class CreatePodcastEpisode extends CreateRecord
 {
     protected static string $resource = PodcastEpisodeResource::class;
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            $this->getCreateFormAction()->formId('form'),
+            $this->getCreateAnotherFormAction()->formId('form'),
+            $this->getCancelFormAction(),
+        ];
+    }
+
+    protected function getFormActions(): array
+    {
+        return [];
+    }
+
     protected function handleRecordCreation(array $data): Model
     {
         /** @var User $actor */
