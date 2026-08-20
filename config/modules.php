@@ -25,7 +25,7 @@ return [
     */
 
     'enabled' => [
-        //
+        \App\Modules\Podcast\Providers\PodcastServiceProvider::class,
     ],
 
 ];
