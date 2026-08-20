@@ -105,5 +105,25 @@
                 </a>
             @endforeach
         </nav>
+
+        {{--
+            Search and Log In are already visible as standalone header
+            controls from the sm breakpoint up (classes above), so they'd
+            be redundant here at sm+. Below sm — genuinely small/mobile
+            screens — those controls are hidden entirely, so this is their
+            only way in: surfaced here instead, alongside the nav links.
+        --}}
+        <div class="mx-auto flex max-w-7xl flex-col gap-1 border-t border-brand-navy/10 px-4 py-3 sm:hidden">
+            <a href="#" class="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+                    <circle cx="11" cy="11" r="7"/>
+                    <path d="m21 21-4.35-4.35" stroke-linecap="round"/>
+                </svg>
+                Search
+            </a>
+            <a href="#" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
+                Log In
+            </a>
+        </div>
     </div>
 </header>
