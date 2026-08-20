@@ -29,5 +29,7 @@
 </head>
 <body class="flex min-h-screen flex-col overflow-x-hidden bg-white font-sans text-brand-navy antialiased">
     {{ $slot }}
+
+    <x-site.cookie-consent/>
 </body>
 </html>

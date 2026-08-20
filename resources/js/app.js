@@ -67,3 +67,133 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.key === 'Escape' && !modal.classList.contains('hidden')) setOpen(false);
     });
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const banner = document.querySelector('[data-cookie-banner]');
+    const preferences = document.querySelector('[data-cookie-preferences]');
+
+    if (!banner || !preferences) return;
+
+    const COOKIE_NAME = 'cookie_consent';
+    const COOKIE_DAYS = 180;
+    const OPTIONAL_CATEGORIES = ['functionality', 'tracking', 'targeting'];
+
+    const readConsent = () => {
+        const match = document.cookie.match(new RegExp('(?:^|; )' + COOKIE_NAME + '=([^;]*)'));
+        if (!match) return null;
+
+        try {
+            return JSON.parse(decodeURIComponent(match[1]));
+        } catch {
+            return null;
+        }
+    };
+
+    const writeConsent = (consent) => {
+        const maxAge = COOKIE_DAYS * 24 * 60 * 60;
+        const secure = location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(JSON.stringify(consent))}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
+    };
+
+    const setBannerOpen = (open) => banner.classList.toggle('hidden', !open);
+
+    const setPreferencesOpen = (open) => {
+        preferences.classList.toggle('hidden', !open);
+        preferences.classList.toggle('flex', open);
+        if (open) setBannerOpen(false);
+    };
+
+    const applyConsentToToggles = (consent) => {
+        OPTIONAL_CATEGORIES.forEach((category) => {
+            const toggle = preferences.querySelector(`[data-cookie-toggle="${category}"]`);
+            const label = preferences.querySelector(`[data-cookie-toggle-label="${category}"]`);
+            const active = Boolean(consent?.[category]);
+
+            if (toggle) toggle.checked = active;
+            if (label) label.textContent = active ? 'Active' : 'Inactive';
+        });
+    };
+
+    const readTogglesAsConsent = () => {
+        const consent = { necessary: true };
+        OPTIONAL_CATEGORIES.forEach((category) => {
+            consent[category] = preferences.querySelector(`[data-cookie-toggle="${category}"]`)?.checked ?? false;
+        });
+
+        return consent;
+    };
+
+    preferences.querySelectorAll('[data-cookie-toggle]').forEach((toggle) => {
+        toggle.addEventListener('change', () => {
+            const label = preferences.querySelector(`[data-cookie-toggle-label="${toggle.dataset.cookieToggle}"]`);
+            if (label) label.textContent = toggle.checked ? 'Active' : 'Inactive';
+        });
+    });
+
+    preferences.querySelectorAll('[data-cookie-tab-trigger]').forEach((trigger) => {
+        trigger.addEventListener('click', () => {
+            const key = trigger.dataset.cookieTabTrigger;
+
+            preferences.querySelectorAll('[data-cookie-tab-trigger]').forEach((other) => {
+                const isActive = other === trigger;
+                other.classList.toggle('is-active', isActive);
+                other.classList.toggle('bg-white', isActive);
+                other.classList.toggle('font-semibold', isActive);
+                other.classList.toggle('text-brand-navy', isActive);
+                other.classList.toggle('text-brand-navy/70', !isActive);
+                other.classList.toggle('sm:border-l-brand-gold', isActive);
+                other.setAttribute('aria-selected', String(isActive));
+            });
+
+            preferences.querySelectorAll('[data-cookie-tab-panel]').forEach((panel) => {
+                panel.classList.toggle('hidden', panel.dataset.cookieTabPanel !== key);
+            });
+        });
+    });
+
+    document.querySelectorAll('[data-cookie-preferences-open]').forEach((button) => {
+        button.addEventListener('click', () => {
+            applyConsentToToggles(readConsent() ?? { necessary: true });
+            setPreferencesOpen(true);
+        });
+    });
+
+    document.querySelector('[data-cookie-preferences-close]')?.addEventListener('click', () => {
+        setPreferencesOpen(false);
+        if (!readConsent()) setBannerOpen(true);
+    });
+
+    preferences.addEventListener('click', (event) => {
+        if (event.target === preferences) {
+            setPreferencesOpen(false);
+            if (!readConsent()) setBannerOpen(true);
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !preferences.classList.contains('hidden')) {
+            setPreferencesOpen(false);
+            if (!readConsent()) setBannerOpen(true);
+        }
+    });
+
+    document.querySelector('[data-cookie-agree]')?.addEventListener('click', () => {
+        writeConsent({ necessary: true, functionality: true, tracking: true, targeting: true });
+        setBannerOpen(false);
+        setPreferencesOpen(false);
+    });
+
+    document.querySelector('[data-cookie-decline]')?.addEventListener('click', () => {
+        writeConsent({ necessary: true, functionality: false, tracking: false, targeting: false });
+        setBannerOpen(false);
+        setPreferencesOpen(false);
+    });
+
+    document.querySelector('[data-cookie-save]')?.addEventListener('click', () => {
+        writeConsent(readTogglesAsConsent());
+        setBannerOpen(false);
+        setPreferencesOpen(false);
+    });
+
+    if (!readConsent()) setBannerOpen(true);
+});

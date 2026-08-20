@@ -128,7 +128,12 @@
                         @enderror
                     </form>
                 @endif
-                <p class="mt-4 text-xs text-brand-navy/60">{{ $footerCopyrightText }}</p>
+                <p class="mt-4 text-xs text-brand-navy/60">
+                    {{ $footerCopyrightText }}
+                    @if ($settings->get('cookies', 'enabled', true))
+                        <button type="button" data-cookie-preferences-open class="ml-2 underline decoration-brand-navy/30 underline-offset-2 hover:text-brand-gold">Cookie Settings</button>
+                    @endif
+                </p>
             </div>
         </div>
     </div>
