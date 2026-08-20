@@ -25,4 +25,23 @@
     li.fi-topbar-item {
         list-style: none;
     }
+
+    /* Every List/Create/Edit/View page's own header — breadcrumb, title,
+       and header actions like Save/Create — stays reachable while
+       scrolling a long table or form instead of scrolling out of view.
+       Sticks just below the topbar (.fi-topbar's min-h-16 = 4rem) on the
+       same flat page background so content scrolling underneath doesn't
+       show through. */
+    .fi-header {
+        position: sticky;
+        top: 4rem;
+        z-index: 20;
+        background-color: rgb(249 250 251);
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgb(229 231 235);
+    }
+    .dark .fi-header {
+        background-color: rgb(3 7 18);
+        border-bottom-color: rgb(31 41 55);
+    }
 </style>
