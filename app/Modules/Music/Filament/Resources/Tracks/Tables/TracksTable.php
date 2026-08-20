@@ -1,0 +1,64 @@
+<?php
+
+namespace App\Modules\Music\Filament\Resources\Tracks\Tables;
+
+use App\Modules\Music\Enums\TrackStatus;
+use App\Modules\Music\Models\Album;
+use App\Modules\Music\Models\Single;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+
+class TracksTable
+{
+    public static function configure(Table $table): Table
+    {
+        return $table
+            ->columns([
+                TextColumn::make('title')
+                    ->searchable()
+                    ->sortable()
+                    ->description(fn ($record): ?string => $record->album?->title ?? $record->single?->title),
+                TextColumn::make('release')
+                    ->label('Release')
+                    ->state(fn ($record): string => $record->album ? 'Album' : 'Single')
+                    ->badge()
+                    ->color(fn ($record): string => $record->album ? 'info' : 'gray'),
+                TextColumn::make('track_number')
+                    ->label('#')
+                    ->sortable(),
+                TextColumn::make('duration_seconds')
+                    ->label('Length')
+                    ->state(fn ($record): string => $record->duration_seconds ? gmdate('i:s', $record->duration_seconds) : '—'),
+                TextColumn::make('categories.name')
+                    ->label('Genres')
+                    ->badge()
+                    ->separator(','),
+                TextColumn::make('status')
+                    ->badge()
+                    ->sortable(),
+            ])
+            ->filters([
+                SelectFilter::make('status')->options(TrackStatus::options()),
+                SelectFilter::make('album_id')
+                    ->label('Album')
+                    ->options(fn (): array => Album::query()->orderBy('title')->pluck('title', 'id')->all()),
+                SelectFilter::make('single_id')
+                    ->label('Single')
+                    ->options(fn (): array => Single::query()->orderBy('title')->pluck('title', 'id')->all()),
+                SelectFilter::make('categories')
+                    ->label('Genre')
+                    ->relationship('categories', 'name', fn ($query) => $query->where('type', 'music')),
+            ])
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make()->requiresConfirmation(),
+            ])
+            ->toolbarActions([])
+            ->defaultSort('title')
+            ->paginationPageOptions([10, 25, 50, 'all'])
+            ->defaultPaginationPageOption(25);
+    }
+}

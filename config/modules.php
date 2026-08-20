@@ -26,6 +26,7 @@ return [
 
     'enabled' => [
         \App\Modules\Podcast\Providers\PodcastServiceProvider::class,
+        \App\Modules\Music\Providers\MusicServiceProvider::class,
     ],
 
 ];
