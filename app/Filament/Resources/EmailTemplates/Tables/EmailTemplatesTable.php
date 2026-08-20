@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Clusters\WebsiteSetup\Resources\EmailTemplates\Tables;
+namespace App\Filament\Resources\EmailTemplates\Tables;
 
 use App\Models\EmailTemplate;
 use Filament\Actions\EditAction;

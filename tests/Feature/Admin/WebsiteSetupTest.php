@@ -4,7 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Actions\Page\CreatePageAction;
 use App\Enums\PageTemplate;
-use App\Filament\Clusters\WebsiteSetup\Pages\Settings;
+use App\Filament\Pages\Settings;
 use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;

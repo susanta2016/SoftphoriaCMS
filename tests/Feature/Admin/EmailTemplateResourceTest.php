@@ -3,8 +3,8 @@
 namespace Tests\Feature\Admin;
 
 use App\Enums\EmailRecipientType;
-use App\Filament\Clusters\WebsiteSetup\Resources\EmailTemplates\Pages\EditEmailTemplate;
-use App\Filament\Clusters\WebsiteSetup\Resources\EmailTemplates\Pages\ListEmailTemplates;
+use App\Filament\Resources\EmailTemplates\Pages\EditEmailTemplate;
+use App\Filament\Resources\EmailTemplates\Pages\ListEmailTemplates;
 use App\Models\EmailTemplate;
 use App\Models\Role;
 use App\Models\User;

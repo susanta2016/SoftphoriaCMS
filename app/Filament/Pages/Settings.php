@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Filament\Clusters\WebsiteSetup\Pages;
+namespace App\Filament\Pages;
 
 use App\Enums\MediaCategory;
-use App\Filament\Clusters\WebsiteSetup;
 use App\Filament\Support\Media\MediaPicker;
 use App\Models\Page as PageModel;
 use App\Models\Setting;
@@ -28,6 +27,7 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
+use UnitEnum;
 
 /**
  * Website Setup's General + Email Settings tabs (docs/ARCHITECTURE.md §16).
@@ -36,7 +36,9 @@ use Throwable;
  */
 class Settings extends Page
 {
-    protected static ?string $cluster = WebsiteSetup::class;
+    protected static string|UnitEnum|null $navigationGroup = 'Website Setup';
+
+    protected static ?string $slug = 'website-setup/settings';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 

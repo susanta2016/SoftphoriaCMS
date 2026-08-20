@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Filament\Clusters\WebsiteSetup\Resources\EmailTemplates\Pages;
+namespace App\Filament\Resources\EmailTemplates\Pages;
 
 use App\Enums\EmailRecipientType;
-use App\Filament\Clusters\WebsiteSetup\Resources\EmailTemplates\EmailTemplateResource;
+use App\Filament\Resources\EmailTemplates\EmailTemplateResource;
 use App\Models\EmailTemplate;
 use App\Shared\Services\Notifications\TemplatedMailer;
 use App\Shared\Services\Settings\SettingsRepository;

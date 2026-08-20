@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Clusters\WebsiteSetup\Resources\SocialLinks\Pages;
+namespace App\Filament\Resources\SocialLinks\Pages;
 
-use App\Filament\Clusters\WebsiteSetup\Resources\SocialLinks\SocialLinkResource;
+use App\Filament\Resources\SocialLinks\SocialLinkResource;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Auth;
 

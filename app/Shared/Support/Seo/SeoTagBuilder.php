@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Storage;
  * Site-wide identifiers that don't belong on a per-page SeoMetadata row
  * (site name, Twitter/X handle, Facebook App ID, default share image) come
  * from Website Setup's General/SEO settings instead — see
- * App\Filament\Clusters\WebsiteSetup\Pages\Settings.
+ * App\Filament\Pages\Settings.
  */
 class SeoTagBuilder
 {

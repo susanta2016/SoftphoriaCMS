@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Clusters\WebsiteSetup\Resources\SocialLinks\Schemas;
+namespace App\Filament\Resources\SocialLinks\Schemas;
 
 use App\Enums\MediaCategory;
 use App\Filament\Support\Media\MediaPicker;

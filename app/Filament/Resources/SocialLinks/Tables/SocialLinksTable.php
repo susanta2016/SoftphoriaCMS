@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Clusters\WebsiteSetup\Resources\SocialLinks\Tables;
+namespace App\Filament\Resources\SocialLinks\Tables;
 
 use App\Models\SocialLink;
 use Filament\Actions\DeleteAction;

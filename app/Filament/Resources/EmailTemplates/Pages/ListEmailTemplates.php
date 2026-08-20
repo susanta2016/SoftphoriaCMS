@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Clusters\WebsiteSetup\Resources\EmailTemplates\Pages;
+namespace App\Filament\Resources\EmailTemplates\Pages;
 
-use App\Filament\Clusters\WebsiteSetup\Resources\EmailTemplates\EmailTemplateResource;
+use App\Filament\Resources\EmailTemplates\EmailTemplateResource;
 use Filament\Resources\Pages\ListRecords;
 
 /**

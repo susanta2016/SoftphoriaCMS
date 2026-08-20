@@ -1,19 +1,19 @@
 <?php
 
-namespace App\Filament\Clusters\WebsiteSetup\Resources\SocialLinks;
+namespace App\Filament\Resources\SocialLinks;
 
-use App\Filament\Clusters\WebsiteSetup;
-use App\Filament\Clusters\WebsiteSetup\Resources\SocialLinks\Pages\CreateSocialLink;
-use App\Filament\Clusters\WebsiteSetup\Resources\SocialLinks\Pages\EditSocialLink;
-use App\Filament\Clusters\WebsiteSetup\Resources\SocialLinks\Pages\ListSocialLinks;
-use App\Filament\Clusters\WebsiteSetup\Resources\SocialLinks\Schemas\SocialLinkForm;
-use App\Filament\Clusters\WebsiteSetup\Resources\SocialLinks\Tables\SocialLinksTable;
+use App\Filament\Resources\SocialLinks\Pages\CreateSocialLink;
+use App\Filament\Resources\SocialLinks\Pages\EditSocialLink;
+use App\Filament\Resources\SocialLinks\Pages\ListSocialLinks;
+use App\Filament\Resources\SocialLinks\Schemas\SocialLinkForm;
+use App\Filament\Resources\SocialLinks\Tables\SocialLinksTable;
 use App\Models\SocialLink;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 /**
  * Footer's social media links (icon + URL), managed independently of the
@@ -26,7 +26,9 @@ class SocialLinkResource extends Resource
 {
     protected static ?string $model = SocialLink::class;
 
-    protected static ?string $cluster = WebsiteSetup::class;
+    protected static string|UnitEnum|null $navigationGroup = 'Website Setup';
+
+    protected static ?string $slug = 'website-setup/social-links';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShare;
 
