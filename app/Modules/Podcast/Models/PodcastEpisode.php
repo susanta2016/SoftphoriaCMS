@@ -2,15 +2,18 @@
 
 namespace App\Modules\Podcast\Models;
 
+use App\Models\Category;
 use App\Models\Concerns\HasPublicId;
 use App\Models\Media;
 use App\Models\SeoMetadata;
+use App\Models\Tag;
 use App\Models\User;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -56,6 +59,16 @@ class PodcastEpisode extends Model
     public function links(): HasMany
     {
         return $this->hasMany(PodcastLink::class)->orderBy('sort_order');
+    }
+
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'podcast_categories');
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'podcast_tags');
     }
 
     public function seo(): MorphOne

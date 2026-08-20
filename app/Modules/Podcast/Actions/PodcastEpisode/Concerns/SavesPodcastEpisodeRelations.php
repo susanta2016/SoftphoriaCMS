@@ -48,4 +48,20 @@ trait SavesPodcastEpisodeRelations
             ]);
         }
     }
+
+    /**
+     * @param  array<int, int>  $categoryIds
+     */
+    protected function syncCategories(PodcastEpisode $episode, array $categoryIds): void
+    {
+        $episode->categories()->sync($categoryIds);
+    }
+
+    /**
+     * @param  array<int, int>  $tagIds
+     */
+    protected function syncTags(PodcastEpisode $episode, array $tagIds): void
+    {
+        $episode->tags()->sync($tagIds);
+    }
 }

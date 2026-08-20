@@ -20,12 +20,14 @@ class UpdatePodcastEpisodeAction
     public function handle(PodcastEpisode $episode, array $data, User $actor): PodcastEpisode
     {
         return DB::transaction(function () use ($episode, $data, $actor): PodcastEpisode {
-            $episode->fill(collect($data)->except(['links', 'seo'])->all());
+            $episode->fill(collect($data)->except(['links', 'seo', 'categoryIds', 'tagIds'])->all());
             $episode->updated_by = $actor->getKey();
             $episode->save();
 
             $this->syncLinks($episode, $data['links'] ?? []);
             $this->saveSeo($episode, $data['seo'] ?? []);
+            $this->syncCategories($episode, $data['categoryIds'] ?? []);
+            $this->syncTags($episode, $data['tagIds'] ?? []);
 
             $this->auditLog->record($actor, 'podcast_episode.updated', $episode, ['title' => $episode->title]);
 

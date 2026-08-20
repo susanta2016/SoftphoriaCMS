@@ -26,23 +26,11 @@ class EditPodcast extends EditRecord
         return [];
     }
 
-    protected function mutateFormDataBeforeFill(array $data): array
-    {
-        $data['categoryIds'] = $this->record->categories()->pluck('categories.id')->all();
-        $data['tagIds'] = $this->record->tags()->pluck('tags.id')->all();
-
-        return $data;
-    }
-
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         /** @var User $actor */
         $actor = Auth::user();
 
-        $categoryIds = $data['categoryIds'] ?? [];
-        $tagIds = $data['tagIds'] ?? [];
-        unset($data['categoryIds'], $data['tagIds']);
-
-        return app(UpdatePodcastAction::class)->handle($record, $data, $categoryIds, $tagIds, $actor);
+        return app(UpdatePodcastAction::class)->handle($record, $data, $actor);
     }
 }

@@ -13,20 +13,11 @@ class CreatePodcast extends CreateRecord
 {
     protected static string $resource = PodcastResource::class;
 
-    /**
-     * categoryIds/tagIds are pivot state, not podcasts columns — see
-     * PodcastForm's docblock-less but identical reasoning to PageForm's
-     * sections/seo fields.
-     */
     protected function handleRecordCreation(array $data): Model
     {
         /** @var User $actor */
         $actor = Auth::user();
 
-        $categoryIds = $data['categoryIds'] ?? [];
-        $tagIds = $data['tagIds'] ?? [];
-        unset($data['categoryIds'], $data['tagIds']);
-
-        return app(CreatePodcastAction::class)->handle($data, $categoryIds, $tagIds, $actor);
+        return app(CreatePodcastAction::class)->handle($data, $actor);
     }
 }

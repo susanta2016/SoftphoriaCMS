@@ -33,6 +33,10 @@ class PodcastEpisodesTable
                         $record->season ? "S{$record->season}" : null,
                         $record->episode_number ? "E{$record->episode_number}" : null,
                     ])->filter()->join(' ') ?: '—'),
+                TextColumn::make('categories.name')
+                    ->label('Topics')
+                    ->badge()
+                    ->separator(','),
                 TextColumn::make('status')
                     ->badge()
                     ->sortable(),
@@ -46,6 +50,9 @@ class PodcastEpisodesTable
                 SelectFilter::make('podcast_id')
                     ->label('Podcast')
                     ->options(fn (): array => Podcast::query()->orderBy('title')->pluck('title', 'id')->all()),
+                SelectFilter::make('categories')
+                    ->label('Topic')
+                    ->relationship('categories', 'name', fn ($query) => $query->where('type', 'podcast')),
             ])
             ->recordActions([
                 EditAction::make(),

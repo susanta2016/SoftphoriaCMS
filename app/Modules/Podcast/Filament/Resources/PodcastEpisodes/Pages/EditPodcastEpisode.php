@@ -41,6 +41,9 @@ class EditPodcastEpisode extends EditRecord
             ])
             ->all();
 
+        $data['categoryIds'] = $this->record->categories()->pluck('categories.id')->all();
+        $data['tagIds'] = $this->record->tags()->pluck('tags.id')->all();
+
         $seo = $this->record->seo;
         $storedCanonicalUrl = $seo->canonical_url ?? null;
         $path = 'podcast/'.(string) ($this->record->slug ?? '');

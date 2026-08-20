@@ -14,21 +14,16 @@ class CreatePodcastAction
 
     /**
      * @param  array<string, mixed>  $data
-     * @param  array<int, int>  $categoryIds
-     * @param  array<int, int>  $tagIds
      */
-    public function handle(array $data, array $categoryIds, array $tagIds, User $actor): Podcast
+    public function handle(array $data, User $actor): Podcast
     {
-        return DB::transaction(function () use ($data, $categoryIds, $tagIds, $actor): Podcast {
+        return DB::transaction(function () use ($data, $actor): Podcast {
             $podcast = new Podcast;
             $podcast->fill($data);
             $podcast->status ??= PodcastStatus::Draft;
             $podcast->created_by = $actor->getKey();
             $podcast->updated_by = $actor->getKey();
             $podcast->save();
-
-            $podcast->categories()->sync($categoryIds);
-            $podcast->tags()->sync($tagIds);
 
             $this->auditLog->record($actor, 'podcast.created', $podcast, ['title' => $podcast->title]);
 

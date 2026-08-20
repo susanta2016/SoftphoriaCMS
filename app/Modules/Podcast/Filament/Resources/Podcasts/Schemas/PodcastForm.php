@@ -4,8 +4,6 @@ namespace App\Modules\Podcast\Filament\Resources\Podcasts\Schemas;
 
 use App\Enums\MediaCategory;
 use App\Filament\Support\Media\MediaPicker;
-use App\Models\Category;
-use App\Models\Tag;
 use App\Modules\Podcast\Enums\PodcastStatus;
 use App\Modules\Podcast\Models\Podcast;
 use Filament\Forms\Components\Select;
@@ -47,32 +45,6 @@ class PodcastForm
                     ->helperText('Shown as the podcast\'s own summary — e.g. the "About the Podcast" panel on the episode list/detail pages.'),
                 MediaPicker::make('artwork_media_id', 'Artwork', MediaCategory::Image)
                     ->columnSpanFull(),
-                Select::make('categoryIds')
-                    ->label('Categories')
-                    ->options(fn (): array => Category::query()->where('type', 'podcast')->orderBy('name')->pluck('name', 'id')->all())
-                    ->multiple()
-                    ->searchable()
-                    ->createOptionForm([
-                        TextInput::make('name')->required()->maxLength(255)
-                            ->live(onBlur: true)
-                            ->afterStateUpdated(fn (?string $state, Set $set) => $set('slug', Str::slug($state ?? ''))),
-                        TextInput::make('slug')->required()->maxLength(255),
-                    ])
-                    ->createOptionUsing(fn (array $data): int => Category::query()->create(['type' => 'podcast', ...$data])->getKey())
-                    ->dehydrated(),
-                Select::make('tagIds')
-                    ->label('Tags')
-                    ->options(fn (): array => Tag::query()->orderBy('name')->pluck('name', 'id')->all())
-                    ->multiple()
-                    ->searchable()
-                    ->createOptionForm([
-                        TextInput::make('name')->required()->maxLength(255)
-                            ->live(onBlur: true)
-                            ->afterStateUpdated(fn (?string $state, Set $set) => $set('slug', Str::slug($state ?? ''))),
-                        TextInput::make('slug')->required()->maxLength(255),
-                    ])
-                    ->createOptionUsing(fn (array $data): int => Tag::query()->create($data)->getKey())
-                    ->dehydrated(),
             ]);
     }
 }

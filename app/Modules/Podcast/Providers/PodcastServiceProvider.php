@@ -8,8 +8,10 @@ use Illuminate\Console\Scheduling\Schedule;
 
 /**
  * Registers the Podcast module (Database Specification §5: podcasts,
- * podcast_episodes, podcast_links, podcast_categories, podcast_tags — all
- * already migrated in CORE-002's Phase-1 schema pass) with the platform via
+ * podcast_episodes, podcast_links, podcast_categories, podcast_tags — the
+ * first four already migrated in CORE-002's Phase-1 schema pass; the
+ * categories/tags pivots were later repointed to episodes by this module's
+ * own migration, see database/migrations/) with the platform via
  * config('modules.enabled'), per docs/ARCHITECTURE.md §5. Filament
  * discovers this module's Resources/Pages automatically from
  * app/Modules/Podcast/Filament/{Resources,Pages} (AdminPanelProvider's
@@ -27,6 +29,8 @@ class PodcastServiceProvider extends ModuleServiceProvider
 
     public function boot(): void
     {
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+
         if ($this->app->runningInConsole()) {
             $this->commands([PublishDuePodcastEpisodesCommand::class]);
         }

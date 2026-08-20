@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Category;
 use App\Models\Role;
+use App\Models\Tag;
 use App\Models\User;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
 use App\Modules\Podcast\Enums\PodcastStatus;
@@ -35,9 +37,11 @@ class PodcastEpisodeTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_admin_can_create_an_episode_with_links_and_seo(): void
+    public function test_admin_can_create_an_episode_with_links_seo_and_topics(): void
     {
         $podcast = $this->createPodcast();
+        $category = Category::query()->create(['type' => 'podcast', 'name' => 'Mindfulness', 'slug' => 'mindfulness']);
+        $tag = Tag::query()->create(['name' => 'Presence', 'slug' => 'presence']);
 
         Livewire::actingAs($this->admin())
             ->test(CreatePodcastEpisode::class)
@@ -54,6 +58,8 @@ class PodcastEpisodeTest extends TestCase
                     ['provider' => 'spotify', 'url' => 'https://open.spotify.com/episode/xyz'],
                 ],
                 'seo' => ['meta_title' => 'The Power of Presence'],
+                'categoryIds' => [$category->id],
+                'tagIds' => [$tag->id],
             ])
             ->call('create')
             ->assertHasNoFormErrors();
@@ -66,6 +72,8 @@ class PodcastEpisodeTest extends TestCase
         $this->assertCount(1, $episode->links);
         $this->assertSame('https://open.spotify.com/episode/xyz', $episode->links->first()->url);
         $this->assertSame('The Power of Presence', $episode->seo->meta_title);
+        $this->assertTrue($episode->categories->contains($category));
+        $this->assertTrue($episode->tags->contains($tag));
     }
 
     public function test_admin_can_view_the_episode_list(): void

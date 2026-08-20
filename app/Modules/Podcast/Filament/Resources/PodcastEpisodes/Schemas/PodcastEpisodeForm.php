@@ -6,6 +6,8 @@ use App\Enums\MediaCategory;
 use App\Filament\Support\Media\MediaPicker;
 use App\Filament\Support\Media\RichEditorMediaAttachments;
 use App\Filament\Support\Seo\SeoFields;
+use App\Models\Category;
+use App\Models\Tag;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
 use App\Modules\Podcast\Enums\PodcastLinkProvider;
 use App\Modules\Podcast\Models\Podcast;
@@ -80,6 +82,38 @@ class PodcastEpisodeForm
                                     RichEditorMediaAttachments::configure(
                                         RichEditor::make('description')->hiddenLabel()->columnSpanFull()
                                     ),
+                                ]),
+
+                            Section::make('Topics')
+                                ->description('Powers the list page\'s Topic filter and the episode\'s Key Themes.')
+                                ->columns(2)
+                                ->schema([
+                                    Select::make('categoryIds')
+                                        ->label('Categories')
+                                        ->options(fn (): array => Category::query()->where('type', 'podcast')->orderBy('name')->pluck('name', 'id')->all())
+                                        ->multiple()
+                                        ->searchable()
+                                        ->createOptionForm([
+                                            TextInput::make('name')->required()->maxLength(255)
+                                                ->live(onBlur: true)
+                                                ->afterStateUpdated(fn (?string $state, Set $set) => $set('slug', Str::slug($state ?? ''))),
+                                            TextInput::make('slug')->required()->maxLength(255),
+                                        ])
+                                        ->createOptionUsing(fn (array $data): int => Category::query()->create(['type' => 'podcast', ...$data])->getKey())
+                                        ->dehydrated(),
+                                    Select::make('tagIds')
+                                        ->label('Key Themes (Tags)')
+                                        ->options(fn (): array => Tag::query()->orderBy('name')->pluck('name', 'id')->all())
+                                        ->multiple()
+                                        ->searchable()
+                                        ->createOptionForm([
+                                            TextInput::make('name')->required()->maxLength(255)
+                                                ->live(onBlur: true)
+                                                ->afterStateUpdated(fn (?string $state, Set $set) => $set('slug', Str::slug($state ?? ''))),
+                                            TextInput::make('slug')->required()->maxLength(255),
+                                        ])
+                                        ->createOptionUsing(fn (array $data): int => Tag::query()->create($data)->getKey())
+                                        ->dehydrated(),
                                 ]),
 
                             Section::make('Streaming Links')
