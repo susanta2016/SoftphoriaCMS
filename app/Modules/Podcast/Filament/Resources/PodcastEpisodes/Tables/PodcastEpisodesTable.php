@@ -53,7 +53,9 @@ class PodcastEpisodesTable
                     // always an external reference, never this source.
                     ->getStateUsing(fn (PodcastEpisode $record): HtmlString => $record->video
                         ? MediaPreview::videoPlayer($record->video)
-                        : MediaPreview::empty('No video')),
+                        : MediaPreview::empty('No video'))
+                    // Temporary presentation-mode hide — UI only, see config/admin_ui.php.
+                    ->visible(fn (): bool => config('admin_ui.show_video_fields')),
                 TextColumn::make('season_episode')
                     ->label('Season / Episode')
                     ->state(fn ($record): string => collect([

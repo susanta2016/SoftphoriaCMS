@@ -68,7 +68,9 @@ class PodcastEpisodeForm
                                     MediaPicker::make('audio_media_id', 'Audio File', MediaCategory::Audio)
                                         ->columnSpanFull(),
                                     MediaPicker::make('video_media_id', 'Video File', MediaCategory::Video)
-                                        ->columnSpanFull(),
+                                        ->columnSpanFull()
+                                        // Temporary presentation-mode hide — UI only, see config/admin_ui.php.
+                                        ->visible(fn (): bool => config('admin_ui.show_video_fields')),
                                     TextInput::make('season')
                                         ->numeric()
                                         ->minValue(1)

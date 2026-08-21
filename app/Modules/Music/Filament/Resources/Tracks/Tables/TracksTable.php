@@ -43,7 +43,9 @@ class TracksTable
                     // is always an external reference, never this source.
                     ->getStateUsing(fn (Track $record): HtmlString => $record->video
                         ? MediaPreview::videoPlayer($record->video)
-                        : MediaPreview::empty('No video')),
+                        : MediaPreview::empty('No video'))
+                    // Temporary presentation-mode hide — UI only, see config/admin_ui.php.
+                    ->visible(fn (): bool => config('admin_ui.show_video_fields')),
                 TextColumn::make('release')
                     ->label('Release')
                     ->state(fn ($record): string => $record->album ? 'Album' : 'Single')
