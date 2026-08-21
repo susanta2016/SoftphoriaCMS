@@ -47,6 +47,28 @@ return [
             'report' => false,
         ],
 
+        // Livewire's *temporary* upload staging area only (config/livewire.php
+        // → temporary_file_upload.disk, via LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK)
+        // — deliberately rooted on the container's own local filesystem, not
+        // under storage_path() (which is bind-mounted from the host, and on
+        // Windows/WSL2 that bind mount is a 9p filesystem — Filament's
+        // FileUpload writes the initial upload here, then immediately
+        // re-reads it for size/mime validation; that write-then-stat sequence
+        // was unreliable enough over 9p to silently drop the file body while
+        // still writing Livewire's own metadata sidecar, producing
+        // Flysystem's "Unable to retrieve the file_size" error on every
+        // upload). sys_get_temp_dir() resolves to a normal fast local path in
+        // any environment (this container's own /tmp, or a real server's OS
+        // temp dir) — this is a correctness fix generally, not a Docker-only
+        // workaround. Final, permanent storage (`local`/`public` above) is
+        // untouched and still lives under storage_path() as before.
+        'livewire-tmp' => [
+            'driver' => 'local',
+            'root' => sys_get_temp_dir().'/livewire-uploads',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

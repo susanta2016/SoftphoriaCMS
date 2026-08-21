@@ -2,25 +2,39 @@
 
 namespace App\Modules\Music\Filament\Resources\Tracks\Tables;
 
+use App\Filament\Support\Media\MediaPreview;
 use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Single;
+use App\Modules\Music\Models\Track;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class TracksTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with('audio'))
             ->columns([
                 TextColumn::make('title')
                     ->searchable()
                     ->sortable()
                     ->description(fn ($record): ?string => $record->album?->title ?? $record->single?->title),
+                TextColumn::make('audio_preview')
+                    ->label('Audio')
+                    ->html()
+                    // Admin verification/playback only, via the existing
+                    // private-media streaming route — see MediaPreview's
+                    // docblock. Never touches Commerce (no entitlement, no
+                    // download count) and never a public /storage/... URL.
+                    ->getStateUsing(fn (Track $record): HtmlString => $record->audio
+                        ? MediaPreview::audioPlayer($record->audio)
+                        : MediaPreview::empty('No audio')),
                 TextColumn::make('release')
                     ->label('Release')
                     ->state(fn ($record): string => $record->album ? 'Album' : 'Single')

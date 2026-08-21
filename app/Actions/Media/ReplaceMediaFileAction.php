@@ -4,6 +4,7 @@ namespace App\Actions\Media;
 
 use App\Actions\Media\Concerns\DeletesMediaVariants;
 use App\Actions\Media\Concerns\EvaluatesImageForVariants;
+use App\Actions\Media\Concerns\ReadsFileMetadataReliably;
 use App\Enums\MediaCategory;
 use App\Exceptions\Media\MediaCategoryMismatchException;
 use App\Jobs\Media\GenerateImageVariantsJob;
@@ -31,13 +32,14 @@ use Illuminate\Support\Facades\Storage;
  */
 class ReplaceMediaFileAction
 {
-    use DeletesMediaVariants, EvaluatesImageForVariants;
+    use DeletesMediaVariants, EvaluatesImageForVariants, ReadsFileMetadataReliably;
 
     public function __construct(private readonly AuditLogService $auditLog) {}
 
     public function handle(Media $media, string $disk, string $path, User $actor): Media
     {
-        $newMimeType = Storage::disk($disk)->mimeType($path);
+        $metadata = $this->readFileMetadata($disk, $path);
+        $newMimeType = $metadata['mimeType'];
         $newCategory = MediaCategory::fromMimeType($newMimeType);
         $existingCategory = $media->category();
 
@@ -49,14 +51,14 @@ class ReplaceMediaFileAction
         $oldPath = $media->path;
         $oldFilename = $media->original_filename;
 
-        DB::transaction(function () use ($media, $disk, $path, $actor, $newMimeType): void {
+        DB::transaction(function () use ($media, $disk, $path, $actor, $newMimeType, $metadata): void {
             $this->deleteExistingVariants($media);
 
             $media->disk = $disk;
             $media->path = $path;
             $media->original_filename = basename($path);
             $media->mime_type = $newMimeType;
-            $media->size = Storage::disk($disk)->size($path);
+            $media->size = $metadata['size'];
             $media->updated_by = $actor->getKey();
             // Cleared unconditionally (harmless no-op for non-image
             // categories, which never set them): image processing is

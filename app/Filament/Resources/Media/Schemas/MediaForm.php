@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Media\Schemas;
 
 use App\Enums\MediaCategory;
 use App\Filament\Resources\Media\MediaResource;
+use App\Filament\Support\Media\MediaPreview;
 use App\Models\Media;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
@@ -112,24 +113,16 @@ class MediaForm
 
     private static function renderPreview(Media $record): HtmlString
     {
-        return new HtmlString(match ($record->category()) {
-            MediaCategory::Image => sprintf(
+        return match ($record->category()) {
+            MediaCategory::Image => new HtmlString(sprintf(
                 '<img src="%s" alt="%s" style="max-height:300px;max-width:100%%;border-radius:0.5rem" />',
                 e(Storage::disk($record->disk)->url($record->path)),
                 e($record->alt_text ?? ''),
-            ),
-            MediaCategory::Audio => sprintf(
-                '<audio controls preload="none" style="width:100%%;max-width:480px"><source src="%s" type="%s"></audio>',
-                e(route('media.stream', $record)),
-                e($record->mime_type),
-            ),
-            MediaCategory::Video => sprintf(
-                '<video controls preload="none" style="width:100%%;max-width:640px;border-radius:0.5rem"><source src="%s" type="%s"></video>',
-                e(route('media.stream', $record)),
-                e($record->mime_type),
-            ),
-            default => 'No preview available for this file type.',
-        });
+            )),
+            MediaCategory::Audio => MediaPreview::audioPlayer($record),
+            MediaCategory::Video => MediaPreview::videoPlayer($record),
+            default => new HtmlString('No preview available for this file type.'),
+        };
     }
 
     /**

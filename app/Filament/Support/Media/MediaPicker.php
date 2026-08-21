@@ -54,7 +54,7 @@ class MediaPicker
                 Hidden::make($name),
                 Placeholder::make("{$name}__preview")
                     ->hiddenLabel()
-                    ->content(fn (Get $get): HtmlString => self::preview($get($name), $multiple)),
+                    ->content(fn (Get $get): HtmlString => self::preview($get($name), $multiple, $category)),
                 Actions::make([
                     self::uploadAction($name, $category, $multiple),
                     self::selectAction($name, $category, $multiple),
@@ -226,17 +226,17 @@ class MediaPicker
         ];
     }
 
-    private static function preview(mixed $value, bool $multiple): HtmlString
+    private static function preview(mixed $value, bool $multiple, MediaCategory $category): HtmlString
     {
         $ids = $multiple ? array_filter((array) $value) : array_filter([$value]);
 
         if ($ids === []) {
-            return new HtmlString('<p style="color:#6b7280;margin:0;font-size:0.875rem">No media selected.</p>');
+            return MediaPreview::empty("No {$category->getLabel()} selected.");
         }
 
         $items = Media::query()->whereIn('id', $ids)->get()->keyBy('id');
 
-        $html = '<div style="display:flex;flex-wrap:wrap;gap:0.5rem">';
+        $html = '<div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">';
 
         foreach ($ids as $id) {
             /** @var ?Media $media */
@@ -246,19 +246,24 @@ class MediaPicker
                 continue;
             }
 
-            if (str_starts_with($media->mime_type, 'image/')) {
-                $html .= sprintf(
+            $html .= match ($media->category()) {
+                MediaCategory::Image => sprintf(
                     '<img src="%s" style="width:64px;height:64px;object-fit:cover;border-radius:0.375rem;border:1px solid #e5e7eb" alt="%s" title="%s" />',
                     e(Storage::disk($media->disk)->url($media->path)),
                     e($media->alt_text ?? $media->original_filename),
                     e($media->original_filename),
-                );
-            } else {
-                $html .= sprintf(
+                ),
+                // Streamed through the existing admin-only media.stream
+                // route (StreamMediaController) — never the public disk —
+                // same as MediaForm's own preview and the Media Library
+                // grid. This is what gives Track's audio_media_id field an
+                // audio player automatically, with no Track-specific UI.
+                MediaCategory::Audio => (string) MediaPreview::audioPlayer($media),
+                default => sprintf(
                     '<span style="display:inline-block;padding:0.375rem 0.5rem;border:1px solid #e5e7eb;border-radius:0.375rem;font-size:0.875rem">%s</span>',
                     e($media->original_filename),
-                );
-            }
+                ),
+            };
         }
 
         $html .= '</div>';
