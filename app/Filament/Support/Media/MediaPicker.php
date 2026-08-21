@@ -253,12 +253,14 @@ class MediaPicker
                     e($media->alt_text ?? $media->original_filename),
                     e($media->original_filename),
                 ),
-                // Streamed through the existing admin-only media.stream
+                // Both streamed through the existing admin-only media.stream
                 // route (StreamMediaController) — never the public disk —
                 // same as MediaForm's own preview and the Media Library
-                // grid. This is what gives Track's audio_media_id field an
-                // audio player automatically, with no Track-specific UI.
+                // grid. This is what gives any audio_media_id/video_media_id
+                // field (Track, PodcastEpisode) a real player automatically,
+                // with no per-field UI code needed.
                 MediaCategory::Audio => (string) MediaPreview::audioPlayer($media),
+                MediaCategory::Video => (string) MediaPreview::videoPlayer($media),
                 default => sprintf(
                     '<span style="display:inline-block;padding:0.375rem 0.5rem;border:1px solid #e5e7eb;border-radius:0.375rem;font-size:0.875rem">%s</span>',
                     e($media->original_filename),

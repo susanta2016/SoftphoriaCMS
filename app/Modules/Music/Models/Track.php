@@ -33,7 +33,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 #[Fillable([
     'album_id', 'single_id', 'title', 'slug', 'description', 'track_number', 'duration_seconds',
-    'written_by', 'produced_by', 'isrc', 'video_embed_url', 'audio_media_id', 'status',
+    'written_by', 'produced_by', 'isrc', 'video_embed_url', 'audio_media_id', 'video_media_id', 'status',
 ])]
 class Track extends Model
 {
@@ -101,6 +101,16 @@ class Track extends Model
     public function audio(): BelongsTo
     {
         return $this->belongsTo(Media::class, 'audio_media_id');
+    }
+
+    /**
+     * The privately-stored uploaded video file, if this track has one —
+     * distinct from `video_embed_url`, which is always an external
+     * reference (YouTube/Vimeo). See the add_video_media_id migration.
+     */
+    public function video(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'video_media_id');
     }
 
     public function lyrics(): HasOne

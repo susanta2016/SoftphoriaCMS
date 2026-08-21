@@ -67,6 +67,8 @@ class PodcastEpisodeForm
                                         ->helperText('An external streaming source for this episode (Spotify, Apple Podcasts, etc.) — never a download source.'),
                                     MediaPicker::make('audio_media_id', 'Audio File', MediaCategory::Audio)
                                         ->columnSpanFull(),
+                                    MediaPicker::make('video_media_id', 'Video File', MediaCategory::Video)
+                                        ->columnSpanFull(),
                                     TextInput::make('season')
                                         ->numeric()
                                         ->minValue(1)

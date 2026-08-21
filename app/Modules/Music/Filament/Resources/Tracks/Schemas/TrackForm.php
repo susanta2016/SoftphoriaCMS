@@ -80,8 +80,11 @@ class TrackForm
                                         ->label('Embedded Video URL')
                                         ->url()
                                         ->maxLength(255)
+                                        ->helperText('An external video source (YouTube/Vimeo) — never a download source.')
                                         ->columnSpanFull(),
                                     MediaPicker::make('audio_media_id', 'Audio File', MediaCategory::Audio)
+                                        ->columnSpanFull(),
+                                    MediaPicker::make('video_media_id', 'Video File', MediaCategory::Video)
                                         ->columnSpanFull(),
                                 ]),
 

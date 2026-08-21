@@ -19,7 +19,7 @@ class PodcastEpisodesTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with('audio'))
+            ->modifyQueryUsing(fn ($query) => $query->with(['audio', 'video']))
             ->columns([
                 ImageColumn::make('artwork.path')
                     ->label('')
@@ -45,6 +45,15 @@ class PodcastEpisodesTable
                     ->getStateUsing(fn (PodcastEpisode $record): HtmlString => $record->audio
                         ? MediaPreview::audioPlayer($record->audio)
                         : MediaPreview::empty('No audio')),
+                TextColumn::make('video_preview')
+                    ->label('Video')
+                    ->html()
+                    // Same admin-only mechanism/guarantees as the Audio
+                    // column above — distinct from embed_url, which is
+                    // always an external reference, never this source.
+                    ->getStateUsing(fn (PodcastEpisode $record): HtmlString => $record->video
+                        ? MediaPreview::videoPlayer($record->video)
+                        : MediaPreview::empty('No video')),
                 TextColumn::make('season_episode')
                     ->label('Season / Episode')
                     ->state(fn ($record): string => collect([
