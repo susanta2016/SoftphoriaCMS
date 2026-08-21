@@ -1,5 +1,9 @@
 <?php
 
+use App\Modules\Commerce\Providers\CommerceServiceProvider;
+use App\Modules\Music\Providers\MusicServiceProvider;
+use App\Modules\Podcast\Providers\PodcastServiceProvider;
+
 return [
 
     /*
@@ -25,8 +29,9 @@ return [
     */
 
     'enabled' => [
-        \App\Modules\Podcast\Providers\PodcastServiceProvider::class,
-        \App\Modules\Music\Providers\MusicServiceProvider::class,
+        PodcastServiceProvider::class,
+        MusicServiceProvider::class,
+        CommerceServiceProvider::class,
     ],
 
 ];

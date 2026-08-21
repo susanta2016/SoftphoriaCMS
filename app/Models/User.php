@@ -3,6 +3,9 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Modules\Commerce\Models\DownloadLog;
+use App\Modules\Commerce\Models\Order;
+use App\Modules\Commerce\Models\Subscription;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -52,7 +55,27 @@ class User extends Authenticatable implements FilamentUser
 
     public function downloads(): HasMany
     {
-        return $this->hasMany(UserDownload::class);
+        return $this->hasMany(DownloadLog::class);
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class);
+    }
+
+    /**
+     * "Is this user currently an active Pro Member" — see
+     * App\Modules\Commerce\Models\Subscription::isActive() for the rule.
+     * Pure DB read, never a live Stripe call.
+     */
+    public function hasActiveMembership(): bool
+    {
+        return $this->subscription?->isActive() ?? false;
     }
 
     /**

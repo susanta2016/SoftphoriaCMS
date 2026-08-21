@@ -16,4 +16,12 @@ class SingleInUseException extends RuntimeException
     {
         return new self("\"{$single->title}\" still has its song attached. Delete or reassign it before deleting the single.");
     }
+
+    /**
+     * ADMIN-008: same reasoning as AlbumInUseException::forPurchasedAlbum().
+     */
+    public static function forPurchasedSingle(Single $single): self
+    {
+        return new self("\"{$single->title}\" has been purchased by at least one customer and cannot be deleted.");
+    }
 }

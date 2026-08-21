@@ -86,6 +86,12 @@ scaffold placeholder modules. This list only reserves the names/boundaries
 so that when a module is actually implemented, it lands in a predictable
 location and does not collide with another module's naming.
 
+`Commerce` (§17) is not in this original list — Stripe/payments/commerce was
+explicitly out of scope for the Implementation Guide/original Master Spec
+and was added as confirmed new scope afterward (Master Scope Specification
+v2.0). It follows the same module conventions as everything reserved above;
+it just didn't exist to reserve a name for yet.
+
 ### Standard module layout (template for when a module is created)
 
 ```
@@ -774,3 +780,172 @@ A module that needs a new *kind* of notification adds a seeded
 entry) to `EmailTemplateSeeder` when that module ships and its notification
 copy is approved — it never creates a parallel table, a parallel sending
 path, or a module-specific SMTP config.
+
+## 17. Commerce module (ADMIN-008) — Music Purchase, Membership, Downloads
+
+Phase-1 Music Commerce foundation: Single/Album purchase (guest or
+registered), Pro Member subscription, and secure downloads. Admin/backend
+only — `app/Modules/Commerce/`, registered in `config/modules.php` like
+every other module (§5). No public checkout/download UI exists yet; this
+section documents the domain layer and admin surfaces a later frontend task
+builds on top of.
+
+### 17.1 Global Pricing is the only pricing source
+
+Website Setup's existing Global Pricing (`App\Filament\Pages\GlobalPricing`,
+§16.2's `settings`-table pattern) is **not modified and not duplicated**.
+`albums`/`singles` carry no price column of any kind. Every price Commerce
+needs is read, at the moment it's needed, through
+`App\Modules\Commerce\Services\Pricing\GlobalPricingResolver` — the one
+place that calls `SettingsRepository::get('pricing', …)`:
+
+| Global Pricing setting | Used for |
+|---|---|
+| `music_per_song_price` | Single purchases |
+| `full_album_price` | Album purchases |
+| `pro_member_monthly_price` | Pro Member subscription checkout |
+
+### 17.2 Historical price snapshots
+
+An order/subscription must keep showing what was actually charged even
+after Global Pricing later changes. `order_items.unit_price` and
+`subscriptions.price_at_subscription` are both **write-once snapshots**,
+copied from `GlobalPricingResolver` at the moment of purchase/signup and
+never re-read afterward — this is the entire reason those columns exist
+on Commerce's own tables rather than on `albums`/`singles`.
+
+### 17.3 Data model
+
+- **`orders`** — one purchase attempt, guest or registered. `purchaser_email`
+  is always set (denormalized from the User for a registered purchase, or
+  the guest-supplied email) so every order is searchable/displayable
+  without a join. No soft deletes — a financial record is never deleted.
+- **`order_items`** — the purchased line (`album_id` xor `single_id`, the
+  same dual-nullable-FK shape `App\Modules\Music\Models\Track` already uses
+  for its own two-parent relationship — chosen over a morph column to match
+  that existing convention, not introduce a second one). Carries the
+  historical `unit_price`/`item_title` snapshot.
+- **`entitlements`** — what a purchaser may download, 1:1 with a paid
+  `order_item`. Guest entitlements carry `access_token_hash` (SHA-256 of a
+  random 32-byte token — the plaintext exists only once, at issuance) and
+  never a raw token. `max_downloads`/`expires_at` are themselves snapshots
+  of the Download Access policy (§17.5) at issuance.
+- **`subscriptions`** — application-owned Pro Membership state, one row per
+  user, `status` mirroring Stripe's own subscription status vocabulary
+  verbatim. **Pro Member access is deliberately never modeled as
+  Entitlement rows** — an active subscriber's access spans the whole
+  eligible catalogue, including releases published after they subscribed;
+  materializing that as per-release rows would mean either backfilling one
+  per user per release or a sync job, for no benefit. Access is instead
+  checked live against `Subscription::isActive()` at request time.
+- **`payment_transactions`** — append-only ledger of monetary Stripe events
+  (charge, refund, subscription invoice paid/failed), separate from
+  `orders.status`/`subscriptions.status` (each a current-state summary) the
+  same way Stripe itself separates an Event stream from object state.
+  `provider_event_id` (unique) is what makes every webhook handler
+  idempotent.
+- **`user_downloads`** (pre-existing table, extended — see
+  `App\Modules\Commerce\Models\DownloadLog`) — the download audit trail:
+  purchaser, track, which grant authorized it (`purchase` via an
+  Entitlement, or `membership` via an active Subscription), timestamp,
+  success/failure and a denial reason. Never stores a raw access token.
+
+### 17.4 Guest purchases and secure download tokens
+
+A guest order has no `users` row — `orders.user_id` is null,
+`orders.purchaser_email` is the purchaser record. Download authorization
+never uses a predictable ID: a guest's credential is a random 32-byte token,
+handed to them once (by whatever delivers order confirmation — not built in
+this task), and verified per-request via a constant-time comparison
+(`hash_equals`) of its SHA-256 against `entitlements.access_token_hash`. The
+public-facing identifier for an entitlement is its ULID `public_id`, never
+its integer `id`.
+
+### 17.5 Download policy — configurable, not hardcoded
+
+Guest and registered-free-member download limits/expiry are **not**
+hardcoded in a controller — they're admin-editable via Website Setup →
+"Download Access" (`App\Modules\Commerce\Filament\Pages\DownloadAccessSettings`),
+reusing `SettingsRepository` under a new `downloads` settings group (never
+touching the `pricing` group). `App\Modules\Commerce\Services\DownloadPolicy\DownloadPolicyResolver`
+is the one place that reads it. Pro Member downloads are unlimited by
+definition while `Subscription::isActive()` — not a number this policy
+configures.
+
+### 17.6 Download authorization chain
+
+`App\Modules\Commerce\Actions\Download\AuthorizeTrackDownloadAction` is the
+full server-side chain (identify actor → resolve grant → verify the
+Track actually belongs to what was purchased → check revoked/expired →
+atomically enforce the remaining-download count → resolve the private
+`Media` → the caller streams it → log the outcome, success or denial,
+always). The download-count check is a single guarded `UPDATE …
+downloads_used = downloads_used + 1 WHERE … AND (max_downloads IS NULL OR
+downloads_used < max_downloads)`, not a read-then-write, so it can't be
+raced. No HTTP route/controller consumes this yet (§11 of ADMIN-008's
+brief) — it's exercised directly by `tests/Feature/Commerce/DownloadAuthorizationTest.php`,
+exactly what a future download endpoint will call.
+
+### 17.7 Private audio storage — unchanged, reused as-is
+
+`tracks.audio_media_id` → `Media` was already correct before this module
+existed: `config/media.php` routes the `audio` category to the `local` disk
+(`storage/app/private`, outside the public webroot) with `visibility:
+protected`. Commerce adds no second storage system and no S3 — the
+download endpoint (when built) resolves the same private file the existing
+admin-only `StreamMediaController` already knows how to serve, just gated
+by entitlement/membership instead of `canAccessPanel()`.
+
+### 17.8 Streaming links stay decorative
+
+`MusicStreamingLink` (Spotify/Apple Music/YouTube/SoundCloud) is untouched
+and structurally incapable of being used as a download source — it has no
+relationship to `audio_media_id`, `entitlements`, or any Commerce table.
+
+### 17.9 Stripe integration boundary
+
+All Stripe SDK usage is behind `App\Modules\Commerce\Services\Stripe\StripeGatewayContract` —
+no other class imports `stripe/stripe-php` directly, and Music models never
+contain Stripe-specific logic. `StripeGateway` is the real implementation;
+`FakeStripeGateway` is bound in tests so webhook/checkout logic is fully
+testable without a network call. `App\Modules\Commerce\Http\Controllers\StripeWebhookController`
+(`POST /commerce/webhooks/stripe`, CSRF-exempted in `bootstrap/app.php`
+since Stripe cannot supply a token — signature verification is the actual
+authenticity guarantee) synchronizes application-owned state from
+`checkout.session.completed`, `customer.subscription.updated`,
+`customer.subscription.deleted`, `invoice.payment_failed`,
+`invoice.payment_succeeded`, and `charge.refunded`. The application's own
+tables are always the source of truth for "is this order paid" / "is this
+user an active Pro Member" — never a live Stripe API call.
+
+### 17.10 Purchase readiness
+
+`App\Modules\Commerce\Actions\PurchaseReadiness\{CheckAlbumReadinessAction,CheckSingleReadinessAction}`
+is the single reusable check for "can this actually be sold right now"
+(published, has its Track(s), every Track published with a real audio
+asset) — called by `CreatePendingOrderAction` (server-side enforcement) and
+surfaced read-only on the Album/Single admin forms. Never duplicated.
+
+### 17.11 Subscription cancellation — client-confirmed rule
+
+A Pro Member who cancels keeps full Pro access, including unlimited
+downloads, until the end of the already-paid current billing period.
+"Cancel" always means *cancel at period end*, never immediate revocation —
+enforced entirely by `Subscription::isActive()` (§17.3) never looking at
+`cancel_at_period_end` at all, only `status` + `current_period_end`. This
+falls directly out of Stripe's own semantics: `status` stays `active`
+through the whole cancel-at-period-end window regardless of
+`cancel_at_period_end`, so no separate "is it cancelling" branch is needed
+or correct. `Subscription::displayStatus()` (`SubscriptionDisplayStatus`)
+is the Admin-facing view of this — Active / Active — Cancels at Period End
+/ Expired-Inactive / Payment-Renewal Problem — computed, never stored,
+same "never a driftable duplicate of derivable state" reasoning as
+`EntitlementStatus`. `HandleSubscriptionUpdatedAction` reads every field
+defensively (falls back to the existing value, not `null`, when a key is
+genuinely absent from the payload) so an unrelated update event can never
+silently wipe a real `cancelled_at`; `array_key_exists` (not `isset`)
+distinguishes "Stripe explicitly cleared this on renewal" from "this key
+wasn't in this particular payload." `HandleInvoicePaymentSucceededAction`
+(`invoice.payment_succeeded`) records the renewal-payment ledger row that
+was previously missing — only the initial signup and failed renewals were
+tracked before.

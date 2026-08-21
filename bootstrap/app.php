@@ -20,6 +20,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             CheckMaintenanceMode::class,
         ]);
+
+        // ADMIN-008: Stripe cannot supply a CSRF token — the webhook's own
+        // signature verification (StripeWebhookController) is its actual
+        // authenticity guarantee, the same way any webhook endpoint works.
+        $middleware->validateCsrfTokens(except: [
+            'commerce/webhooks/stripe',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

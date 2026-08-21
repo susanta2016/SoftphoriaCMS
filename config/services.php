@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    // ADMIN-008: Commerce module (App\Modules\Commerce\Services\Stripe\StripeGateway).
+    // Never stored in the `settings` table — that table is for admin-editable
+    // content, not secrets.
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+
 ];

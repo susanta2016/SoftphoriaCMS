@@ -21,4 +21,16 @@ class AlbumInUseException extends RuntimeException
 
         return new self("\"{$album->title}\" still has {$trackCount} {$trackWord}. Delete or reassign them before deleting the album.");
     }
+
+    /**
+     * ADMIN-008: a purchased Album must never become deletable — soft-delete
+     * bypasses order_items.album_id's DB-level restrictOnDelete() the same
+     * way it bypasses tracks.album_id's cascadeOnDelete() (see the
+     * forAlbum() guard above), so this needs the identical Action-level
+     * backstop.
+     */
+    public static function forPurchasedAlbum(Album $album): self
+    {
+        return new self("\"{$album->title}\" has been purchased by at least one customer and cannot be deleted.");
+    }
 }

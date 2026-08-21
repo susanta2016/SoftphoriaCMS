@@ -6,11 +6,14 @@ use App\Enums\MediaCategory;
 use App\Filament\Support\Media\MediaPicker;
 use App\Filament\Support\Media\RichEditorMediaAttachments;
 use App\Filament\Support\Seo\SeoFields;
+use App\Modules\Commerce\Actions\PurchaseReadiness\CheckAlbumReadinessAction;
+use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
 use App\Modules\Music\Enums\MusicLinkProvider;
 use App\Modules\Music\Enums\ReleaseStatus;
 use App\Modules\Music\Models\Album;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -22,6 +25,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 
 /**
@@ -144,8 +148,43 @@ class AlbumForm
                                         ->label('Featured Release')
                                         ->helperText('Shown as the Featured Release on the Music page.'),
                                 ]),
+
+                            self::readinessSection(),
                         ])->columnSpan(['default' => 12, 'lg' => 5]),
                     ]),
+            ]);
+    }
+
+    /**
+     * ADMIN-008 §17/§8: read-only, computed live from
+     * CheckAlbumReadinessAction and GlobalPricingResolver — never a stored
+     * field, and never a price editable here (Global Pricing stays the only
+     * pricing source). Hidden on Create — an Album has no Tracks yet, so
+     * readiness is meaningless until the record and its Tracks both exist.
+     */
+    private static function readinessSection(): Section
+    {
+        return Section::make('Purchase Readiness')
+            ->visible(fn (?Album $record): bool => $record !== null)
+            ->schema([
+                Placeholder::make('purchase_readiness')
+                    ->hiddenLabel()
+                    ->content(function (?Album $record): HtmlString {
+                        if ($record === null) {
+                            return new HtmlString('');
+                        }
+
+                        $result = app(CheckAlbumReadinessAction::class)->handle($record);
+                        $price = app(GlobalPricingResolver::class)->fullAlbumPrice();
+
+                        $lines = $result->ready
+                            ? ['✓ Ready for purchase']
+                            : array_merge(['✗ Not ready for purchase'], array_map(fn ($issue) => "✗ {$issue}", $result->issues));
+
+                        $lines[] = 'Global Album Price: $'.$price;
+
+                        return new HtmlString(implode('<br>', array_map('e', $lines)));
+                    }),
             ]);
     }
 }
