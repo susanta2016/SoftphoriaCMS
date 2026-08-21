@@ -2,20 +2,24 @@
 
 namespace App\Modules\Podcast\Filament\Resources\PodcastEpisodes\Tables;
 
+use App\Filament\Support\Media\MediaPreview;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
 use App\Modules\Podcast\Models\Podcast;
+use App\Modules\Podcast\Models\PodcastEpisode;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class PodcastEpisodesTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with('audio'))
             ->columns([
                 ImageColumn::make('artwork.path')
                     ->label('')
@@ -31,6 +35,16 @@ class PodcastEpisodesTable
                     ->searchable()
                     ->sortable()
                     ->description(fn ($record): ?string => $record->podcast?->title),
+                TextColumn::make('audio_preview')
+                    ->label('Audio')
+                    ->html()
+                    // Admin verification/playback only, via the existing
+                    // private-media streaming route — see MediaPreview's
+                    // docblock. embed_url stays a separate, external-only
+                    // streaming reference, never treated as this source.
+                    ->getStateUsing(fn (PodcastEpisode $record): HtmlString => $record->audio
+                        ? MediaPreview::audioPlayer($record->audio)
+                        : MediaPreview::empty('No audio')),
                 TextColumn::make('season_episode')
                     ->label('Season / Episode')
                     ->state(fn ($record): string => collect([

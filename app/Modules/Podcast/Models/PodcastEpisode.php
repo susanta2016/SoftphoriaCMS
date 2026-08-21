@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 #[Fillable([
     'podcast_id', 'title', 'slug', 'description', 'artwork_media_id',
-    'publish_date', 'season', 'episode_number', 'embed_url', 'status', 'publish_at',
+    'publish_date', 'season', 'episode_number', 'embed_url', 'audio_media_id', 'status', 'publish_at',
 ])]
 class PodcastEpisode extends Model
 {
@@ -54,6 +54,16 @@ class PodcastEpisode extends Model
     public function artwork(): BelongsTo
     {
         return $this->belongsTo(Media::class, 'artwork_media_id');
+    }
+
+    /**
+     * The privately-stored uploaded audio file, if this episode has one —
+     * distinct from `embed_url`, which is always an external streaming
+     * reference. See the add_audio_media_id migration's docblock.
+     */
+    public function audio(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'audio_media_id');
     }
 
     public function links(): HasMany

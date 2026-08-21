@@ -18,8 +18,8 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -64,7 +64,9 @@ class PodcastEpisodeForm
                                         ->label('Embed URL')
                                         ->url()
                                         ->maxLength(255)
-                                        ->helperText('The player embed/audio source for this episode.'),
+                                        ->helperText('An external streaming source for this episode (Spotify, Apple Podcasts, etc.) — never a download source.'),
+                                    MediaPicker::make('audio_media_id', 'Audio File', MediaCategory::Audio)
+                                        ->columnSpanFull(),
                                     TextInput::make('season')
                                         ->numeric()
                                         ->minValue(1)
