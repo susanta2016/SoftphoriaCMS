@@ -35,6 +35,12 @@ class SubscriptionResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'stripe_subscription_id';
 
+    // Temporary presentation-mode hide — UI only, see config/admin_ui.php.
+    public static function shouldRegisterNavigation(): bool
+    {
+        return config('admin_ui.show_commerce_menu');
+    }
+
     public static function infolist(Schema $schema): Schema
     {
         return SubscriptionInfolist::configure($schema);

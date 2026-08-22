@@ -28,6 +28,12 @@ class DownloadLogResource extends Resource
 
     protected static ?string $navigationLabel = 'Download History';
 
+    // Temporary presentation-mode hide — UI only, see config/admin_ui.php.
+    public static function shouldRegisterNavigation(): bool
+    {
+        return config('admin_ui.show_commerce_menu');
+    }
+
     public static function table(Table $table): Table
     {
         return DownloadLogsTable::configure($table);
