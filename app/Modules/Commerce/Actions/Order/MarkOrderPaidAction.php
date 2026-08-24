@@ -9,6 +9,7 @@ use App\Modules\Commerce\Enums\PaymentTransactionType;
 use App\Modules\Commerce\Models\Order;
 use App\Modules\Commerce\Models\PaymentTransaction;
 use App\Modules\Commerce\Support\IssuedEntitlement;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -33,24 +34,34 @@ class MarkOrderPaidAction
             return [];
         }
 
-        return DB::transaction(function () use ($order, $stripePaymentIntentId, $stripeEventId): array {
-            $order->status = OrderStatus::Paid;
-            $order->paid_at = now();
-            $order->stripe_payment_intent_id = $stripePaymentIntentId;
-            $order->save();
+        // Stripe (and the CLI's own Connect-event forwarding) can deliver
+        // the same event id twice in close succession; the exists() check
+        // above is a plain read and doesn't close that race. A concurrent
+        // duplicate hits payment_transactions' provider_event_id unique
+        // constraint here instead of double-issuing entitlements — treat
+        // that exactly like the exists() check catching it first.
+        try {
+            return DB::transaction(function () use ($order, $stripePaymentIntentId, $stripeEventId): array {
+                $order->status = OrderStatus::Paid;
+                $order->paid_at = now();
+                $order->stripe_payment_intent_id = $stripePaymentIntentId;
+                $order->save();
 
-            $transaction = new PaymentTransaction;
-            $transaction->order_id = $order->getKey();
-            $transaction->type = PaymentTransactionType::Charge;
-            $transaction->status = PaymentTransactionStatus::Succeeded;
-            $transaction->provider_event_id = $stripeEventId;
-            $transaction->provider_reference = $stripePaymentIntentId;
-            $transaction->amount = $order->total;
-            $transaction->currency = $order->currency;
-            $transaction->occurred_at = now();
-            $transaction->save();
+                $transaction = new PaymentTransaction;
+                $transaction->order_id = $order->getKey();
+                $transaction->type = PaymentTransactionType::Charge;
+                $transaction->status = PaymentTransactionStatus::Succeeded;
+                $transaction->provider_event_id = $stripeEventId;
+                $transaction->provider_reference = $stripePaymentIntentId;
+                $transaction->amount = $order->total;
+                $transaction->currency = $order->currency;
+                $transaction->occurred_at = now();
+                $transaction->save();
 
-            return $order->items->map(fn ($item) => $this->issueEntitlement->handle($item))->all();
-        });
+                return $order->items->map(fn ($item) => $this->issueEntitlement->handle($item))->all();
+            });
+        } catch (UniqueConstraintViolationException) {
+            return [];
+        }
     }
 }

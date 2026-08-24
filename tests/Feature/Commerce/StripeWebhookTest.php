@@ -3,12 +3,14 @@
 namespace Tests\Feature\Commerce;
 
 use App\Modules\Commerce\Actions\Order\CreatePendingOrderAction;
+use App\Modules\Commerce\Actions\Webhook\HandleInvoicePaymentSucceededAction;
 use App\Modules\Commerce\Enums\OrderStatus;
 use App\Modules\Commerce\Enums\SubscriptionStatus;
 use App\Modules\Commerce\Models\PaymentTransaction;
 use App\Modules\Commerce\Models\Subscription;
 use App\Modules\Commerce\Services\Stripe\FakeStripeGateway;
 use App\Modules\Commerce\Services\Stripe\StripeGatewayContract;
+use App\Modules\Commerce\Support\StripeEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\CreatesCommerceFixtures;
 use Tests\TestCase;
@@ -186,5 +188,60 @@ class StripeWebhookTest extends TestCase
         $this->call('POST', '/commerce/webhooks/stripe', [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_Stripe-Signature' => 'valid'], $payload);
 
         $this->assertEquals($periodEnd->timestamp, $subscription->refresh()->current_period_end->timestamp);
+    }
+
+    /**
+     * The exact scenario that crashed this endpoint in practice: Stripe's
+     * own documented retry behavior (or the CLI forwarding both the normal
+     * and Connect copy of one triggered event) delivered the same event id
+     * twice in close succession. The exists() check at the top of this
+     * handler is a plain read and doesn't close that race — simulated here
+     * via a `saving` hook that inserts the conflicting row at the exact
+     * moment the handler tries to. Unlike MarkOrderPaidAction/
+     * HandleCheckoutSessionCompletedAction, this handler has no wrapping
+     * DB::transaction(), so the concurrent row genuinely survives — this
+     * is what a real second HTTP request would leave behind.
+     */
+    public function test_a_concurrent_duplicate_invoice_event_does_not_crash(): void
+    {
+        Subscription::query()->create([
+            'user_id' => $this->admin()->getKey(),
+            'stripe_subscription_id' => 'sub_race_1',
+            'status' => SubscriptionStatus::Active,
+        ]);
+
+        PaymentTransaction::saving(function (PaymentTransaction $transaction): void {
+            if ($transaction->provider_event_id === 'evt_invoice_race') {
+                PaymentTransaction::query()->insert([
+                    'subscription_id' => $transaction->subscription_id,
+                    'type' => $transaction->type,
+                    'status' => $transaction->status,
+                    'provider_event_id' => 'evt_invoice_race',
+                    'provider_reference' => $transaction->provider_reference,
+                    'provider_customer_id' => $transaction->provider_customer_id,
+                    'amount' => $transaction->amount,
+                    'currency' => $transaction->currency,
+                    'occurred_at' => $transaction->occurred_at,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        });
+
+        $event = new StripeEvent('evt_invoice_race', 'invoice.payment_succeeded', [
+            'id' => 'in_race_1',
+            'subscription' => 'sub_race_1',
+            'customer' => 'cus_race_1',
+            'amount_paid' => 799,
+            'currency' => 'usd',
+        ]);
+
+        try {
+            app(HandleInvoicePaymentSucceededAction::class)->handle($event);
+        } finally {
+            PaymentTransaction::flushEventListeners();
+        }
+
+        $this->assertSame(1, PaymentTransaction::query()->where('provider_event_id', 'evt_invoice_race')->count());
     }
 }

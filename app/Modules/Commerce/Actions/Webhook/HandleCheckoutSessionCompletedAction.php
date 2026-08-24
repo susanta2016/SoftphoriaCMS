@@ -11,6 +11,7 @@ use App\Modules\Commerce\Models\Order;
 use App\Modules\Commerce\Models\PaymentTransaction;
 use App\Modules\Commerce\Models\Subscription;
 use App\Modules\Commerce\Support\StripeEvent;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -68,41 +69,52 @@ class HandleCheckoutSessionCompletedAction
 
         $wasJustRegistered = false;
 
-        $subscription = DB::transaction(function () use ($session, $event, $userId, &$wasJustRegistered): Subscription {
-            $subscription = Subscription::query()->firstOrNew(['user_id' => (int) $userId]);
-            $wasJustRegistered = ! $subscription->exists;
+        // Stripe (and the CLI's own Connect-event forwarding) can deliver
+        // the same event id twice in close succession; the exists() check
+        // above is a plain read and doesn't close that race. A concurrent
+        // duplicate hits payment_transactions' provider_event_id unique
+        // constraint here instead of silently double-processing — treat
+        // that exactly like the exists() check catching it first, rather
+        // than letting it surface as an unhandled 500 to Stripe.
+        try {
+            $subscription = DB::transaction(function () use ($session, $event, $userId, &$wasJustRegistered): Subscription {
+                $subscription = Subscription::query()->firstOrNew(['user_id' => (int) $userId]);
+                $wasJustRegistered = ! $subscription->exists;
 
-            $subscription->stripe_customer_id = $session['customer'] ?? $subscription->stripe_customer_id;
-            $subscription->stripe_subscription_id = $session['subscription'] ?? $subscription->stripe_subscription_id;
-            $subscription->status = SubscriptionStatus::Active;
-            $subscription->started_at ??= now();
+                $subscription->stripe_customer_id = $session['customer'] ?? $subscription->stripe_customer_id;
+                $subscription->stripe_subscription_id = $session['subscription'] ?? $subscription->stripe_subscription_id;
+                $subscription->status = SubscriptionStatus::Active;
+                $subscription->started_at ??= now();
 
-            // Snapshot what Stripe actually charged for this signup — the
-            // same amount_total/currency the PaymentTransaction row below
-            // already records — rather than re-resolving GlobalPricingResolver
-            // a second time, which could have changed since the Checkout
-            // Session was created.
-            if ($wasJustRegistered) {
-                $subscription->currency = $session['currency'] ?? null;
-                $subscription->price_at_subscription = isset($session['amount_total']) ? $session['amount_total'] / 100 : null;
-            }
+                // Snapshot what Stripe actually charged for this signup — the
+                // same amount_total/currency the PaymentTransaction row below
+                // already records — rather than re-resolving GlobalPricingResolver
+                // a second time, which could have changed since the Checkout
+                // Session was created.
+                if ($wasJustRegistered) {
+                    $subscription->currency = $session['currency'] ?? null;
+                    $subscription->price_at_subscription = isset($session['amount_total']) ? $session['amount_total'] / 100 : null;
+                }
 
-            $subscription->save();
+                $subscription->save();
 
-            $transaction = new PaymentTransaction;
-            $transaction->subscription_id = $subscription->getKey();
-            $transaction->type = PaymentTransactionType::SubscriptionInvoicePaid;
-            $transaction->status = PaymentTransactionStatus::Succeeded;
-            $transaction->provider_event_id = $event->id;
-            $transaction->provider_reference = $session['subscription'] ?? null;
-            $transaction->provider_customer_id = $session['customer'] ?? null;
-            $transaction->currency = $session['currency'] ?? null;
-            $transaction->amount = isset($session['amount_total']) ? $session['amount_total'] / 100 : null;
-            $transaction->occurred_at = now();
-            $transaction->save();
+                $transaction = new PaymentTransaction;
+                $transaction->subscription_id = $subscription->getKey();
+                $transaction->type = PaymentTransactionType::SubscriptionInvoicePaid;
+                $transaction->status = PaymentTransactionStatus::Succeeded;
+                $transaction->provider_event_id = $event->id;
+                $transaction->provider_reference = $session['subscription'] ?? null;
+                $transaction->provider_customer_id = $session['customer'] ?? null;
+                $transaction->currency = $session['currency'] ?? null;
+                $transaction->amount = isset($session['amount_total']) ? $session['amount_total'] / 100 : null;
+                $transaction->occurred_at = now();
+                $transaction->save();
 
-            return $subscription;
-        });
+                return $subscription;
+            });
+        } catch (UniqueConstraintViolationException) {
+            return;
+        }
 
         // Outside the transaction so a mail failure/exception can never roll
         // back the already-confirmed Subscription — and only on the first

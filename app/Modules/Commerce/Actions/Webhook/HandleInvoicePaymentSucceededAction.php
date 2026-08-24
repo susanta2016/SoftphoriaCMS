@@ -7,6 +7,7 @@ use App\Modules\Commerce\Enums\PaymentTransactionType;
 use App\Modules\Commerce\Models\PaymentTransaction;
 use App\Modules\Commerce\Models\Subscription;
 use App\Modules\Commerce\Support\StripeEvent;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 /**
  * Handles Stripe's `invoice.payment_succeeded` — a Pro Member's *monthly
@@ -49,6 +50,14 @@ class HandleInvoicePaymentSucceededAction
         $transaction->amount = isset($invoice['amount_paid']) ? $invoice['amount_paid'] / 100 : null;
         $transaction->currency = $invoice['currency'] ?? null;
         $transaction->occurred_at = now();
-        $transaction->save();
+
+        try {
+            $transaction->save();
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent delivery of this same event id (Stripe retries,
+            // or the CLI forwarding both the normal and Connect copy of a
+            // triggered event) already recorded it between the exists()
+            // check above and this insert — nothing left to do.
+        }
     }
 }

@@ -7,6 +7,7 @@ use App\Modules\Commerce\Enums\PaymentTransactionType;
 use App\Modules\Commerce\Models\PaymentTransaction;
 use App\Modules\Commerce\Models\Subscription;
 use App\Modules\Commerce\Support\StripeEvent;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 /**
  * Handles Stripe's `invoice.payment_failed` — records the failure in the
@@ -42,6 +43,12 @@ class HandleInvoicePaymentFailedAction
         $transaction->currency = $invoice['currency'] ?? null;
         $transaction->failure_reason = $invoice['last_finalization_error']['message'] ?? null;
         $transaction->occurred_at = now();
-        $transaction->save();
+
+        try {
+            $transaction->save();
+        } catch (UniqueConstraintViolationException) {
+            // See HandleInvoicePaymentSucceededAction — a concurrent
+            // delivery of this same event id already recorded it.
+        }
     }
 }
