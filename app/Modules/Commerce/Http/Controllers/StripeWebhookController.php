@@ -46,7 +46,13 @@ class StripeWebhookController extends Controller
 
         match ($event->type) {
             'checkout.session.completed' => $this->handleCheckoutSessionCompleted->handle($event),
-            'customer.subscription.updated' => $this->handleSubscriptionUpdated->handle($event),
+            // Both share HandleSubscriptionUpdatedAction: `created` fires
+            // once at signup (this is what actually populates
+            // current_period_start/end immediately, rather than leaving
+            // them null until the first `updated` some 30 days later) and
+            // `updated` fires on every later status/period/cancellation
+            // change — same Subscription object shape either way.
+            'customer.subscription.created', 'customer.subscription.updated' => $this->handleSubscriptionUpdated->handle($event),
             'customer.subscription.deleted' => $this->handleSubscriptionDeleted->handle($event),
             'invoice.payment_failed' => $this->handleInvoicePaymentFailed->handle($event),
             'invoice.payment_succeeded' => $this->handleInvoicePaymentSucceeded->handle($event),

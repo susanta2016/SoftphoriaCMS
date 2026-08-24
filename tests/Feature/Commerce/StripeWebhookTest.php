@@ -109,4 +109,82 @@ class StripeWebhookTest extends TestCase
 
         $this->assertSame(SubscriptionStatus::PastDue, Subscription::query()->where('stripe_subscription_id', 'sub_test_1')->first()->status);
     }
+
+    /**
+     * Recent Stripe API versions moved current_period_start/end off the
+     * top-level Subscription object onto its first line item — confirmed
+     * against a live account, where a top-level-only read left both columns
+     * permanently null (see HandleSubscriptionUpdatedAction's docblock).
+     * This is the shape a real webhook payload actually has today.
+     */
+    public function test_subscription_updated_reads_the_period_from_the_nested_line_item(): void
+    {
+        $this->app->bind(StripeGatewayContract::class, FakeStripeGateway::class);
+
+        $subscription = Subscription::query()->create([
+            'user_id' => $this->admin()->getKey(),
+            'stripe_subscription_id' => 'sub_item_period_1',
+            'status' => SubscriptionStatus::Active,
+        ]);
+
+        $periodStart = now();
+        $periodEnd = now()->addDays(30);
+
+        $payload = json_encode([
+            'id' => 'evt_item_period',
+            'type' => 'customer.subscription.updated',
+            'data' => ['object' => [
+                'id' => 'sub_item_period_1',
+                'status' => 'active',
+                'cancel_at_period_end' => false,
+                'items' => ['data' => [[
+                    'current_period_start' => $periodStart->timestamp,
+                    'current_period_end' => $periodEnd->timestamp,
+                ]]],
+            ]],
+        ]);
+
+        $this->call('POST', '/commerce/webhooks/stripe', [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_Stripe-Signature' => 'valid'], $payload);
+
+        $subscription->refresh();
+        $this->assertEquals($periodStart->timestamp, $subscription->current_period_start->timestamp);
+        $this->assertEquals($periodEnd->timestamp, $subscription->current_period_end->timestamp);
+    }
+
+    /**
+     * `customer.subscription.created` fires once at signup, before any
+     * renewal — routing it through the same handler as `updated` is what
+     * populates current_period_end immediately rather than leaving it null
+     * for the whole first billing month.
+     */
+    public function test_subscription_created_populates_the_initial_period(): void
+    {
+        $this->app->bind(StripeGatewayContract::class, FakeStripeGateway::class);
+
+        $subscription = Subscription::query()->create([
+            'user_id' => $this->admin()->getKey(),
+            'stripe_subscription_id' => 'sub_created_1',
+            'status' => SubscriptionStatus::Active,
+        ]);
+
+        $periodEnd = now()->addDays(30);
+
+        $payload = json_encode([
+            'id' => 'evt_sub_created',
+            'type' => 'customer.subscription.created',
+            'data' => ['object' => [
+                'id' => 'sub_created_1',
+                'status' => 'active',
+                'cancel_at_period_end' => false,
+                'items' => ['data' => [[
+                    'current_period_start' => now()->timestamp,
+                    'current_period_end' => $periodEnd->timestamp,
+                ]]],
+            ]],
+        ]);
+
+        $this->call('POST', '/commerce/webhooks/stripe', [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_Stripe-Signature' => 'valid'], $payload);
+
+        $this->assertEquals($periodEnd->timestamp, $subscription->refresh()->current_period_end->timestamp);
+    }
 }
