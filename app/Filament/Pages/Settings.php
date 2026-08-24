@@ -12,6 +12,7 @@ use App\Shared\Services\Settings\SettingsRepository;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -74,6 +75,8 @@ class Settings extends Page
                         ->schema($this->footerTabSchema()),
                     Tab::make('Email')
                         ->schema($this->emailTabSchema()),
+                    Tab::make('Registration')
+                        ->schema($this->registrationTabSchema()),
                 ]),
         ]);
     }
@@ -231,6 +234,30 @@ class Settings extends Page
     }
 
     /**
+     * The confirmation copy shown on the Free/Pro registration thank-you
+     * pages (App\Http\Controllers\RegistrationController) — admin-controlled
+     * per the confirmed spec, never hardcoded. Reuses this existing
+     * settings/SettingsRepository mechanism rather than a new one.
+     *
+     * @return array<int, Component>
+     */
+    protected function registrationTabSchema(): array
+    {
+        return [
+            Textarea::make('registration.free_confirmation_message')
+                ->label('Free Registration Confirmation Message')
+                ->rows(3)
+                ->maxLength(1000)
+                ->helperText('Shown on the thank-you page after a Free registration.'),
+            Textarea::make('registration.pro_confirmation_message')
+                ->label('Pro Registration Confirmation Message')
+                ->rows(3)
+                ->maxLength(1000)
+                ->helperText('Shown on the thank-you page only once Stripe confirms the Pro Member payment/subscription.'),
+        ];
+    }
+
+    /**
      * Reads live, unsaved form values first (Get $get) and falls back to the
      * saved configuration for any field left blank — so testing works
      * against an edited-but-unsaved configuration as well as a previously
@@ -344,10 +371,15 @@ class Settings extends Page
         $settings->set('email', 'reply_to_email', $email['reply_to_email']);
         $settings->set('email', 'test_recipient_email', $email['test_recipient_email']);
 
+        $registration = $state['registration'];
+        $settings->set('registration', 'free_confirmation_message', $registration['free_confirmation_message']);
+        $settings->set('registration', 'pro_confirmation_message', $registration['pro_confirmation_message']);
+
         $this->recordAudit('general', array_keys($general));
         $this->recordAudit('footer', array_keys($footer));
         // Never log the password value itself, even in metadata.
         $this->recordAudit('email', array_keys(array_diff_key($email, ['smtp_password' => true])));
+        $this->recordAudit('registration', array_keys($registration));
 
         Notification::make()->title('Settings saved')->success()->send();
 
@@ -410,6 +442,18 @@ class Settings extends Page
                 'reply_to_name' => $settings->get('email', 'reply_to_name'),
                 'reply_to_email' => $settings->get('email', 'reply_to_email'),
                 'test_recipient_email' => $settings->get('email', 'test_recipient_email'),
+            ],
+            'registration' => [
+                'free_confirmation_message' => $settings->get(
+                    'registration',
+                    'free_confirmation_message',
+                    'Thank you for your registration! Please verify your registered email from your mailbox.',
+                ),
+                'pro_confirmation_message' => $settings->get(
+                    'registration',
+                    'pro_confirmation_message',
+                    'Thank you for your registration and for becoming a Pro Member! Please verify your registered email from your mailbox.',
+                ),
             ],
         ];
     }

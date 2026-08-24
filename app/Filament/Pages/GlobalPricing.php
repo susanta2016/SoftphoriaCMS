@@ -7,6 +7,7 @@ use App\Shared\Services\AuditLogService;
 use App\Shared\Services\Settings\SettingsRepository;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -84,6 +85,12 @@ class GlobalPricing extends Page
                         ->minValue(0)
                         ->step(0.01)
                         ->required(),
+                    Textarea::make('pro_member_cancellation_note')
+                        ->label('Cancellation Information')
+                        ->rows(3)
+                        ->maxLength(1000)
+                        ->helperText('Shown to visitors alongside the "Become a Pro Member" registration option.')
+                        ->columnSpanFull(),
                 ]),
         ]);
     }
@@ -112,6 +119,7 @@ class GlobalPricing extends Page
         $settings->set('pricing', 'music_per_song_price', $state['music_per_song_price']);
         $settings->set('pricing', 'full_album_price', $state['full_album_price']);
         $settings->set('pricing', 'pro_member_monthly_price', $state['pro_member_monthly_price']);
+        $settings->set('pricing', 'pro_member_cancellation_note', $state['pro_member_cancellation_note']);
 
         $this->recordAudit(array_keys($state));
 
@@ -148,6 +156,11 @@ class GlobalPricing extends Page
             'music_per_song_price' => $settings->get('pricing', 'music_per_song_price', '0.99'),
             'full_album_price' => $settings->get('pricing', 'full_album_price', '9.99'),
             'pro_member_monthly_price' => $settings->get('pricing', 'pro_member_monthly_price', '7.99'),
+            'pro_member_cancellation_note' => $settings->get(
+                'pricing',
+                'pro_member_cancellation_note',
+                'If you cancel, your Pro membership stays active until the end of your current billing period — you will not lose access immediately.',
+            ),
         ];
     }
 }

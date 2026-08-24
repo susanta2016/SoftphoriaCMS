@@ -31,6 +31,12 @@ return [
         'variables' => ['user_name', 'user_email', 'site_name'],
     ],
 
+    'pro_member_registered' => [
+        'label' => 'Pro Member Registration / Welcome',
+        'recipients' => ['user'],
+        'variables' => ['user_name', 'user_email', 'site_name'],
+    ],
+
     'password_reset' => [
         'label' => 'Password Reset / Generate New Password',
         'recipients' => ['user'],

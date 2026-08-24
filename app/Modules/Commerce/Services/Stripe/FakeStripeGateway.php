@@ -19,7 +19,7 @@ class FakeStripeGateway implements StripeGatewayContract
     /** @var array<int, array{order: Order, successUrl: string, cancelUrl: string}> */
     public array $checkoutSessionsCreated = [];
 
-    /** @var array<int, array{user: User, priceAmount: string, successUrl: string, cancelUrl: string}> */
+    /** @var array<int, array{user: User, priceAmount: string, returnUrl: string}> */
     public array $subscriptionSessionsCreated = [];
 
     public function verifyAndParseWebhook(string $payload, string $signature): StripeEvent
@@ -40,10 +40,10 @@ class FakeStripeGateway implements StripeGatewayContract
         return 'https://checkout.stripe.test/fake-session';
     }
 
-    public function createSubscriptionCheckoutSession(User $user, string $priceAmount, string $successUrl, string $cancelUrl): string
+    public function createEmbeddedSubscriptionCheckoutSession(User $user, string $priceAmount, string $returnUrl): string
     {
-        $this->subscriptionSessionsCreated[] = compact('user', 'priceAmount', 'successUrl', 'cancelUrl');
+        $this->subscriptionSessionsCreated[] = compact('user', 'priceAmount', 'returnUrl');
 
-        return 'https://checkout.stripe.test/fake-subscription-session';
+        return 'cs_test_fake_client_secret_'.$user->getKey();
     }
 }

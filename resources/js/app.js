@@ -105,6 +105,33 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+    const toggle = document.querySelector('[data-pro-tooltip-toggle]');
+    const tooltip = document.querySelector('[data-pro-tooltip]');
+
+    if (!toggle || !tooltip) return;
+
+    const setOpen = (open) => {
+        tooltip.classList.toggle('hidden', !open);
+        toggle.setAttribute('aria-expanded', String(open));
+    };
+
+    toggle.addEventListener('click', (event) => {
+        event.preventDefault();
+        setOpen(tooltip.classList.contains('hidden'));
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!tooltip.classList.contains('hidden') && !tooltip.contains(event.target) && event.target !== toggle) {
+            setOpen(false);
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') setOpen(false);
+    });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
     const banner = document.querySelector('[data-cookie-banner]');
     const preferences = document.querySelector('[data-cookie-preferences]');
 

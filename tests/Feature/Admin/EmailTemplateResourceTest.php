@@ -45,7 +45,10 @@ class EmailTemplateResourceTest extends TestCase
             ->sum(fn (array $definition): int => count($definition['recipients']));
 
         $this->assertSame($expected, EmailTemplate::query()->count());
-        $this->assertSame(6, EmailTemplate::query()->distinct('notification_key')->count('notification_key'));
+        $this->assertSame(
+            count(config('email_templates')),
+            EmailTemplate::query()->distinct('notification_key')->count('notification_key'),
+        );
     }
 
     public function test_seeder_is_idempotent(): void

@@ -50,10 +50,11 @@ class StripeGateway implements StripeGatewayContract
         return $session->url;
     }
 
-    public function createSubscriptionCheckoutSession(User $user, string $priceAmount, string $successUrl, string $cancelUrl): string
+    public function createEmbeddedSubscriptionCheckoutSession(User $user, string $priceAmount, string $returnUrl): string
     {
         $session = $this->client->checkout->sessions->create([
             'mode' => 'subscription',
+            'ui_mode' => 'embedded_page',
             'customer_email' => $user->email,
             'client_reference_id' => (string) $user->getKey(),
             'line_items' => [[
@@ -66,10 +67,9 @@ class StripeGateway implements StripeGatewayContract
                 'quantity' => 1,
             ]],
             'metadata' => ['user_id' => (string) $user->getKey()],
-            'success_url' => $successUrl,
-            'cancel_url' => $cancelUrl,
+            'return_url' => $returnUrl,
         ]);
 
-        return $session->url;
+        return (string) $session->client_secret;
     }
 }

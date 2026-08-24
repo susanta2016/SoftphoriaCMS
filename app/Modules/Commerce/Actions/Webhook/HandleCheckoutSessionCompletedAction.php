@@ -2,6 +2,7 @@
 
 namespace App\Modules\Commerce\Actions\Webhook;
 
+use App\Actions\Registration\SendProRegistrationWelcomeEmailAction;
 use App\Modules\Commerce\Actions\Order\MarkOrderPaidAction;
 use App\Modules\Commerce\Enums\PaymentTransactionStatus;
 use App\Modules\Commerce\Enums\PaymentTransactionType;
@@ -13,9 +14,9 @@ use App\Modules\Commerce\Support\StripeEvent;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Handles Stripe's `checkout.session.completed`, for both modes a future
- * checkout controller creates: `payment` (a Single/Album Order) and
- * `subscription` (Pro Member signup). Looks the Order up by
+ * Handles Stripe's `checkout.session.completed`, for both modes: `payment`
+ * (a Single/Album Order) and `subscription` (Pro Member registration via
+ * RegisterProUserAction's embedded Checkout Session). Looks the Order up by
  * `stripe_checkout_session_id` (set when the session was created) — see
  * StripeGateway::createCheckoutSessionForOrder()'s `client_reference_id`/
  * metadata, which a future checkout controller stamps onto the Order before
@@ -23,7 +24,10 @@ use Illuminate\Support\Facades\DB;
  */
 class HandleCheckoutSessionCompletedAction
 {
-    public function __construct(private readonly MarkOrderPaidAction $markOrderPaid) {}
+    public function __construct(
+        private readonly MarkOrderPaidAction $markOrderPaid,
+        private readonly SendProRegistrationWelcomeEmailAction $sendProWelcomeEmail,
+    ) {}
 
     public function handle(StripeEvent $event): void
     {
@@ -62,12 +66,27 @@ class HandleCheckoutSessionCompletedAction
             return;
         }
 
-        DB::transaction(function () use ($session, $event, $userId): void {
+        $wasJustRegistered = false;
+
+        $subscription = DB::transaction(function () use ($session, $event, $userId, &$wasJustRegistered): Subscription {
             $subscription = Subscription::query()->firstOrNew(['user_id' => (int) $userId]);
+            $wasJustRegistered = ! $subscription->exists;
+
             $subscription->stripe_customer_id = $session['customer'] ?? $subscription->stripe_customer_id;
             $subscription->stripe_subscription_id = $session['subscription'] ?? $subscription->stripe_subscription_id;
             $subscription->status = SubscriptionStatus::Active;
             $subscription->started_at ??= now();
+
+            // Snapshot what Stripe actually charged for this signup — the
+            // same amount_total/currency the PaymentTransaction row below
+            // already records — rather than re-resolving GlobalPricingResolver
+            // a second time, which could have changed since the Checkout
+            // Session was created.
+            if ($wasJustRegistered) {
+                $subscription->currency = $session['currency'] ?? null;
+                $subscription->price_at_subscription = isset($session['amount_total']) ? $session['amount_total'] / 100 : null;
+            }
+
             $subscription->save();
 
             $transaction = new PaymentTransaction;
@@ -81,6 +100,18 @@ class HandleCheckoutSessionCompletedAction
             $transaction->amount = isset($session['amount_total']) ? $session['amount_total'] / 100 : null;
             $transaction->occurred_at = now();
             $transaction->save();
+
+            return $subscription;
         });
+
+        // Outside the transaction so a mail failure/exception can never roll
+        // back the already-confirmed Subscription — and only on the first
+        // time this user's Pro signup is ever confirmed, never on a
+        // renewal-adjacent replay (point 5 of the confirmed spec: the Pro
+        // confirmation email fires only after confirmed payment, exactly
+        // once).
+        if ($wasJustRegistered) {
+            $this->sendProWelcomeEmail->handle($subscription->user);
+        }
     }
 }

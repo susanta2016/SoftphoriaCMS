@@ -75,7 +75,7 @@
             >
                 Log In
             </a>
-            <a href="#" class="inline-flex items-center gap-1.5 rounded-md bg-brand-gold px-3 py-2 text-sm font-semibold whitespace-nowrap text-white transition hover:bg-brand-gold-light sm:px-4">
+            <a href="{{ route('register.show') }}" class="inline-flex items-center gap-1.5 rounded-md bg-brand-gold px-3 py-2 text-sm font-semibold whitespace-nowrap text-white transition hover:bg-brand-gold-light sm:px-4">
                 Enter Here <span aria-hidden="true">→</span>
             </a>
 
@@ -123,6 +123,9 @@
             </a>
             <a href="#" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
                 Log In
+            </a>
+            <a href="{{ route('register.show') }}" class="mt-1 flex items-center justify-center gap-1.5 rounded-md bg-brand-gold px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-gold-light">
+                Enter Here <span aria-hidden="true">→</span>
             </a>
         </div>
     </div>

@@ -30,5 +30,16 @@ interface StripeGatewayContract
      */
     public function createCheckoutSessionForOrder(Order $order, string $successUrl, string $cancelUrl): string;
 
-    public function createSubscriptionCheckoutSession(User $user, string $priceAmount, string $successUrl, string $cancelUrl): string;
+    /**
+     * Embedded Checkout (`ui_mode: 'embedded_page'`) — card entry renders inline
+     * on our own page via Stripe.js, never a redirect to Stripe's hosted
+     * page, and raw card data never reaches Laravel. Returns the session's
+     * `client_secret` for the frontend to mount, not a URL. $returnUrl is
+     * where Stripe sends the browser once checkout completes inside the
+     * embed; it must contain the literal `{CHECKOUT_SESSION_ID}` placeholder
+     * (Stripe substitutes it) — see RegisterProUserAction. Still the same
+     * Checkout Session/`checkout.session.completed` webhook architecture as
+     * createCheckoutSessionForOrder() above, just a different `ui_mode`.
+     */
+    public function createEmbeddedSubscriptionCheckoutSession(User $user, string $priceAmount, string $returnUrl): string;
 }
