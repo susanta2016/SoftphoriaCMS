@@ -25,28 +25,44 @@ trait SavesPodcastEpisodeRelations
     }
 
     /**
-     * Delete-and-recreate rather than diffing — streaming links are a
-     * small, admin-curated list (not user-generated data with IDs worth
-     * preserving across saves), so this is simpler than tracking which rows
-     * changed and is exactly what the Repeater's plain array state gives us.
+     * The form presents exactly one streaming link (state path `links.0`,
+     * see PodcastEpisodeForm's docblock), so this only ever creates,
+     * updates, or deletes the episode's first link (lowest sort_order) —
+     * it deliberately never touches any additional podcast_links row a
+     * legacy episode may still have from before the client's single-link
+     * rule (2026-08-24). Those extra rows are simply invisible to/
+     * unreachable from this admin form; they are not deleted merely
+     * because the episode is edited and saved, since that was never asked
+     * for and would silently destroy real seeded/production data (episodes
+     * with 2-3 links existed before this rule).
      *
      * @param  array<int, array<string, mixed>>  $links
      */
-    protected function syncLinks(PodcastEpisode $episode, array $links): void
+    protected function syncPrimaryLink(PodcastEpisode $episode, array $links): void
     {
-        $episode->links()->delete();
+        $submitted = $links[0] ?? null;
+        $existingFirst = $episode->links()->first();
 
-        foreach (array_values($links) as $index => $link) {
-            if (blank($link['url'] ?? null)) {
-                continue;
-            }
+        if (blank($submitted['url'] ?? null)) {
+            $existingFirst?->delete();
 
-            $episode->links()->create([
-                'provider' => $link['provider'],
-                'url' => $link['url'],
-                'sort_order' => $index,
-            ]);
+            return;
         }
+
+        if ($existingFirst !== null) {
+            $existingFirst->update([
+                'provider' => $submitted['provider'],
+                'url' => $submitted['url'],
+            ]);
+
+            return;
+        }
+
+        $episode->links()->create([
+            'provider' => $submitted['provider'],
+            'url' => $submitted['url'],
+            'sort_order' => 0,
+        ]);
     }
 
     /**

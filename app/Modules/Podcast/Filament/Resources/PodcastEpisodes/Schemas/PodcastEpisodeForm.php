@@ -14,7 +14,6 @@ use App\Modules\Podcast\Models\Podcast;
 use App\Modules\Podcast\Models\PodcastEpisode;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -31,6 +30,23 @@ use Illuminate\Support\Str;
  * repeater) so Create/UpdatePodcastEpisodeAction — not Filament's automatic
  * relationship save — own reconciling podcast_links, same reasoning as
  * PageForm's sections Repeater.
+ *
+ * Client-confirmed 2026-08-24: an Episode has exactly one streaming link in
+ * the admin UI — a flat provider/URL pair (state paths `links.0.provider`/
+ * `links.0.url`), not a Repeater, so there is no "Add streaming link"
+ * option. The podcast_links table/`links()` HasMany stay multi-row (shared
+ * shape with Music's streaming links, and no reason to redesign the schema
+ * for a UI-only rule). See EditPodcastEpisode's mutateFormDataBeforeFill()
+ * for how a legacy episode with more than one stored link is represented
+ * here (its first link only) and
+ * SavesPodcastEpisodeRelations::syncPrimaryLink() for why saving never
+ * deletes any additional legacy link this form can't show — only removing
+ * Video/the multi-add UI was asked for, not destroying pre-existing data.
+ *
+ * Video is permanently removed from this form (client-confirmed
+ * 2026-08-24, not merely presentation-mode) — unlike Track, it is not
+ * gated behind config('admin_ui.show_video_fields'). video_media_id and
+ * the video() relation stay on the model/DB untouched.
  */
 class PodcastEpisodeForm
 {
@@ -67,10 +83,6 @@ class PodcastEpisodeForm
                                         ->helperText('An external streaming source for this episode (Spotify, Apple Podcasts, etc.) — never a download source.'),
                                     MediaPicker::make('audio_media_id', 'Audio File', MediaCategory::Audio)
                                         ->columnSpanFull(),
-                                    MediaPicker::make('video_media_id', 'Video File', MediaCategory::Video)
-                                        ->columnSpanFull()
-                                        // Temporary presentation-mode hide — UI only, see config/admin_ui.php.
-                                        ->visible(fn (): bool => config('admin_ui.show_video_fields')),
                                     TextInput::make('season')
                                         ->numeric()
                                         ->minValue(1)
@@ -122,27 +134,17 @@ class PodcastEpisodeForm
                                         ->dehydrated(),
                                 ]),
 
-                            Section::make('Streaming Links')
+                            Section::make('Streaming Link')
                                 ->description('Where listeners can play this episode.')
+                                ->columns(2)
                                 ->schema([
-                                    Repeater::make('links')
-                                        ->hiddenLabel()
-                                        ->reorderable()
-                                        ->defaultItems(0)
-                                        ->addActionLabel('Add streaming link')
-                                        ->itemLabel(fn (array $state): ?string => isset($state['provider'])
-                                            ? PodcastLinkProvider::from($state['provider'])->getLabel()
-                                            : null)
-                                        ->schema([
-                                            Select::make('provider')
-                                                ->options(PodcastLinkProvider::options())
-                                                ->required(),
-                                            TextInput::make('url')
-                                                ->url()
-                                                ->required()
-                                                ->maxLength(255),
-                                        ])
-                                        ->columns(2),
+                                    Select::make('links.0.provider')
+                                        ->label('Provider')
+                                        ->options(PodcastLinkProvider::options()),
+                                    TextInput::make('links.0.url')
+                                        ->label('URL')
+                                        ->url()
+                                        ->maxLength(255),
                                 ]),
 
                             Section::make('SEO')

@@ -6,7 +6,6 @@ use App\Filament\Support\Seo\SeoFields;
 use App\Models\User;
 use App\Modules\Podcast\Actions\PodcastEpisode\UpdatePodcastEpisodeAction;
 use App\Modules\Podcast\Filament\Resources\PodcastEpisodes\PodcastEpisodeResource;
-use App\Modules\Podcast\Models\PodcastLink;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -31,15 +30,22 @@ class EditPodcastEpisode extends EditRecord
     /**
      * links/seo aren't real form-bound relationships (see PodcastEpisodeForm's
      * docblock), so their state has to be filled in manually.
+     *
+     * The form only presents a single streaming link (state path
+     * `links.0`), so only the first link (by sort_order — see
+     * PodcastEpisode::links()) is shown here even if this episode has more
+     * than one stored from before the client's single-link rule. Any
+     * additional link this form doesn't show is left untouched on save —
+     * see SavesPodcastEpisodeRelations::syncPrimaryLink() — never silently
+     * deleted just because the episode was edited.
      */
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $data['links'] = $this->record->links
-            ->map(fn (PodcastLink $link): array => [
-                'provider' => $link->provider->value,
-                'url' => $link->url,
-            ])
-            ->all();
+        $firstLink = $this->record->links->first();
+
+        $data['links'] = $firstLink
+            ? [['provider' => $firstLink->provider->value, 'url' => $firstLink->url]]
+            : [];
 
         $data['categoryIds'] = $this->record->categories()->pluck('categories.id')->all();
         $data['tagIds'] = $this->record->tags()->pluck('tags.id')->all();

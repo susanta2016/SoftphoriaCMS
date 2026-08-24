@@ -28,7 +28,7 @@ class CreatePodcastEpisodeAction
             $episode->updated_by = $actor->getKey();
             $episode->save();
 
-            $this->syncLinks($episode, $data['links'] ?? []);
+            $this->syncPrimaryLink($episode, $data['links'] ?? []);
             $this->saveSeo($episode, $data['seo'] ?? []);
             $this->syncCategories($episode, $data['categoryIds'] ?? []);
             $this->syncTags($episode, $data['tagIds'] ?? []);

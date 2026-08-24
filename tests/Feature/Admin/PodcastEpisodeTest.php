@@ -76,6 +76,90 @@ class PodcastEpisodeTest extends TestCase
         $this->assertTrue($episode->tags->contains($tag));
     }
 
+    public function test_create_form_has_a_single_streaming_link_field_with_no_add_option(): void
+    {
+        Livewire::actingAs($this->admin())
+            ->test(CreatePodcastEpisode::class)
+            ->assertSee('Streaming Link')
+            ->assertDontSee('Add streaming link');
+    }
+
+    public function test_edit_form_shows_only_the_episodes_first_streaming_link_when_more_than_one_is_stored(): void
+    {
+        $episode = $this->createEpisode($this->createPodcast());
+        $episode->links()->create(['provider' => 'spotify', 'url' => 'https://open.spotify.com/episode/first', 'sort_order' => 0]);
+        $episode->links()->create(['provider' => 'youtube', 'url' => 'https://www.youtube.com/watch?v=second', 'sort_order' => 1]);
+
+        Livewire::actingAs($this->admin())
+            ->test(EditPodcastEpisode::class, ['record' => $episode->getRouteKey()])
+            ->assertDontSee('Add streaming link')
+            ->assertFormSet(['links' => [
+                ['provider' => 'spotify', 'url' => 'https://open.spotify.com/episode/first'],
+            ]]);
+    }
+
+    public function test_saving_an_episode_with_more_than_one_stored_link_only_updates_the_first_and_preserves_the_rest(): void
+    {
+        $episode = $this->createEpisode($this->createPodcast());
+        $first = $episode->links()->create(['provider' => 'spotify', 'url' => 'https://open.spotify.com/episode/first', 'sort_order' => 0]);
+        $second = $episode->links()->create(['provider' => 'youtube', 'url' => 'https://www.youtube.com/watch?v=second', 'sort_order' => 1]);
+        $third = $episode->links()->create(['provider' => 'soundcloud', 'url' => 'https://soundcloud.com/episode/third', 'sort_order' => 2]);
+
+        Livewire::actingAs($this->admin())
+            ->test(EditPodcastEpisode::class, ['record' => $episode->getRouteKey()])
+            ->fillForm(['links' => [['provider' => 'apple_podcasts', 'url' => 'https://podcasts.apple.com/podcast/updated']]])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $episode->refresh();
+        $this->assertCount(3, $episode->links);
+        // The first link (same row, same id) was edited in place.
+        $this->assertSame($first->id, $episode->links[0]->id);
+        $this->assertSame('apple_podcasts', $episode->links[0]->provider->value);
+        $this->assertSame('https://podcasts.apple.com/podcast/updated', $episode->links[0]->url);
+        // The legacy second/third links this form never showed are untouched.
+        $this->assertTrue($episode->links->contains('id', $second->id));
+        $this->assertTrue($episode->links->contains('id', $third->id));
+        $this->assertSame('https://www.youtube.com/watch?v=second', $episode->links->firstWhere('id', $second->id)->url);
+        $this->assertSame('https://soundcloud.com/episode/third', $episode->links->firstWhere('id', $third->id)->url);
+    }
+
+    public function test_clearing_the_link_field_on_an_episode_with_multiple_stored_links_only_removes_the_first(): void
+    {
+        $episode = $this->createEpisode($this->createPodcast());
+        $first = $episode->links()->create(['provider' => 'spotify', 'url' => 'https://open.spotify.com/episode/first', 'sort_order' => 0]);
+        $second = $episode->links()->create(['provider' => 'youtube', 'url' => 'https://www.youtube.com/watch?v=second', 'sort_order' => 1]);
+
+        Livewire::actingAs($this->admin())
+            ->test(EditPodcastEpisode::class, ['record' => $episode->getRouteKey()])
+            ->fillForm(['links' => [['provider' => null, 'url' => null]]])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $episode->refresh();
+        $this->assertCount(1, $episode->links);
+        $this->assertFalse($episode->links->contains('id', $first->id));
+        $this->assertTrue($episode->links->contains('id', $second->id));
+    }
+
+    public function test_saving_an_episode_with_a_single_stored_link_updates_it_in_place(): void
+    {
+        $episode = $this->createEpisode($this->createPodcast());
+        $link = $episode->links()->create(['provider' => 'spotify', 'url' => 'https://open.spotify.com/episode/original', 'sort_order' => 0]);
+
+        Livewire::actingAs($this->admin())
+            ->test(EditPodcastEpisode::class, ['record' => $episode->getRouteKey()])
+            ->fillForm(['links' => [['provider' => 'youtube', 'url' => 'https://www.youtube.com/watch?v=updated']]])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $episode->refresh();
+        $this->assertCount(1, $episode->links);
+        $this->assertSame($link->id, $episode->links->first()->id);
+        $this->assertSame('youtube', $episode->links->first()->provider->value);
+        $this->assertSame('https://www.youtube.com/watch?v=updated', $episode->links->first()->url);
+    }
+
     public function test_admin_can_view_the_episode_list(): void
     {
         $episode = $this->createEpisode($this->createPodcast());
