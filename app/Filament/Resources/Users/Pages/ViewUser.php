@@ -16,6 +16,7 @@ class ViewUser extends ViewRecord
             EditAction::make(),
             UserResource::changeStatusAction(),
             UserResource::sendPasswordResetLinkAction(),
+            UserResource::resendVerificationEmailAction(),
         ];
     }
 }

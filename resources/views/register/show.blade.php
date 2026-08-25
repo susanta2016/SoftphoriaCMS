@@ -18,12 +18,6 @@
             </div>
         @endif
 
-        @if (session('resend_notice'))
-            <div class="mt-6 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                {{ session('resend_notice') }}
-            </div>
-        @endif
-
         @if ($errors->any())
             <div class="mt-6 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
                 <ul class="list-inside list-disc space-y-1">
@@ -110,20 +104,6 @@
                 </div>
             </div>
         </form>
-
-        <div class="mt-6 text-center text-xs text-brand-navy/60">
-            <p class="mb-2">Already registered but didn't get the verification email?</p>
-            <form method="POST" action="{{ route('verification.resend') }}" class="flex items-center justify-center gap-2">
-                @csrf
-                <input
-                    type="email" name="email" placeholder="Your email address" required
-                    class="rounded-md border border-brand-navy/20 px-3 py-1.5 text-xs text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
-                >
-                <button type="submit" class="rounded-md border border-brand-navy/20 px-3 py-1.5 font-semibold text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
-                    Resend
-                </button>
-            </form>
-        </div>
     </main>
 
     <x-site.footer :site-name="$siteName" :tagline="$tagline"/>

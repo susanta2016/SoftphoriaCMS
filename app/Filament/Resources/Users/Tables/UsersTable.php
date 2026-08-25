@@ -81,6 +81,7 @@ class UsersTable
                     UserResource::deleteUserAction(),
                     UserResource::changeStatusAction(),
                     UserResource::sendPasswordResetLinkAction(),
+                    UserResource::resendVerificationEmailAction(),
                 ])
                     ->icon(Heroicon::OutlinedEllipsisVertical)
                     ->label('Actions'),

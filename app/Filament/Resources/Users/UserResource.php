@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Users;
 use App\Actions\Users\ChangeUserStatusAction;
 use App\Actions\Users\ForceLogoutAllSessionsAction;
 use App\Actions\Users\GenerateNewPasswordAction;
+use App\Actions\Users\ResendUserVerificationEmailAction;
 use App\Actions\Users\SendUserPasswordResetLinkAction;
 use App\Enums\UserStatus;
 use App\Exceptions\Users\CannotModifySelfException;
@@ -210,6 +211,34 @@ class UserResource extends Resource
                         ->danger()
                         ->send();
                 }
+            });
+    }
+
+    /**
+     * The admin-triggered counterpart to the "didn't get the verification
+     * email?" form removed from the public registration page — only ever
+     * shown against a record already known to be PendingVerification, so
+     * (unlike that public form) no email input is needed here.
+     */
+    public static function resendVerificationEmailAction(): Action
+    {
+        return Action::make('resendVerificationEmail')
+            ->label('Resend Verification Email')
+            ->icon(Heroicon::OutlinedEnvelope)
+            ->color('gray')
+            ->visible(fn (User $record): bool => $record->status === UserStatus::PendingVerification->value)
+            ->requiresConfirmation()
+            ->modalDescription(fn (User $record): string => "Resend the verification email to {$record->email}?")
+            ->action(function (User $record): void {
+                /** @var User $actor */
+                $actor = Auth::user();
+
+                app(ResendUserVerificationEmailAction::class)->handle($record, $actor);
+
+                Notification::make()
+                    ->title('Verification email resent')
+                    ->success()
+                    ->send();
             });
     }
 

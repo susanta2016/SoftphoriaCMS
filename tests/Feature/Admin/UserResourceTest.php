@@ -279,6 +279,33 @@ class UserResourceTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_resend_a_verification_email_to_a_pending_user(): void
+    {
+        $admin = $this->admin();
+        $target = User::factory()->create(['status' => 'pending_verification']);
+
+        Livewire::actingAs($admin)
+            ->test(ListUsers::class)
+            ->callTableAction('resendVerificationEmail', $target)
+            ->assertHasNoTableActionErrors();
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'user.verification_email_resent',
+            'entity_type' => 'User',
+            'entity_id' => $target->id,
+        ]);
+    }
+
+    public function test_the_resend_verification_email_action_is_hidden_for_non_pending_users(): void
+    {
+        $target = User::factory()->create(['status' => 'active']);
+
+        Livewire::actingAs($this->admin())
+            ->test(ListUsers::class)
+            ->assertTableActionHidden('resendVerificationEmail', $target);
+    }
+
     public function test_no_delete_action_exists_anywhere_on_the_user_resource(): void
     {
         $target = User::factory()->create();
