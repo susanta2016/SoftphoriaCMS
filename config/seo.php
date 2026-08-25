@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\HomeController;
 use App\Models\Page;
+use App\Modules\PoetryProse\Models\PoetryProse;
 
 return [
 
@@ -25,11 +26,17 @@ return [
     | a URL. See Sitemapable's docblock for the full public-vs-private rule
     | this list depends on.
     |
+    | Inspirational Resources has no entry here (client-confirmed, final):
+    | ResourceSubmission is always a private administrative record, never
+    | Sitemapable, and there is no separate public InspirationalResource
+    | editorial model to register.
+    |
     */
 
     'sitemap_sources' => [
         HomeController::class,
         Page::class,
+        PoetryProse::class,
     ],
 
 ];

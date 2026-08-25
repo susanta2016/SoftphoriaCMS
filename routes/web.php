@@ -10,11 +10,13 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\InspirationalResources\InspirationalResourceSubmissionController;
 use App\Http\Controllers\Media\PublicHeroVideoStreamController;
 use App\Http\Controllers\Media\StreamMediaController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\Page\PageController;
 use App\Http\Controllers\Page\PreviewPageController;
+use App\Http\Controllers\PoetryProse\PoetryProseController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SitemapController;
@@ -124,6 +126,21 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
     Route::get('/subscription', AccountSubscriptionController::class)->name('subscription');
     Route::get('/transactions', AccountTransactionController::class)->name('transactions');
 });
+
+// Public Poetry/Prose — fully public once Published (client-confirmed: no
+// membership/entitlement gate on viewing in this module).
+Route::get('/poetry-prose', [PoetryProseController::class, 'index'])->name('poetry-prose.index');
+Route::get('/poetry-prose/{poetryProse:slug}', [PoetryProseController::class, 'show'])->name('poetry-prose.show');
+
+// Public Inspirational Resources — a single introductory/submission page
+// only (client-confirmed, final). No public listing, no per-submission
+// detail page, no separate public editorial model — a submission is always
+// a private administrative record, never rendered at a public URL. The
+// submit endpoint is throttled the same as register.free/newsletter.subscribe.
+Route::get('/inspirational-resources', [InspirationalResourceSubmissionController::class, 'index'])->name('inspirational-resources.index');
+Route::post('/inspirational-resources/submit', [InspirationalResourceSubmissionController::class, 'store'])
+    ->middleware('throttle:6,1')
+    ->name('inspirational-resources.submit');
 
 // Public CMS page viewer (Stage D) — kept last so it never shadows a more
 // specific route above; PageController itself 404s anything not published.

@@ -61,4 +61,10 @@ return [
         'variables' => ['name', 'email', 'subject', 'message', 'site_name'],
     ],
 
+    'inspirational_resource_submitted' => [
+        'label' => 'Inspirational Resource Submission',
+        'recipients' => ['admin'],
+        'variables' => ['submitter_name', 'submitter_email', 'subject', 'category', 'site_name'],
+    ],
+
 ];
