@@ -1,7 +1,45 @@
+@php
+    // Reuses the same footer background artwork (Settings: footer.background_media_id)
+    // rather than a new decorative asset — cropped to its cloud/gold-line edges as
+    // two low-opacity corner accents so the registration page reads as part of the
+    // same site without competing with the footer's own full-width use of it.
+    $registerBackgroundMedia = ($registerBackgroundMediaId = app(\App\Shared\Services\Settings\SettingsRepository::class)->get('footer', 'background_media_id'))
+        ? \App\Models\Media::find($registerBackgroundMediaId)
+        : null;
+    $registerBackgroundUrl = $registerBackgroundMedia
+        ? \Illuminate\Support\Facades\Storage::disk($registerBackgroundMedia->disk)->url($registerBackgroundMedia->path)
+        : null;
+@endphp
+
 <x-layouts.site :seo="$seo">
     <x-site.header :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
 
-    <main class="mx-auto max-w-xl px-4 pt-32 pb-20 sm:px-6 lg:px-8">
+    <div class="relative isolate overflow-hidden bg-brand-ivory">
+        @if ($registerBackgroundUrl)
+            <div
+                aria-hidden="true"
+                class="pointer-events-none absolute top-0 -left-20 h-80 w-[40rem] opacity-30 sm:h-[26rem] sm:w-[52rem]"
+                style="
+                    background-image: url('{{ $registerBackgroundUrl }}'); background-position: left top; background-size: auto 220%; background-repeat: no-repeat;
+                    mask-image: radial-gradient(65% 65% at 15% 15%, black 35%, transparent 100%);
+                    -webkit-mask-image: radial-gradient(65% 65% at 15% 15%, black 35%, transparent 100%);
+                "
+            ></div>
+            <div
+                aria-hidden="true"
+                class="pointer-events-none absolute top-0 -right-20 h-80 w-[40rem] opacity-30 sm:h-[26rem] sm:w-[52rem]"
+                style="
+                    background-image: url('{{ $registerBackgroundUrl }}'); background-position: right top; background-size: auto 220%; background-repeat: no-repeat;
+                    mask-image: radial-gradient(65% 65% at 85% 15%, black 35%, transparent 100%);
+                    -webkit-mask-image: radial-gradient(65% 65% at 85% 15%, black 35%, transparent 100%);
+                "
+            ></div>
+        @endif
+
+        <span aria-hidden="true" class="pointer-events-none absolute top-40 left-8 hidden text-lg text-brand-gold/30 sm:block">✦</span>
+        <span aria-hidden="true" class="pointer-events-none absolute top-64 right-10 hidden text-sm text-brand-gold/30 sm:block">✦</span>
+
+    <main class="relative mx-auto max-w-xl px-4 pt-32 pb-20 sm:px-6 lg:px-8">
         <div class="text-center">
             <h1 class="font-serif text-3xl text-brand-navy sm:text-4xl">Create Your Account</h1>
             <div class="my-5 flex items-center justify-center gap-3" aria-hidden="true">
@@ -138,6 +176,7 @@
             </div>
         </form>
     </main>
+    </div>
 
     <x-site.footer :site-name="$siteName" :tagline="$tagline"/>
 </x-layouts.site>
