@@ -31,9 +31,9 @@
         <form method="POST" action="{{ route('register.free') }}" class="mt-8 rounded-2xl bg-white p-6 shadow-xl ring-1 ring-brand-navy/5 sm:p-8">
             @csrf
 
-            <div class="space-y-5">
+            <div class="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
                 <div>
-                    <label for="name" class="block text-sm font-medium text-brand-navy">Full Name</label>
+                    <label for="name" class="block text-sm font-medium text-brand-navy">Full Name *</label>
                     <input
                         type="text" id="name" name="name" value="{{ old('name') }}" required autocomplete="name"
                         class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
@@ -41,7 +41,7 @@
                 </div>
 
                 <div>
-                    <label for="email" class="block text-sm font-medium text-brand-navy">Email Address</label>
+                    <label for="email" class="block text-sm font-medium text-brand-navy">Email Address *</label>
                     <input
                         type="email" id="email" name="email" value="{{ old('email') }}" required autocomplete="email"
                         class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
@@ -49,20 +49,53 @@
                 </div>
 
                 <div>
-                    <label for="password" class="block text-sm font-medium text-brand-navy">Password</label>
+                    <label for="password" class="block text-sm font-medium text-brand-navy">Password *</label>
                     <input
                         type="password" id="password" name="password" required autocomplete="new-password" minlength="8"
                         class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
                     >
-                    <p class="mt-1 text-xs text-brand-navy/60">At least 8 characters.</p>
                 </div>
 
                 <div>
-                    <label for="password_confirmation" class="block text-sm font-medium text-brand-navy">Confirm Password</label>
+                    <label for="password_confirmation" class="block text-sm font-medium text-brand-navy">Confirm Password *</label>
                     <input
                         type="password" id="password_confirmation" name="password_confirmation" required autocomplete="new-password"
                         class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
                     >
+                </div>
+
+                <p class="-mt-3 text-xs text-brand-navy/60 sm:col-span-2">At least 8 characters.</p>
+
+                <div>
+                    <label for="phone_number" class="block text-sm font-medium text-brand-navy">Phone Number *</label>
+                    <input
+                        type="tel" id="phone_number" name="phone_number" value="{{ old('phone_number') }}" required autocomplete="tel"
+                        class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
+                    >
+                </div>
+
+                <div>
+                    <label for="zip_code" class="block text-sm font-medium text-brand-navy">Zip Code *</label>
+                    <input
+                        type="text" id="zip_code" name="zip_code" value="{{ old('zip_code') }}" required autocomplete="postal-code"
+                        class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
+                    >
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label for="address" class="block text-sm font-medium text-brand-navy">Address *</label>
+                    <textarea
+                        id="address" name="address" required rows="2"
+                        class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
+                    >{{ old('address') }}</textarea>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label for="bio" class="block text-sm font-medium text-brand-navy">Biography</label>
+                    <textarea
+                        id="bio" name="bio" rows="3"
+                        class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
+                    >{{ old('bio') }}</textarea>
                 </div>
             </div>
 

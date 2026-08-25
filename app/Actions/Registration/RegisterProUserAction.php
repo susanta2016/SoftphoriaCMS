@@ -2,6 +2,7 @@
 
 namespace App\Actions\Registration;
 
+use App\Actions\Registration\Concerns\SavesOptionalRegistrationProfile;
 use App\Actions\Registration\Support\ProRegistrationOutcome;
 use App\Enums\UserStatus;
 use App\Models\User;
@@ -31,13 +32,15 @@ use Illuminate\Validation\ValidationException;
  */
 class RegisterProUserAction
 {
+    use SavesOptionalRegistrationProfile;
+
     public function __construct(
         private readonly GlobalPricingResolver $pricing,
         private readonly StripeGatewayContract $stripe,
     ) {}
 
     /**
-     * @param  array{name: string, email: string, password: string}  $data
+     * @param  array{name: string, email: string, password: string, phone_number?: ?string, bio?: ?string, address?: ?string, zip_code?: ?string}  $data
      */
     public function handle(array $data): ProRegistrationOutcome
     {
@@ -54,6 +57,9 @@ class RegisterProUserAction
                 return ProRegistrationOutcome::alreadyPaidAwaitingVerification($existing);
             }
 
+            // Same account-takeover reasoning as name/password above: this
+            // submission's profile fields are discarded, not merged into a
+            // stranger's existing profile, on a resumed abandoned attempt.
             $user = $existing;
         } else {
             $user = new User;
@@ -62,6 +68,8 @@ class RegisterProUserAction
             $user->password = Hash::make($data['password']);
             $user->status = UserStatus::PendingVerification->value;
             $user->save();
+
+            $this->saveOptionalProfile($user, $data);
         }
 
         $clientSecret = $this->stripe->createEmbeddedSubscriptionCheckoutSession(

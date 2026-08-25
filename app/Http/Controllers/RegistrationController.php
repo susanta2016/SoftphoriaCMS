@@ -56,6 +56,7 @@ class RegistrationController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            ...self::optionalProfileRules(),
         ]);
 
         if ($validator->fails()) {
@@ -95,6 +96,7 @@ class RegistrationController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            ...self::optionalProfileRules(),
         ]);
 
         if ($validator->fails()) {
@@ -170,6 +172,27 @@ class RegistrationController extends Controller
                 )
                 : null,
         ]);
+    }
+
+    /**
+     * Profile fields mirroring the admin User form's "Profile" section
+     * (UserForm) field for field — same labels, same max lengths — so a
+     * self-registered account can carry the same data an admin-created one
+     * can. Only Biography stays optional here; Phone Number, Address and
+     * Zip Code are required on the registration form (unlike the admin
+     * form, where every one of these is optional). Shared by
+     * registerFree/registerPro rather than duplicated.
+     *
+     * @return array<string, array<int, string>>
+     */
+    private static function optionalProfileRules(): array
+    {
+        return [
+            'phone_number' => ['required', 'string', 'max:30'],
+            'bio' => ['nullable', 'string', 'max:65535'],
+            'address' => ['required', 'string', 'max:500'],
+            'zip_code' => ['required', 'string', 'max:20'],
+        ];
     }
 
     /**

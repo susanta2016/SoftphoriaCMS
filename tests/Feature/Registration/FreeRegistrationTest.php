@@ -45,6 +45,7 @@ class FreeRegistrationTest extends TestCase
             'email' => 'jane@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
+            ...$this->requiredProfileFields(),
         ]);
 
         $response->assertRedirect(route('register.free.thank-you'));
@@ -60,6 +61,63 @@ class FreeRegistrationTest extends TestCase
         $this->assertTrue($verification->expires_at->between(now()->addHours(23), now()->addHours(25)));
 
         Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo('jane@example.com'));
+    }
+
+    public function test_registering_free_with_profile_fields_saves_a_profile(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+
+        $response = $this->post(route('register.free'), [
+            'name' => 'Jane Doe',
+            'email' => 'jane.profile@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'phone_number' => '+44 7700 900001',
+            'bio' => 'Writes things.',
+            'address' => '221B Baker Street',
+            'zip_code' => 'NW1 6XE',
+        ]);
+
+        $response->assertRedirect(route('register.free.thank-you'));
+
+        $user = User::query()->where('email', 'jane.profile@example.com')->firstOrFail();
+        $this->assertSame('+44 7700 900001', $user->profile->phone_number);
+        $this->assertSame('Writes things.', $user->profile->bio);
+        $this->assertSame('221B Baker Street', $user->profile->address);
+        $this->assertSame('NW1 6XE', $user->profile->zip_code);
+    }
+
+    public function test_registering_free_without_a_biography_still_succeeds(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+
+        $response = $this->post(route('register.free'), [
+            'name' => 'Jane Doe',
+            'email' => 'jane.nobio@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            ...$this->requiredProfileFields(),
+        ]);
+
+        $response->assertRedirect(route('register.free.thank-you'));
+
+        $user = User::query()->where('email', 'jane.nobio@example.com')->firstOrFail();
+        $this->assertNull($user->profile->bio);
+    }
+
+    public function test_registering_free_requires_phone_number_address_and_zip_code(): void
+    {
+        $response = $this->post(route('register.free'), [
+            'name' => 'Jane Doe',
+            'email' => 'jane.missing@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertSessionHasErrors(['phone_number', 'address', 'zip_code']);
+        $this->assertSame(0, User::query()->where('email', 'jane.missing@example.com')->count());
     }
 
     public function test_registering_free_with_a_duplicate_email_is_rejected_and_creates_no_user(): void
@@ -142,5 +200,17 @@ class FreeRegistrationTest extends TestCase
         ]);
 
         $response->assertStatus(429);
+    }
+
+    /**
+     * @return array{phone_number: string, address: string, zip_code: string}
+     */
+    private function requiredProfileFields(): array
+    {
+        return [
+            'phone_number' => '+44 7700 900001',
+            'address' => '221B Baker Street',
+            'zip_code' => 'NW1 6XE',
+        ];
     }
 }

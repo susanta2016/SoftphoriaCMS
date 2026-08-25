@@ -39,6 +39,7 @@ class ProRegistrationTest extends TestCase
             'email' => 'jane.pro@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
+            ...$this->requiredProfileFields(),
         ]);
 
         $response->assertOk();
@@ -51,6 +52,63 @@ class ProRegistrationTest extends TestCase
         $fake = app(StripeGatewayContract::class);
         $this->assertCount(1, $fake->subscriptionSessionsCreated);
         $this->assertSame($user->id, $fake->subscriptionSessionsCreated[0]['user']->id);
+    }
+
+    public function test_registering_pro_with_profile_fields_saves_a_profile(): void
+    {
+        $this->post(route('register.pro'), [
+            'name' => 'Jane Pro',
+            'email' => 'jane.pro.profile@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'phone_number' => '+44 7700 900001',
+            'bio' => 'Writes things.',
+            'address' => '221B Baker Street',
+            'zip_code' => 'NW1 6XE',
+        ]);
+
+        $user = User::query()->where('email', 'jane.pro.profile@example.com')->firstOrFail();
+        $this->assertSame('+44 7700 900001', $user->profile->phone_number);
+        $this->assertSame('Writes things.', $user->profile->bio);
+        $this->assertSame('221B Baker Street', $user->profile->address);
+        $this->assertSame('NW1 6XE', $user->profile->zip_code);
+    }
+
+    public function test_registering_pro_requires_phone_number_address_and_zip_code(): void
+    {
+        $response = $this->post(route('register.pro'), [
+            'name' => 'Jane Pro',
+            'email' => 'jane.pro.missing@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertSessionHasErrors(['phone_number', 'address', 'zip_code']);
+        $this->assertSame(0, User::query()->where('email', 'jane.pro.missing@example.com')->count());
+    }
+
+    public function test_resuming_an_abandoned_pro_registration_does_not_overwrite_the_original_profile(): void
+    {
+        $this->post(route('register.pro'), [
+            'name' => 'Retry Profile',
+            'email' => 'retry.profile@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'bio' => 'Original bio.',
+            ...$this->requiredProfileFields(),
+        ]);
+
+        $this->post(route('register.pro'), [
+            'name' => 'Retry Profile Again',
+            'email' => 'retry.profile@example.com',
+            'password' => 'a-different-password',
+            'password_confirmation' => 'a-different-password',
+            'bio' => 'A stranger-submitted bio.',
+            ...$this->requiredProfileFields(),
+        ]);
+
+        $user = User::query()->where('email', 'retry.profile@example.com')->firstOrFail();
+        $this->assertSame('Original bio.', $user->profile->bio);
     }
 
     public function test_the_server_resolves_the_current_global_pricing_value_never_the_client(): void
@@ -66,6 +124,7 @@ class ProRegistrationTest extends TestCase
             'password_confirmation' => 'password123',
             'price' => '0.01',
             'pro_member_monthly_price' => '0.01',
+            ...$this->requiredProfileFields(),
         ]);
 
         /** @var FakeStripeGateway $fake */
@@ -82,6 +141,7 @@ class ProRegistrationTest extends TestCase
             'email' => 'active@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
+            ...$this->requiredProfileFields(),
         ]);
 
         $response->assertRedirect(route('register.show'));
@@ -99,6 +159,7 @@ class ProRegistrationTest extends TestCase
             'email' => 'retry@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
+            ...$this->requiredProfileFields(),
         ]);
         $first->assertOk();
 
@@ -113,6 +174,7 @@ class ProRegistrationTest extends TestCase
             'email' => 'retry@example.com',
             'password' => 'a-different-password',
             'password_confirmation' => 'a-different-password',
+            ...$this->requiredProfileFields(),
         ]);
         $second->assertOk();
 
@@ -145,6 +207,7 @@ class ProRegistrationTest extends TestCase
             'email' => 'paid.pending@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
+            ...$this->requiredProfileFields(),
         ]);
 
         $response->assertRedirect(route('register.show'));
@@ -174,5 +237,17 @@ class ProRegistrationTest extends TestCase
         ]);
 
         $response->assertStatus(429);
+    }
+
+    /**
+     * @return array{phone_number: string, address: string, zip_code: string}
+     */
+    private function requiredProfileFields(): array
+    {
+        return [
+            'phone_number' => '+44 7700 900001',
+            'address' => '221B Baker Street',
+            'zip_code' => 'NW1 6XE',
+        ];
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Actions\Registration;
 
 use App\Actions\Registration\Concerns\GeneratesVerificationTokens;
+use App\Actions\Registration\Concerns\SavesOptionalRegistrationProfile;
 use App\Enums\EmailRecipientType;
 use App\Enums\UserStatus;
 use App\Models\User;
@@ -23,11 +24,12 @@ use Throwable;
 class RegisterFreeUserAction
 {
     use GeneratesVerificationTokens;
+    use SavesOptionalRegistrationProfile;
 
     public function __construct(private readonly TemplatedMailer $mailer) {}
 
     /**
-     * @param  array{name: string, email: string, password: string}  $data
+     * @param  array{name: string, email: string, password: string, phone_number?: ?string, bio?: ?string, address?: ?string, zip_code?: ?string}  $data
      */
     public function handle(array $data): User
     {
@@ -37,6 +39,8 @@ class RegisterFreeUserAction
         $user->password = Hash::make($data['password']);
         $user->status = UserStatus::PendingVerification->value;
         $user->save();
+
+        $this->saveOptionalProfile($user, $data);
 
         $rawToken = $this->issueVerificationToken($user);
 
