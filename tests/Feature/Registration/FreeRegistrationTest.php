@@ -35,6 +35,20 @@ class FreeRegistrationTest extends TestCase
         $response->assertSee('Become a Pro Member');
     }
 
+    /**
+     * docs/development instructions for SEO.docx §5: Registration and its
+     * "thank you" confirmation are transactional pages, never candidates
+     * for search results or the sitemap.
+     */
+    public function test_the_register_and_thank_you_pages_are_marked_noindex(): void
+    {
+        $this->get(route('register.show'))
+            ->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+
+        $this->get(route('register.free.thank-you'))
+            ->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+    }
+
     public function test_registering_free_creates_a_pending_verification_user_and_a_hashed_single_use_token(): void
     {
         Mail::fake();

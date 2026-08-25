@@ -18,6 +18,10 @@ use Illuminate\Support\Facades\Validator;
  * PendingVerification → Active. resend() is deliberately silent about
  * whether the submitted email belongs to any account, or is already
  * verified — see ResendVerificationEmailAction's docblock.
+ *
+ * verify()'s page is `robots: noindex, nofollow` (docs/development
+ * instructions for SEO.docx §5) — a single-use token URL is never content
+ * search should surface, and it's never a sitemap candidate.
  */
 class EmailVerificationController extends Controller
 {
@@ -33,6 +37,7 @@ class EmailVerificationController extends Controller
             'description' => 'Email verification.',
             'canonical' => url()->current(),
             'type' => 'website',
+            'robots' => SeoTagBuilder::ROBOTS_NOINDEX,
         ], $chrome['general']);
 
         return view('register.verified', [

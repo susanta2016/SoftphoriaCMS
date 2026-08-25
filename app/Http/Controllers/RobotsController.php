@@ -9,6 +9,12 @@ use Illuminate\Http\Response;
  * (config('app.url')) instead of a hardcoded domain baked into a static
  * public/robots.txt — same "never hardcode the domain" rule SeoFields'
  * canonical URL generation already follows.
+ *
+ * `/admin` is disallowed here purely as crawl-budget hygiene for a
+ * system/non-public URL pattern (docs/development instructions for SEO.docx
+ * §4) — it is never the actual access control for the panel, which is
+ * AdminPanelProvider's own auth middleware (see §3: "robots.txt must never
+ * be treated as a security mechanism").
  */
 class RobotsController extends Controller
 {
@@ -16,7 +22,7 @@ class RobotsController extends Controller
     {
         $lines = [
             'User-agent: *',
-            'Disallow:',
+            'Disallow: /admin',
             '',
             'Sitemap: '.route('sitemap'),
         ];

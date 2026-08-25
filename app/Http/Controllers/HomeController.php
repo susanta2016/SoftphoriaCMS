@@ -7,8 +7,10 @@ use App\Models\Media;
 use App\Models\Page;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
+use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 
 /**
  * The approved Home_page_layout_V4.1.1.png homepage (WEB-001..005). Content
@@ -19,7 +21,7 @@ use Illuminate\Database\QueryException;
  * logo and site_name/tagline read Website Setup's existing general settings
  * — this is site-wide chrome, not page content.
  */
-class HomeController extends Controller
+class HomeController extends Controller implements Sitemapable
 {
     public function __invoke(SettingsRepository $settings): View
     {
@@ -113,6 +115,24 @@ class HomeController extends Controller
             'logo' => $logo,
             'seo' => $seo,
         ]);
+    }
+
+    /**
+     * The "home" Page's own SEO tab can mark it noindex, in which case "/"
+     * must not appear in the sitemap either — same contradiction-avoidance
+     * reasoning as Page::sitemapEntries() (a sitemap listing a URL search
+     * engines are simultaneously told not to index is a real error, not
+     * just noise).
+     */
+    public static function sitemapEntries(): Collection
+    {
+        $home = Page::query()->published()->where('slug', 'home')->with('seo')->first();
+
+        if ($home?->seo?->isNoindex()) {
+            return collect();
+        }
+
+        return collect([['loc' => url('/'), 'lastmod' => $home?->updated_at ?? now()]]);
     }
 
     /**

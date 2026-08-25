@@ -116,7 +116,7 @@ class PageForm
                                     ),
                                     SeoFields::metaDescription()->columnSpanFull(),
                                     SeoFields::metaKeywords(),
-                                    TextInput::make('seo.robots')->label('Robots')->maxLength(255)->placeholder('index, follow'),
+                                    SeoFields::indexing(),
                                     TextInput::make('seo.og_title')->label('Open Graph title')->maxLength(255),
                                     MediaPicker::make('seo.og_image_media_id', 'Open Graph image'),
                                     Textarea::make('seo.og_description')->label('Open Graph description')->rows(2)->maxLength(500)->columnSpanFull(),

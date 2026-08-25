@@ -25,6 +25,20 @@ class AdminPanelAccessTest extends TestCase
         $response->assertOk();
     }
 
+    /**
+     * docs/development instructions for SEO.docx §3: the whole panel must
+     * never be intended for search indexing — checked here (not the
+     * dashboard) since AdminPanelProvider's HEAD_END render hook covers
+     * every panel page including this one, per Filament's shared base
+     * layout.
+     */
+    public function test_the_admin_login_page_is_marked_noindex(): void
+    {
+        $response = $this->get('/admin/login');
+
+        $response->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+    }
+
     public function test_authenticated_user_without_admin_role_cannot_access_the_panel(): void
     {
         $user = User::factory()->create(['status' => 'active']);

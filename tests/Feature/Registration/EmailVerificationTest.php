@@ -44,6 +44,17 @@ class EmailVerificationTest extends TestCase
         $second->assertSee('Link Invalid or Expired');
     }
 
+    /**
+     * docs/development instructions for SEO.docx §5: a single-use
+     * verification link is never content search should surface.
+     */
+    public function test_the_verification_page_is_marked_noindex(): void
+    {
+        $response = $this->get(route('verification.verify', ['token' => 'irrelevant-for-this-check']));
+
+        $response->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+    }
+
     public function test_an_unknown_token_fails_cleanly(): void
     {
         $response = $this->get(route('verification.verify', ['token' => 'totally-unknown-token']));

@@ -57,6 +57,15 @@ class AdminPanelProvider extends PanelProvider
                     ->icon(Heroicon::OutlinedCog6Tooth),
             ])
             ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                // The whole panel (including the login page) must never be
+                // indexed by search engines — see docs/development
+                // instructions for SEO.docx §3. This is not the panel's
+                // access control (authMiddleware below is), just the
+                // "don't index it" signal search engines look for.
+                fn (): string => '<meta name="robots" content="noindex, nofollow">',
+            )
+            ->renderHook(
                 PanelsRenderHook::TOPBAR_START,
                 fn (): View => view('filament.admin.topbar.start'),
             )

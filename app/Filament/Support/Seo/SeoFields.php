@@ -5,6 +5,7 @@ namespace App\Filament\Support\Seo;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Actions;
@@ -60,6 +61,36 @@ class SeoFields
             ->label('Meta Keywords')
             ->maxLength(255)
             ->helperText('Optional, comma-separated. Ignored by Google/Bing ranking today — kept for other tools that still read it.');
+    }
+
+    /**
+     * The one place every SEO-enabled admin form builds its Indexing
+     * control from (docs/development instructions for SEO.docx §8/§9) —
+     * previously 5 separate modules (Pages, Albums, Singles, Tracks,
+     * Podcast Episodes) each hand-rolled an identical free-text "Robots"
+     * TextInput. Deliberately just Index/Noindex rather than exposing raw
+     * robots directive strings (nofollow-only, etc.) — the two other
+     * pipelines that read this value (SeoTagBuilder's <meta name=robots>,
+     * and every Sitemapable::sitemapEntries()'s exclusion check) only ever
+     * care about the noindex/index distinction, so a friendlier control
+     * can't drift out of sync with what the stored string actually means.
+     * A Noindex page is automatically excluded from the sitemap too — see
+     * SeoMetadata::isNoindex() — deliberately not a second, independently
+     * settable "Sitemap: Include/Exclude" toggle, which could disagree
+     * with Indexing and reintroduce exactly the contradiction this
+     * pipeline exists to avoid.
+     */
+    public static function indexing(string $name = 'seo.robots'): Select
+    {
+        return Select::make($name)
+            ->label('Indexing')
+            ->options([
+                'index, follow' => 'Index — show in Google search results',
+                'noindex, nofollow' => 'Noindex — hide from Google search results',
+            ])
+            ->default('index, follow')
+            ->native(false)
+            ->helperText('A Noindex page is also automatically excluded from the XML sitemap.');
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PageStatus;
 use App\Enums\PageTemplate;
 use App\Models\Concerns\HasPublicId;
+use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -12,9 +13,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 #[Fillable(['title', 'slug', 'template', 'status', 'summary', 'publish_at', 'featured_image_id'])]
-class Page extends Model
+class Page extends Model implements Sitemapable
 {
     use HasPublicId, SoftDeletes;
 
@@ -80,5 +82,28 @@ class Page extends Model
     public function seo(): MorphOne
     {
         return $this->morphOne(SeoMetadata::class, 'seoable');
+    }
+
+    /**
+     * The "home" slug is excluded: PageController permanently redirects it
+     * to "/", so HomeController::sitemapEntries() is the one place that URL
+     * is represented — otherwise it would appear in the sitemap twice, at
+     * both "/" and "/home".
+     */
+    public static function sitemapEntries(): Collection
+    {
+        return static::query()
+            ->published()
+            ->where('slug', '!=', 'home')
+            ->with('seo')
+            ->orderBy('slug')
+            ->get()
+            ->reject(fn (self $page): bool => ($page->seo?->isNoindex() ?? false)
+                || ($page->seo?->canonicalPointsElsewhere(route('pages.show', $page)) ?? false))
+            ->map(fn (self $page): array => [
+                'loc' => route('pages.show', $page),
+                'lastmod' => $page->updated_at,
+            ])
+            ->values();
     }
 }

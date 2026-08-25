@@ -24,6 +24,12 @@ use Stripe\Exception\ExceptionInterface;
  * project's controller convention (NewsletterController): validation only,
  * the actual account/Checkout Session creation lives in the Registration
  * Actions.
+ *
+ * Every view here is crawlable but deliberately `robots: noindex, nofollow`
+ * (docs/development instructions for SEO.docx §5 explicitly lists
+ * Registration/Checkout/"Thank you" confirmation pages) — these are
+ * transactional pages, not content search should surface, and none of them
+ * are ever candidates for the sitemap.
  */
 class RegistrationController extends Controller
 {
@@ -36,6 +42,7 @@ class RegistrationController extends Controller
             'description' => 'Create your free account, or become a Pro Member for full access.',
             'canonical' => route('register.show'),
             'type' => 'website',
+            'robots' => SeoTagBuilder::ROBOTS_NOINDEX,
         ], $chrome['general']);
 
         return view('register.show', [
@@ -77,6 +84,7 @@ class RegistrationController extends Controller
             'description' => 'Registration confirmation.',
             'canonical' => route('register.free.thank-you'),
             'type' => 'website',
+            'robots' => SeoTagBuilder::ROBOTS_NOINDEX,
         ], $chrome['general']);
 
         return view('register.free-thank-you', [
@@ -132,6 +140,7 @@ class RegistrationController extends Controller
             'description' => 'Complete your Pro Membership payment.',
             'canonical' => route('register.pro'),
             'type' => 'website',
+            'robots' => SeoTagBuilder::ROBOTS_NOINDEX,
         ], $chrome['general']);
 
         return view('register.pro-checkout', [
@@ -154,6 +163,7 @@ class RegistrationController extends Controller
             'description' => 'Pro Membership confirmation.',
             'canonical' => url()->current(),
             'type' => 'website',
+            'robots' => SeoTagBuilder::ROBOTS_NOINDEX,
         ], $chrome['general']);
 
         $confirmed = $user->hasActiveMembership();

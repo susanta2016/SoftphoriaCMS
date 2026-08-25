@@ -54,6 +54,23 @@ class ProRegistrationTest extends TestCase
         $this->assertSame($user->id, $fake->subscriptionSessionsCreated[0]['user']->id);
     }
 
+    /**
+     * docs/development instructions for SEO.docx §5: a Stripe Checkout
+     * page is never a candidate for search results or the sitemap.
+     */
+    public function test_the_pro_checkout_page_is_marked_noindex(): void
+    {
+        $response = $this->post(route('register.pro'), [
+            'name' => 'Jane Pro',
+            'email' => 'jane.pro.noindex@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            ...$this->requiredProfileFields(),
+        ]);
+
+        $response->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+    }
+
     public function test_registering_pro_with_profile_fields_saves_a_profile(): void
     {
         $this->post(route('register.pro'), [

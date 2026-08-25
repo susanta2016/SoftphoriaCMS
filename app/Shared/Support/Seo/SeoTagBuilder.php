@@ -21,15 +21,47 @@ use Illuminate\Support\Facades\Storage;
  * (site name, Twitter/X handle, Facebook App ID, default share image) come
  * from Website Setup's General/SEO settings instead — see
  * App\Filament\Pages\Settings.
+ *
+ * --- Indexing rule (docs/development instructions for SEO.docx §5) ---
+ * `robots` resolves in this order: an admin's own `SeoMetadata::robots`
+ * (via `SeoFields::indexing()`) always wins when one exists; otherwise the
+ * caller's `$fallbacks['robots']`; otherwise `'index, follow'`. That
+ * ordering is exactly why every *admin-editable public content type*
+ * (Page, and any future Album/Single/Track/PodcastEpisode public page)
+ * defaults to indexable without the admin doing anything, per Cory's
+ * "public content stays index,follow unless an admin explicitly picks
+ * Noindex" rule.
+ *
+ * A transactional or authenticated/private page — registration, checkout,
+ * email verification, and (when built) Account/Profile, Gratitude Journal,
+ * Light Posts, or premium/entitlement-gated content — never has a
+ * SeoMetadata row at all (`build(null, [...])`), so it MUST pass
+ * `'robots' => self::ROBOTS_NOINDEX` in `$fallbacks` itself; there is no
+ * admin toggle to fall back on for a page a search engine should never
+ * see. See RegistrationController/EmailVerificationController for the
+ * existing pattern to copy. Getting `access control` right is separate
+ * from and does not depend on this — see Sitemapable's docblock.
  */
 class SeoTagBuilder
 {
     /**
-     * @param  array{title: string, description?: ?string, canonical: string, force_canonical?: bool, image?: ?Media, type?: string, published_at?: mixed, modified_at?: mixed, author_name?: ?string}  $fallbacks
+     * Pass as `$fallbacks['robots']` for any controller-rendered page that
+     * has no SeoMetadata row and must never be indexed — registration,
+     * checkout, email verification, and any future Account/Profile,
+     * Gratitude Journal, Light Post, or premium-content page. Using this
+     * constant (never a hand-typed string) means a typo can't silently
+     * leave a private page indexable, since SeoMetadata::isNoindex() and
+     * every Sitemapable::sitemapEntries() exclusion check both key off the
+     * literal substring "noindex".
+     */
+    public const string ROBOTS_NOINDEX = 'noindex, nofollow';
+
+    /**
+     * @param  array{title: string, description?: ?string, canonical: string, force_canonical?: bool, image?: ?Media, type?: string, published_at?: mixed, modified_at?: mixed, author_name?: ?string, robots?: string}  $fallbacks
      * @param  ?array<string, mixed>  $generalSettings  Pass the caller's own
-     *         already-fetched SettingsRepository::all('general') (e.g.
-     *         HomeController, which needs it anyway for site_name/tagline/
-     *         logo) to avoid a second, identical settings query here.
+     *                                                  already-fetched SettingsRepository::all('general') (e.g.
+     *                                                  HomeController, which needs it anyway for site_name/tagline/
+     *                                                  logo) to avoid a second, identical settings query here.
      * @return array<string, mixed>
      */
     public static function build(?SeoMetadata $seo, array $fallbacks, ?array $generalSettings = null): array
@@ -55,7 +87,7 @@ class SeoTagBuilder
             'description' => $description,
             'keywords' => $seo?->keywords,
             'canonical' => $canonical,
-            'robots' => $seo?->robots ?: 'index, follow',
+            'robots' => $seo?->robots ?: ($fallbacks['robots'] ?? 'index, follow'),
             'site_name' => $siteName,
             'og_title' => $seo?->og_title ?: $title,
             'og_description' => self::flatten($seo?->og_description) ?: $description,
