@@ -34,6 +34,9 @@
             @if ($subscriptionStatusLabel)
                 <p class="mt-3 text-sm text-brand-navy/60">Status: {{ $subscriptionStatusLabel }}</p>
             @endif
+            <a href="{{ route('account.subscription') }}" class="mt-4 inline-block text-sm font-medium text-brand-gold transition hover:text-brand-gold-light">
+                View Subscription →
+            </a>
         </div>
     </div>
 
@@ -45,6 +48,12 @@
             </a>
             <a href="{{ route('account.password.edit') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
                 Change Password
+            </a>
+            <a href="{{ route('account.subscription') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
+                View Subscription
+            </a>
+            <a href="{{ route('account.transactions') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
+                Transaction History
             </a>
         </div>
     </div>

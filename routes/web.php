@@ -3,6 +3,8 @@
 use App\Http\Controllers\Account\DashboardController;
 use App\Http\Controllers\Account\PasswordController as AccountPasswordController;
 use App\Http\Controllers\Account\ProfileController as AccountProfileController;
+use App\Http\Controllers\Account\SubscriptionController as AccountSubscriptionController;
+use App\Http\Controllers\Account\TransactionController as AccountTransactionController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -114,6 +116,9 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
 
     Route::get('/password', [AccountPasswordController::class, 'edit'])->name('password.edit');
     Route::put('/password', [AccountPasswordController::class, 'update'])->name('password.update');
+
+    Route::get('/subscription', AccountSubscriptionController::class)->name('subscription');
+    Route::get('/transactions', AccountTransactionController::class)->name('transactions');
 });
 
 // Public CMS page viewer (Stage D) — kept last so it never shadows a more

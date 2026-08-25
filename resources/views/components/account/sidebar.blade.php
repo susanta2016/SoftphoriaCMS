@@ -18,6 +18,16 @@
             'label' => 'Change Password',
             'icon' => '<rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke-linecap="round"/>',
         ],
+        [
+            'route' => 'account.subscription',
+            'label' => 'Subscription',
+            'icon' => '<path d="M20 7 12 3 4 7v10l8 4 8-4V7Z" stroke-linejoin="round"/><path d="M4 7l8 4 8-4M12 11v10" stroke-linecap="round" stroke-linejoin="round"/>',
+        ],
+        [
+            'route' => 'account.transactions',
+            'label' => 'Transaction History',
+            'icon' => '<path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/>',
+        ],
     ];
 @endphp
 
