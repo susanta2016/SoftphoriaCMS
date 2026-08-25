@@ -32,7 +32,7 @@ class AlbumTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_admin_can_create_an_album_with_links_seo_and_video(): void
+    public function test_admin_can_create_an_album_with_links_and_seo(): void
     {
         Livewire::actingAs($this->admin())
             ->test(CreateAlbum::class)
@@ -40,7 +40,6 @@ class AlbumTest extends TestCase
                 'title' => 'Here I Am',
                 'slug' => 'here-i-am',
                 'description' => 'A song is a message about meaning.',
-                'embed_video_url' => 'https://www.youtube.com/watch?v=abc123',
                 'status' => ReleaseStatus::Published->value,
                 'is_featured' => true,
                 'links' => [
@@ -53,7 +52,6 @@ class AlbumTest extends TestCase
 
         $album = Album::query()->where('slug', 'here-i-am')->firstOrFail();
 
-        $this->assertSame('https://www.youtube.com/watch?v=abc123', $album->embed_video_url);
         $this->assertTrue($album->is_featured);
         $this->assertCount(1, $album->streamingLinks);
         $this->assertSame('https://open.spotify.com/album/xyz', $album->streamingLinks->first()->url);
@@ -75,13 +73,12 @@ class AlbumTest extends TestCase
 
         Livewire::actingAs($this->admin())
             ->test(EditAlbum::class, ['record' => $album->getRouteKey()])
-            ->fillForm(['title' => 'Renamed Album', 'embed_video_url' => 'https://vimeo.com/12345'])
+            ->fillForm(['title' => 'Renamed Album'])
             ->call('save')
             ->assertHasNoFormErrors();
 
         $album->refresh();
         $this->assertSame('Renamed Album', $album->title);
-        $this->assertSame('https://vimeo.com/12345', $album->embed_video_url);
     }
 
     public function test_scheduling_an_album_requires_a_publish_at_time(): void

@@ -20,9 +20,11 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\TextSize;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Unique;
 
@@ -82,7 +84,11 @@ class TrackForm
                                         ->maxLength(255)
                                         ->helperText('An external video source (YouTube/Vimeo) — never a download source.')
                                         ->columnSpanFull(),
-                                    MediaPicker::make('audio_media_id', 'Audio File', MediaCategory::Audio)
+                                    MediaPicker::make('audio_media_id', 'Downloadable Audio File', MediaCategory::Audio)
+                                        ->columnSpanFull(),
+                                    Text::make('The audio file customers will receive when they purchase this Single or an Album containing this Track.')
+                                        ->size(TextSize::Small)
+                                        ->color('gray')
                                         ->columnSpanFull(),
                                     MediaPicker::make('video_media_id', 'Video File', MediaCategory::Video)
                                         ->columnSpanFull()

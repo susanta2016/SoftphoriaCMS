@@ -14,7 +14,6 @@ use App\Modules\Music\Models\Single;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -80,28 +79,20 @@ class SingleForm
                                 ->description('Add this single\'s song — lyrics, song story, credits — under Music > Tracks once it\'s saved.')
                                 ->schema([]),
 
-                            Section::make('Streaming Links')
+                            Section::make('Streaming Link')
                                 ->description('Where listeners can play this single.')
                                 ->schema([
-                                    Repeater::make('links')
-                                        ->hiddenLabel()
-                                        ->reorderable()
-                                        ->defaultItems(0)
-                                        ->addActionLabel('Add streaming link')
-                                        ->itemLabel(fn (array $state): ?string => isset($state['provider'])
-                                            ? MusicLinkProvider::from($state['provider'])->getLabel()
-                                            : null)
-                                        ->schema([
-                                            Select::make('provider')
-                                                ->options(MusicLinkProvider::options())
-                                                ->required(),
-                                            TextInput::make('url')
-                                                ->url()
-                                                ->required()
-                                                ->maxLength(255),
-                                        ])
-                                        ->columns(2),
-                                ]),
+                                    Select::make('links.0.provider')
+                                        ->label('Provider')
+                                        ->options(MusicLinkProvider::options())
+                                        ->requiredWith('links.0.url'),
+                                    TextInput::make('links.0.url')
+                                        ->label('URL')
+                                        ->url()
+                                        ->maxLength(255)
+                                        ->requiredWith('links.0.provider'),
+                                ])
+                                ->columns(2),
 
                             Section::make('SEO')
                                 ->description('Independent per-single metadata (title, description, canonical, Open Graph, Twitter card, structured data).')
