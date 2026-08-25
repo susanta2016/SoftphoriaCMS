@@ -87,7 +87,19 @@ class User extends Authenticatable implements FilamentUser
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->status === 'active'
-            && $this->roles()->where('slug', 'admin')->exists();
+        return $this->status === 'active' && $this->hasAdminRole();
+    }
+
+    /**
+     * Also used outside the panel gate: the public /login form
+     * (AuthenticateUserAction) and the account-area middleware
+     * (EnsureAccountIsUsable) both need to tell an admin account apart from
+     * a regular member — admins sign in only at /admin/login and never use
+     * the customer account area, regardless of which guard session they
+     * hold.
+     */
+    public function hasAdminRole(): bool
+    {
+        return $this->roles()->where('slug', 'admin')->exists();
     }
 }

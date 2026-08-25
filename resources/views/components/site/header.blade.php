@@ -69,15 +69,24 @@
                     <path d="m21 21-4.35-4.35" stroke-linecap="round"/>
                 </svg>
             </a>
-            <a
-                href="#"
-                class="hidden rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold sm:inline-block"
-            >
-                Log In
-            </a>
-            <a href="{{ route('register.show') }}" class="inline-flex items-center gap-1.5 rounded-md bg-brand-gold px-3 py-2 text-sm font-semibold whitespace-nowrap text-white transition hover:bg-brand-gold-light sm:px-4">
-                Enter Here <span aria-hidden="true">→</span>
-            </a>
+            @auth
+                <a
+                    href="{{ route('account.dashboard') }}"
+                    class="hidden rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold sm:inline-block"
+                >
+                    My Account
+                </a>
+            @else
+                <a
+                    href="{{ route('login') }}"
+                    class="hidden rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold sm:inline-block"
+                >
+                    Log In
+                </a>
+                <a href="{{ route('register.show') }}" class="inline-flex items-center gap-1.5 rounded-md bg-brand-gold px-3 py-2 text-sm font-semibold whitespace-nowrap text-white transition hover:bg-brand-gold-light sm:px-4">
+                    Enter Here <span aria-hidden="true">→</span>
+                </a>
+            @endauth
 
             <button
                 type="button"
@@ -121,12 +130,18 @@
                 </svg>
                 Search
             </a>
-            <a href="#" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
-                Log In
-            </a>
-            <a href="{{ route('register.show') }}" class="mt-1 flex items-center justify-center gap-1.5 rounded-md bg-brand-gold px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-gold-light">
-                Enter Here <span aria-hidden="true">→</span>
-            </a>
+            @auth
+                <a href="{{ route('account.dashboard') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
+                    My Account
+                </a>
+            @else
+                <a href="{{ route('login') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
+                    Log In
+                </a>
+                <a href="{{ route('register.show') }}" class="mt-1 flex items-center justify-center gap-1.5 rounded-md bg-brand-gold px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-gold-light">
+                    Enter Here <span aria-hidden="true">→</span>
+                </a>
+            @endauth
         </div>
     </div>
 </header>

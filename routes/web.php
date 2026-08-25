@@ -1,5 +1,11 @@
 <?php
 
+use App\Http\Controllers\Account\DashboardController;
+use App\Http\Controllers\Account\PasswordController as AccountPasswordController;
+use App\Http\Controllers\Account\ProfileController as AccountProfileController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Media\PublicHeroVideoStreamController;
@@ -10,6 +16,7 @@ use App\Http\Controllers\Page\PreviewPageController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Middleware\EnsureAccountIsUsable;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -72,6 +79,42 @@ Route::get('/verify-email/{token}', [EmailVerificationController::class, 'verify
 Route::post('/register/resend-verification', [EmailVerificationController::class, 'resend'])
     ->middleware('throttle:3,1')
     ->name('verification.resend');
+
+// Login/logout + password reset. AppServiceProvider::routeResetPasswordThroughEmailTemplates()
+// already expects a route named "password.reset" accepting token+email — this
+// is that route. Guest-only endpoints are throttled the same as register.free.
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:6,1');
+
+    Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('password.email');
+
+    Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
+    Route::post('/reset-password', [NewPasswordController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('password.update');
+});
+
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
+    ->middleware('auth')
+    ->name('logout');
+
+// Authenticated account area. EnsureAccountIsUsable re-checks the user's
+// status on every request (an admin suspending/banning them mid-session
+// isn't caught by `auth` alone). No route here ever takes a user id/slug —
+// every action operates on Auth::user() only.
+Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->name('account.')->group(function () {
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::get('/profile', [AccountProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [AccountProfileController::class, 'update'])->name('profile.update');
+
+    Route::get('/password', [AccountPasswordController::class, 'edit'])->name('password.edit');
+    Route::put('/password', [AccountPasswordController::class, 'update'])->name('password.update');
+});
 
 // Public CMS page viewer (Stage D) — kept last so it never shadows a more
 // specific route above; PageController itself 404s anything not published.

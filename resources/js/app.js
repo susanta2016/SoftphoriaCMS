@@ -132,6 +132,34 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-password-toggle]').forEach((toggle) => {
+        const target = document.querySelector(toggle.dataset.passwordTarget);
+        if (!target) return;
+
+        toggle.addEventListener('click', () => {
+            const showing = target.type === 'text';
+            target.type = showing ? 'password' : 'text';
+            toggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+            toggle.setAttribute('aria-pressed', String(!showing));
+        });
+    });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const toggle = document.querySelector('[data-account-sidebar-toggle]');
+    const sidebar = document.querySelector('[data-account-sidebar]');
+
+    if (!toggle || !sidebar) return;
+
+    const setOpen = (open) => {
+        sidebar.classList.toggle('hidden', !open);
+        toggle.setAttribute('aria-expanded', String(open));
+    };
+
+    toggle.addEventListener('click', () => setOpen(sidebar.classList.contains('hidden')));
+});
+
+document.addEventListener('DOMContentLoaded', () => {
     const banner = document.querySelector('[data-cookie-banner]');
     const preferences = document.querySelector('[data-cookie-preferences]');
 
