@@ -24,6 +24,22 @@ class DashboardTest extends TestCase
         $response->assertRedirect(route('login'));
     }
 
+    public function test_bare_account_redirects_a_signed_in_member_to_the_dashboard(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/account');
+
+        $response->assertRedirect(route('account.dashboard'));
+    }
+
+    public function test_bare_account_denies_a_guest(): void
+    {
+        $response = $this->get('/account');
+
+        $response->assertRedirect(route('login'));
+    }
+
     public function test_the_owner_sees_their_own_name_email_and_membership_state(): void
     {
         $user = User::factory()->create(['name' => 'Jane Doe', 'email' => 'jane@example.com']);

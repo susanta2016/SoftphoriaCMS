@@ -38,6 +38,10 @@ class PasswordTest extends TestCase
         $user->refresh();
         $this->assertTrue(Hash::check('new-password123', $user->password));
         $this->assertFalse(Hash::check('old-password123', $user->password));
+
+        // Only *other* sessions are revoked — the session that just made this
+        // very request must not be signed out by its own password change.
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_a_wrong_current_password_is_rejected(): void

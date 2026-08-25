@@ -109,6 +109,10 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 // isn't caught by `auth` alone). No route here ever takes a user id/slug —
 // every action operates on Auth::user() only.
 Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->name('account.')->group(function () {
+    // Bare /account is named in the spec but never a distinct page — it
+    // just lands wherever a signed-in member actually wants to be.
+    Route::redirect('/', '/account/dashboard')->name('index');
+
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('/profile', [AccountProfileController::class, 'edit'])->name('profile.edit');
