@@ -30,9 +30,8 @@ class StripeGateway implements StripeGatewayContract
 
     public function createCheckoutSessionForOrder(Order $order, string $successUrl, string $cancelUrl): string
     {
-        $session = $this->client->checkout->sessions->create([
+        $params = [
             'mode' => 'payment',
-            'customer_email' => $order->isGuest() ? $order->purchaser_email : null,
             'client_reference_id' => $order->public_id,
             'line_items' => [[
                 'price_data' => [
@@ -45,7 +44,13 @@ class StripeGateway implements StripeGatewayContract
             'metadata' => ['order_public_id' => $order->public_id],
             'success_url' => $successUrl,
             'cancel_url' => $cancelUrl,
-        ]);
+        ];
+
+        if ($order->isGuest()) {
+            $params['customer_email'] = $order->purchaser_email;
+        }
+
+        $session = $this->client->checkout->sessions->create($params);
 
         return $session->url;
     }
