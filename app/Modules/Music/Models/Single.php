@@ -7,6 +7,7 @@ use App\Models\Media;
 use App\Models\SeoMetadata;
 use App\Models\User;
 use App\Modules\Music\Enums\ReleaseStatus;
+use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 /**
  * A one-song release (Database Specification §19's `singles` table). Unlike
@@ -27,7 +29,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'title', 'slug', 'release_date', 'description', 'cover_media_id',
     'status', 'publish_at', 'is_featured',
 ])]
-class Single extends Model
+class Single extends Model implements Sitemapable
 {
     use HasPublicId, SoftDeletes;
 
@@ -74,5 +76,27 @@ class Single extends Model
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /**
+     * Mirrors Page::sitemapEntries() exactly: published scope, then reject
+     * noindex/non-canonical, then map to loc/lastmod.
+     *
+     * @return Collection<int, array{loc: string, lastmod: mixed}>
+     */
+    public static function sitemapEntries(): Collection
+    {
+        return static::query()
+            ->published()
+            ->with('seo')
+            ->orderBy('slug')
+            ->get()
+            ->reject(fn (self $single): bool => ($single->seo?->isNoindex() ?? false)
+                || ($single->seo?->canonicalPointsElsewhere(route('music.singles.show', $single)) ?? false))
+            ->map(fn (self $single): array => [
+                'loc' => route('music.singles.show', $single),
+                'lastmod' => $single->updated_at,
+            ])
+            ->values();
     }
 }

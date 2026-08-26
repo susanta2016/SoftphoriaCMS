@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * every order is searchable/displayable without joining to `users`.
  */
 #[Fillable([
-    'user_id', 'purchaser_email', 'purchaser_name', 'status', 'currency', 'subtotal', 'total',
+    'user_id', 'purchaser_email', 'purchaser_name', 'purchaser_phone', 'status', 'currency', 'subtotal', 'total',
     'payment_provider', 'stripe_checkout_session_id', 'stripe_payment_intent_id', 'paid_at',
 ])]
 class Order extends Model

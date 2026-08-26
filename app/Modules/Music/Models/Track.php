@@ -7,8 +7,10 @@ use App\Models\Concerns\HasPublicId;
 use App\Models\Media;
 use App\Models\SeoMetadata;
 use App\Models\Tag;
+use App\Modules\Music\Enums\ReleaseStatus;
 use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Exceptions\InvalidTrackReleaseException;
+use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -18,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 /**
  * One song (Database Specification §19's `tracks` table) — belongs to
@@ -35,7 +38,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'album_id', 'single_id', 'title', 'slug', 'description', 'track_number', 'duration_seconds',
     'written_by', 'produced_by', 'isrc', 'video_embed_url', 'audio_media_id', 'video_media_id', 'status',
 ])]
-class Track extends Model
+class Track extends Model implements Sitemapable
 {
     use HasPublicId, SoftDeletes;
 
@@ -141,5 +144,32 @@ class Track extends Model
     public function seo(): MorphOne
     {
         return $this->morphOne(SeoMetadata::class, 'seoable');
+    }
+
+    /**
+     * Only Album-owned tracks get their own sitemap entry — a Single-owned
+     * track 301-redirects to that Single's own page (MusicController::
+     * showTrack()) rather than publishing the same song at two URLs, so it
+     * must never appear here too (a sitemap listing a non-canonical URL is
+     * exactly the contradiction Sitemapable's docblock warns against).
+     *
+     * @return Collection<int, array{loc: string, lastmod: mixed}>
+     */
+    public static function sitemapEntries(): Collection
+    {
+        return static::query()
+            ->published()
+            ->whereNotNull('album_id')
+            ->whereHas('album', fn (Builder $query) => $query->where('status', ReleaseStatus::Published->value))
+            ->with(['seo', 'album'])
+            ->orderBy('slug')
+            ->get()
+            ->reject(fn (self $track): bool => ($track->seo?->isNoindex() ?? false)
+                || ($track->seo?->canonicalPointsElsewhere(route('music.tracks.show', $track)) ?? false))
+            ->map(fn (self $track): array => [
+                'loc' => route('music.tracks.show', $track),
+                'lastmod' => $track->updated_at,
+            ])
+            ->values();
     }
 }

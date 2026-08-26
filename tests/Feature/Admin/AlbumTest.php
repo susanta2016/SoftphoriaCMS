@@ -58,6 +58,50 @@ class AlbumTest extends TestCase
         $this->assertSame('Here I Am', $album->seo->meta_title);
     }
 
+    public function test_admin_can_add_multiple_streaming_links_to_an_album(): void
+    {
+        Livewire::actingAs($this->admin())
+            ->test(CreateAlbum::class)
+            ->fillForm([
+                'title' => 'Multi Link Album',
+                'slug' => 'multi-link-album',
+                'status' => ReleaseStatus::Published->value,
+                'links' => [
+                    ['provider' => 'spotify', 'url' => 'https://open.spotify.com/album/multi'],
+                    ['provider' => 'apple_music', 'url' => 'https://music.apple.com/album/multi'],
+                    ['provider' => 'youtube', 'url' => 'https://youtube.com/playlist/multi'],
+                ],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $album = Album::query()->where('slug', 'multi-link-album')->firstOrFail();
+
+        $this->assertCount(3, $album->streamingLinks);
+        $this->assertSame(
+            ['spotify', 'apple_music', 'youtube'],
+            $album->streamingLinks->pluck('provider')->map(fn ($provider) => $provider->value)->all(),
+        );
+    }
+
+    public function test_admin_can_edit_an_albums_streaming_links_back_to_multiple(): void
+    {
+        $album = $this->createAlbum();
+        $album->streamingLinks()->create(['provider' => 'spotify', 'url' => 'https://open.spotify.com/album/existing', 'sort_order' => 0]);
+
+        Livewire::actingAs($this->admin())
+            ->test(EditAlbum::class, ['record' => $album->getRouteKey()])
+            ->fillForm(['links' => [
+                ['provider' => 'spotify', 'url' => 'https://open.spotify.com/album/existing'],
+                ['provider' => 'soundcloud', 'url' => 'https://soundcloud.com/album/existing'],
+            ]])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $album->refresh();
+        $this->assertCount(2, $album->streamingLinks);
+    }
+
     public function test_admin_can_view_the_album_list(): void
     {
         $album = $this->createAlbum();

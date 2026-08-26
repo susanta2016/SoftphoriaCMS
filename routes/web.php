@@ -13,6 +13,10 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InspirationalResources\InspirationalResourceSubmissionController;
 use App\Http\Controllers\Media\PublicHeroVideoStreamController;
 use App\Http\Controllers\Media\StreamMediaController;
+use App\Http\Controllers\Music\CartController;
+use App\Http\Controllers\Music\CheckoutController;
+use App\Http\Controllers\Music\MusicController;
+use App\Http\Controllers\Music\TrackStreamController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\Page\PageController;
 use App\Http\Controllers\Page\PreviewPageController;
@@ -141,6 +145,33 @@ Route::get('/inspirational-resources', [InspirationalResourceSubmissionControlle
 Route::post('/inspirational-resources/submit', [InspirationalResourceSubmissionController::class, 'store'])
     ->middleware('throttle:6,1')
     ->name('inspirational-resources.submit');
+
+// Public Music — landing/catalogue + Album/Single listening pages. Fully
+// public once Published, same shape as Poetry/Prose above. The stream route
+// is playback-only (no entitlement/download-count check — see
+// TrackStreamController's docblock); it is never the download-authorization
+// path, which is a later, separate Commerce-backed feature.
+Route::get('/music', [MusicController::class, 'index'])->name('music.index');
+Route::get('/music/albums/{album:slug}', [MusicController::class, 'showAlbum'])->name('music.albums.show');
+Route::get('/music/singles/{single:slug}', [MusicController::class, 'showSingle'])->name('music.singles.show');
+Route::get('/music/tracks/{track:slug}', [MusicController::class, 'showTrack'])->name('music.tracks.show');
+Route::get('/music/tracks/{track:slug}/stream', TrackStreamController::class)->name('music.tracks.stream');
+
+// Digital-only cart/checkout for Music purchases (Single/Album — see
+// CartSession's docblock for why the cart itself is session-only, never a
+// DB row, until checkout). No shipping anywhere in this flow — there's
+// nothing to fulfil beyond payment + entitlement issuance (handled by the
+// existing Stripe webhook, unchanged here). Guest and registered purchasers
+// both go through the same routes; only the guest info step differs.
+Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
+Route::get('/cart', [CartController::class, 'show'])->name('cart.show');
+
+Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
+Route::post('/checkout', [CheckoutController::class, 'process'])
+    ->middleware('throttle:6,1')
+    ->name('checkout.process');
+Route::get('/checkout/return/{order:public_id}', [CheckoutController::class, 'returnPage'])->name('checkout.return');
 
 // Public CMS page viewer (Stage D) — kept last so it never shadows a more
 // specific route above; PageController itself 404s anything not published.

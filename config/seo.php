@@ -1,7 +1,11 @@
 <?php
 
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Music\MusicController;
 use App\Models\Page;
+use App\Modules\Music\Models\Album;
+use App\Modules\Music\Models\Single;
+use App\Modules\Music\Models\Track;
 use App\Modules\PoetryProse\Models\PoetryProse;
 
 return [
@@ -37,6 +41,10 @@ return [
         HomeController::class,
         Page::class,
         PoetryProse::class,
+        MusicController::class,
+        Album::class,
+        Single::class,
+        Track::class,
     ],
 
 ];

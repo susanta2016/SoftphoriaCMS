@@ -7,6 +7,7 @@ use App\Models\Media;
 use App\Models\SeoMetadata;
 use App\Models\User;
 use App\Modules\Music\Enums\ReleaseStatus;
+use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 /**
  * A multi-track release (Database Specification §19's `albums` table) — the
@@ -24,7 +26,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'title', 'slug', 'release_date', 'description', 'cover_media_id', 'embed_video_url',
     'status', 'publish_at', 'is_featured',
 ])]
-class Album extends Model
+class Album extends Model implements Sitemapable
 {
     use HasPublicId, SoftDeletes;
 
@@ -71,5 +73,27 @@ class Album extends Model
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /**
+     * Mirrors Page::sitemapEntries() exactly: published scope, then reject
+     * noindex/non-canonical, then map to loc/lastmod.
+     *
+     * @return Collection<int, array{loc: string, lastmod: mixed}>
+     */
+    public static function sitemapEntries(): Collection
+    {
+        return static::query()
+            ->published()
+            ->with('seo')
+            ->orderBy('slug')
+            ->get()
+            ->reject(fn (self $album): bool => ($album->seo?->isNoindex() ?? false)
+                || ($album->seo?->canonicalPointsElsewhere(route('music.albums.show', $album)) ?? false))
+            ->map(fn (self $album): array => [
+                'loc' => route('music.albums.show', $album),
+                'lastmod' => $album->updated_at,
+            ])
+            ->values();
     }
 }

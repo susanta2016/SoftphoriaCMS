@@ -9,6 +9,7 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\EmbeddedSchema;
@@ -74,6 +75,10 @@ class GlobalPricing extends Page
                         ->minValue(0)
                         ->step(0.01)
                         ->required(),
+                    Toggle::make('native_playback_enabled')
+                        ->label('Native Playback')
+                        ->helperText('When on, the Music listening pages play a track\'s uploaded audio file directly. When off, "Play Now" falls back to the track\'s external streaming links (Spotify/Apple Music/YouTube/SoundCloud).')
+                        ->columnSpanFull(),
                 ]),
             Section::make('Membership')
                 ->schema([
@@ -118,6 +123,7 @@ class GlobalPricing extends Page
 
         $settings->set('pricing', 'music_per_song_price', $state['music_per_song_price']);
         $settings->set('pricing', 'full_album_price', $state['full_album_price']);
+        $settings->set('music', 'native_playback_enabled', $state['native_playback_enabled'], 'boolean');
         $settings->set('pricing', 'pro_member_monthly_price', $state['pro_member_monthly_price']);
         $settings->set('pricing', 'pro_member_cancellation_note', $state['pro_member_cancellation_note']);
 
@@ -155,6 +161,7 @@ class GlobalPricing extends Page
         return [
             'music_per_song_price' => $settings->get('pricing', 'music_per_song_price', '0.99'),
             'full_album_price' => $settings->get('pricing', 'full_album_price', '9.99'),
+            'native_playback_enabled' => $settings->get('music', 'native_playback_enabled', true),
             'pro_member_monthly_price' => $settings->get('pricing', 'pro_member_monthly_price', '7.99'),
             'pro_member_cancellation_note' => $settings->get(
                 'pricing',

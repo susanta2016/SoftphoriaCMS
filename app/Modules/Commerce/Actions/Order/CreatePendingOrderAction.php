@@ -35,7 +35,7 @@ class CreatePendingOrderAction
     /**
      * @throws PurchaseNotReadyException
      */
-    public function handle(Album|Single $item, ?User $user, string $purchaserEmail, ?string $purchaserName = null): Order
+    public function handle(Album|Single $item, ?User $user, string $purchaserEmail, ?string $purchaserName = null, ?string $purchaserPhone = null): Order
     {
         $readiness = $item instanceof Album ? $this->checkAlbum->handle($item) : $this->checkSingle->handle($item);
 
@@ -46,11 +46,12 @@ class CreatePendingOrderAction
         $price = $item instanceof Album ? $this->pricing->fullAlbumPrice() : $this->pricing->perSongPrice();
         $currency = 'usd';
 
-        return DB::transaction(function () use ($item, $user, $purchaserEmail, $purchaserName, $price, $currency): Order {
+        return DB::transaction(function () use ($item, $user, $purchaserEmail, $purchaserName, $purchaserPhone, $price, $currency): Order {
             $order = new Order;
             $order->user_id = $user?->getKey();
             $order->purchaser_email = $user?->email ?? $purchaserEmail;
             $order->purchaser_name = $purchaserName;
+            $order->purchaser_phone = $purchaserPhone;
             $order->currency = $currency;
             $order->subtotal = $price;
             $order->total = $price;

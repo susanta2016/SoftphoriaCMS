@@ -4,8 +4,11 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Modules\Commerce\Models\DownloadLog;
+use App\Modules\Commerce\Models\Entitlement;
 use App\Modules\Commerce\Models\Order;
 use App\Modules\Commerce\Models\Subscription;
+use App\Modules\Music\Models\Album;
+use App\Modules\Music\Models\Single;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -61,6 +64,26 @@ class User extends Authenticatable implements FilamentUser
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function entitlements(): HasMany
+    {
+        return $this->hasMany(Entitlement::class);
+    }
+
+    /**
+     * Does this user already own this Album/Single outright (a real
+     * purchase), independent of whether they're also an active Pro Member —
+     * see hasActiveMembership() for the separate, catalogue-wide check.
+     */
+    public function ownsRelease(Album|Single $release): bool
+    {
+        $column = $release instanceof Album ? 'album_id' : 'single_id';
+
+        return $this->entitlements()
+            ->where($column, $release->getKey())
+            ->whereNull('revoked_at')
+            ->exists();
     }
 
     public function subscription(): HasOne

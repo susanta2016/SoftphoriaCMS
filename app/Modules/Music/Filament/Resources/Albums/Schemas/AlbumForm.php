@@ -14,6 +14,7 @@ use App\Modules\Music\Models\Album;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -28,12 +29,10 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 
 /**
- * The streaming link is a single provider/url pair addressed as
- * "links.0.provider"/"links.0.url" (not a Filament relationship repeater),
- * so Create/UpdateAlbumAction — not Filament's automatic relationship save —
- * own reconciling music_streaming_links, same reasoning as Podcast's
- * PodcastEpisodeForm. Kept as a one-item array rather than flat fields so
- * SyncsMusicStreamingLinks stays shared with Single without a shape change.
+ * Streaming links are a plain array field (not a Filament relationship
+ * repeater) so Create/UpdateAlbumAction — not Filament's automatic
+ * relationship save — own reconciling music_streaming_links, same reasoning
+ * as Podcast's PodcastEpisodeForm.
  */
 class AlbumForm
 {
@@ -88,20 +87,28 @@ class AlbumForm
                                 ->description('Manage this album\'s tracks — including reordering — below once it\'s saved. Full song editing (lyrics, story, credits) is under Music > Tracks.')
                                 ->schema([]),
 
-                            Section::make('Streaming Link')
+                            Section::make('Streaming Links')
                                 ->description('Where listeners can play this album.')
                                 ->schema([
-                                    Select::make('links.0.provider')
-                                        ->label('Provider')
-                                        ->options(MusicLinkProvider::options())
-                                        ->requiredWith('links.0.url'),
-                                    TextInput::make('links.0.url')
-                                        ->label('URL')
-                                        ->url()
-                                        ->maxLength(255)
-                                        ->requiredWith('links.0.provider'),
-                                ])
-                                ->columns(2),
+                                    Repeater::make('links')
+                                        ->hiddenLabel()
+                                        ->reorderable()
+                                        ->defaultItems(0)
+                                        ->addActionLabel('Add streaming link')
+                                        ->itemLabel(fn (array $state): ?string => isset($state['provider'])
+                                            ? MusicLinkProvider::from($state['provider'])->getLabel()
+                                            : null)
+                                        ->schema([
+                                            Select::make('provider')
+                                                ->options(MusicLinkProvider::options())
+                                                ->required(),
+                                            TextInput::make('url')
+                                                ->url()
+                                                ->required()
+                                                ->maxLength(255),
+                                        ])
+                                        ->columns(2),
+                                ]),
 
                             Section::make('SEO')
                                 ->description('Independent per-album metadata (title, description, canonical, Open Graph, Twitter card, structured data).')
