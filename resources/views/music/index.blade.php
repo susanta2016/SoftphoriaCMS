@@ -66,16 +66,6 @@
                                 <div class="flex aspect-square w-full items-center justify-center bg-brand-navy/10 text-brand-navy/40">{{ $featured->title }}</div>
                             @endif
                         </a>
-
-                        @if ($featured->streamingLinks->isNotEmpty())
-                            <div class="mt-4 flex flex-wrap gap-2">
-                                @foreach ($featured->streamingLinks as $link)
-                                    <a href="{{ $link->url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-md border border-brand-navy/15 bg-white px-3 py-2 text-xs font-semibold text-brand-navy transition hover:border-brand-gold">
-                                        {{ $link->provider->getLabel() }}
-                                    </a>
-                                @endforeach
-                            </div>
-                        @endif
                     </div>
 
                     <div class="lg:col-span-8">

@@ -28,9 +28,24 @@ class CartControllerTest extends TestCase
         $response = $this->post(route('cart.add'), ['type' => 'album', 'slug' => $album->slug]);
 
         $response->assertRedirect();
-        $response->assertSessionHas('cart_notice');
+        $response->assertSessionHas('cart_added');
         $this->assertSame(1, CartSession::count());
         $this->assertTrue(CartSession::has('album', $album->getKey()));
+    }
+
+    public function test_the_listening_page_shows_a_checkout_confirmation_modal_after_adding_to_cart(): void
+    {
+        $single = $this->readySingle();
+
+        $this->from(route('music.singles.show', $single))
+            ->post(route('cart.add'), ['type' => 'single', 'slug' => $single->slug]);
+
+        $response = $this->get(route('music.singles.show', $single));
+
+        $response->assertOk();
+        $response->assertSee('added to your cart', false);
+        $response->assertSee('Go to checkout now?');
+        $response->assertSee(route('checkout.show'), false);
     }
 
     public function test_adding_the_same_item_twice_does_not_create_a_duplicate_line(): void

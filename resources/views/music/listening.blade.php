@@ -20,6 +20,19 @@
 <x-layouts.site :seo="$seo">
     <x-site.header :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
 
+    @if (session('cart_added'))
+        <div data-cart-added-modal class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+            <div class="w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-xl">
+                <p class="text-sm text-brand-navy/80">{{ session('cart_added') }}</p>
+                <p class="mt-1 text-sm font-semibold text-brand-navy">Go to checkout now?</p>
+                <div class="mt-5 flex items-center justify-center gap-3">
+                    <a href="{{ route('checkout.show') }}" class="inline-flex items-center rounded-md bg-brand-gold px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-gold-light">Yes</a>
+                    <button type="button" data-cart-added-modal-close class="inline-flex items-center rounded-md border border-brand-navy/20 px-5 py-2.5 text-sm font-semibold text-brand-navy transition hover:border-brand-gold">No</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div
         class="bg-white bg-cover bg-center bg-no-repeat pt-28 pb-14"
         @style([$topBannerUrl ? "background-image: linear-gradient(to right, rgba(255,255,255,.85), rgba(255,255,255,.55)), url('{$topBannerUrl}')" : ''])
@@ -64,32 +77,15 @@
                         $purchaseSlug = $purchaseIsForParent ? $release['parent_purchase_slug'] : $release['purchase_slug'];
                     @endphp
 
-                    @if ($purchase && $purchase['state'] !== 'not_ready')
-                        <div class="mt-6 flex flex-wrap items-center gap-3">
-                            @if ($purchase['state'] === 'buy')
-                                <form method="POST" action="{{ route('cart.add') }}">
-                                    @csrf
-                                    <input type="hidden" name="type" value="{{ $purchaseType }}">
-                                    <input type="hidden" name="slug" value="{{ $purchaseSlug }}">
-                                    <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-brand-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-navy/90">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M3 4h2l1.6 9.6a2 2 0 0 0 2 1.7h8a2 2 0 0 0 2-1.7L20 8H6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="16.5" cy="19.5" r="1.3"/></svg>
-                                        {{ $purchaseIsForParent ? 'Buy the Album' : 'Buy' }} — ${{ number_format($purchase['price'], 2) }}
-                                    </button>
-                                </form>
-                            @elseif ($purchase['state'] === 'owned')
-                                <span class="inline-flex items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-5 py-3 text-sm font-semibold text-brand-navy">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                    {{ $purchaseIsForParent ? 'You own this album' : 'You own this' }}
-                                </span>
-                            @elseif ($purchase['state'] === 'included')
-                                <span class="inline-flex items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-5 py-3 text-sm font-semibold text-brand-navy">
-                                    Included with your Pro Membership
-                                </span>
-                            @endif
-                        </div>
+                    @if (session('cart_notice'))
+                        <p class="mt-4 rounded-md border border-brand-gold/30 bg-brand-gold/10 px-4 py-3 text-sm text-brand-navy">{{ session('cart_notice') }}</p>
                     @endif
 
-                    <div class="mt-3 flex flex-wrap items-center gap-3">
+                    @if (session('cart_error') || session('download_error'))
+                        <p class="mt-4 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">{{ session('cart_error') ?? session('download_error') }}</p>
+                    @endif
+
+                    <div class="mt-6 flex flex-wrap items-center gap-3">
                         @if ($release['stream_track'])
                             <button
                                 type="button"
@@ -122,6 +118,38 @@
                             </button>
                         @endif
                     </div>
+
+                    @if ($purchase && $purchase['state'] !== 'not_ready')
+                        <div class="mt-3 flex flex-wrap items-center gap-3">
+                            @if ($purchase['state'] === 'buy')
+                                <form method="POST" action="{{ route('cart.add') }}">
+                                    @csrf
+                                    <input type="hidden" name="type" value="{{ $purchaseType }}">
+                                    <input type="hidden" name="slug" value="{{ $purchaseSlug }}">
+                                    <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-brand-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-navy/90">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M3 4h2l1.6 9.6a2 2 0 0 0 2 1.7h8a2 2 0 0 0 2-1.7L20 8H6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="16.5" cy="19.5" r="1.3"/></svg>
+                                        {{ $purchaseIsForParent ? 'Buy the Album' : 'Buy' }} — ${{ number_format($purchase['price'], 2) }}
+                                    </button>
+                                </form>
+                            @elseif ($purchase['state'] === 'owned')
+                                <span class="inline-flex items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-5 py-3 text-sm font-semibold text-brand-navy">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    {{ $purchaseIsForParent ? 'You own this album' : 'You own this' }}
+                                </span>
+                            @elseif ($purchase['state'] === 'included')
+                                @if ($isSingleTrack && $release['stream_track']?->audio_media_id)
+                                    <a href="{{ route('music.tracks.download', $release['stream_track']) }}" class="inline-flex items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-5 py-3 text-sm font-semibold text-brand-navy transition hover:bg-brand-gold/20">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M12 4v11m0 0 4-4m-4 4-4-4M4 19h16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        Download
+                                    </a>
+                                @else
+                                    <span class="inline-flex items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-5 py-3 text-sm font-semibold text-brand-navy">
+                                        Included with your Pro Membership
+                                    </span>
+                                @endif
+                            @endif
+                        </div>
+                    @endif
 
                     @if ($release['streaming_links']->isNotEmpty() && ! $isSingleTrack)
                         <div class="mt-5 flex flex-wrap gap-2">
@@ -268,7 +296,7 @@
                     </div>
 
                     <div class="mt-4">
-                        <input type="range" data-music-player-seek min="0" max="100" value="0" class="ml-[220px] h-1 w-1/2 accent-brand-gold">
+                        <input type="range" data-music-player-seek min="0" max="100" value="0" class="h-1 w-full accent-brand-gold lg:ml-[220px] lg:w-1/2">
                     </div>
                 </div>
             @endif

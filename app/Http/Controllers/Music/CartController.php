@@ -60,7 +60,7 @@ class CartController extends Controller
 
         CartSession::add($data['type'], $item->getKey());
 
-        return back()->with('cart_notice', "\"{$item->title}\" added to your cart.");
+        return back()->with('cart_added', "\"{$item->title}\" added to your cart.");
     }
 
     public function remove(Request $request): RedirectResponse

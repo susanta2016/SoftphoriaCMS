@@ -16,6 +16,7 @@ use App\Http\Controllers\Media\StreamMediaController;
 use App\Http\Controllers\Music\CartController;
 use App\Http\Controllers\Music\CheckoutController;
 use App\Http\Controllers\Music\MusicController;
+use App\Http\Controllers\Music\TrackDownloadController;
 use App\Http\Controllers\Music\TrackStreamController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\Page\PageController;
@@ -149,13 +150,17 @@ Route::post('/inspirational-resources/submit', [InspirationalResourceSubmissionC
 // Public Music — landing/catalogue + Album/Single listening pages. Fully
 // public once Published, same shape as Poetry/Prose above. The stream route
 // is playback-only (no entitlement/download-count check — see
-// TrackStreamController's docblock); it is never the download-authorization
-// path, which is a later, separate Commerce-backed feature.
+// TrackStreamController's docblock); the download route below is the real
+// Commerce-backed authorization path (active Subscription or a paid
+// Entitlement), auth-only.
 Route::get('/music', [MusicController::class, 'index'])->name('music.index');
 Route::get('/music/albums/{album:slug}', [MusicController::class, 'showAlbum'])->name('music.albums.show');
 Route::get('/music/singles/{single:slug}', [MusicController::class, 'showSingle'])->name('music.singles.show');
 Route::get('/music/tracks/{track:slug}', [MusicController::class, 'showTrack'])->name('music.tracks.show');
 Route::get('/music/tracks/{track:slug}/stream', TrackStreamController::class)->name('music.tracks.stream');
+Route::get('/music/tracks/{track:slug}/download', TrackDownloadController::class)
+    ->middleware('auth')
+    ->name('music.tracks.download');
 
 // Digital-only cart/checkout for Music purchases (Single/Album — see
 // CartSession's docblock for why the cart itself is session-only, never a

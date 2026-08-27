@@ -70,21 +70,31 @@
                 </svg>
             </a>
 
-            <a
-                href="{{ route('cart.show') }}"
-                aria-label="Cart"
-                class="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-brand-navy/20 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
-                    <path d="M3 4h2l1.6 9.6a2 2 0 0 0 2 1.7h8a2 2 0 0 0 2-1.7L20 8H6" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="9.5" cy="19.5" r="1.3"/>
-                    <circle cx="16.5" cy="19.5" r="1.3"/>
-                </svg>
-                @php($cartCount = \App\Modules\Music\Support\CartSession::count())
-                @if ($cartCount > 0)
-                    <span class="absolute -top-1.5 -right-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-gold px-1 text-[10px] font-semibold text-white">{{ $cartCount }}</span>
-                @endif
-            </a>
+            {{--
+                A Pro Member's whole catalogue access is already included
+                with their subscription (see MusicController::purchaseState's
+                'included' state) — there is never anything for them to buy,
+                so the cart icon (and whatever it might still be holding from
+                before they subscribed) stays hidden rather than pointing at
+                an empty/irrelevant page.
+            --}}
+            @unless (auth()->user()?->hasActiveMembership())
+                <a
+                    href="{{ route('cart.show') }}"
+                    aria-label="Cart"
+                    class="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-brand-navy/20 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+                        <path d="M3 4h2l1.6 9.6a2 2 0 0 0 2 1.7h8a2 2 0 0 0 2-1.7L20 8H6" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="9.5" cy="19.5" r="1.3"/>
+                        <circle cx="16.5" cy="19.5" r="1.3"/>
+                    </svg>
+                    @php($cartCount = \App\Modules\Music\Support\CartSession::count())
+                    @if ($cartCount > 0)
+                        <span class="absolute -top-1.5 -right-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-gold px-1 text-[10px] font-semibold text-white">{{ $cartCount }}</span>
+                    @endif
+                </a>
+            @endunless
             @auth
                 <a
                     href="{{ route('account.dashboard') }}"
@@ -92,6 +102,19 @@
                 >
                     My Account
                 </a>
+                <form method="POST" action="{{ route('logout') }}" class="hidden sm:block">
+                    @csrf
+                    <button
+                        type="submit"
+                        aria-label="Log out"
+                        class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-brand-navy/20 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </form>
             @else
                 <a
                     href="{{ route('login') }}"
@@ -150,6 +173,16 @@
                 <a href="{{ route('account.dashboard') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
                     My Account
                 </a>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm font-medium text-brand-navy transition hover:bg-red-50 hover:text-red-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 shrink-0">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Log Out
+                    </button>
+                </form>
             @else
                 <a href="{{ route('login') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
                     Log In

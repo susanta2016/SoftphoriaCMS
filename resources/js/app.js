@@ -105,6 +105,24 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.querySelector('[data-cart-added-modal]');
+
+    if (!modal) return;
+
+    const close = () => modal.remove();
+
+    modal.querySelector('[data-cart-added-modal-close]')?.addEventListener('click', close);
+
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) close();
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') close();
+    });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
     const toggle = document.querySelector('[data-pro-tooltip-toggle]');
     const tooltip = document.querySelector('[data-pro-tooltip]');
 
