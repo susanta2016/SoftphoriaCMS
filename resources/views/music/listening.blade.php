@@ -7,6 +7,13 @@
     $isSingleTrack = in_array($release['type'], ['single', 'track'], true);
     $onlyTrack = $isSingleTrack ? $release['tracks']->first() : null;
 
+    // The Streaming Link belongs to the release (Album/Single), not to an
+    // individual Track, so every track row in this release shares the same
+    // direct playback source — it's fed straight into the <audio> element,
+    // never the Track's own downloadable audio file (that's a separate,
+    // purchase-only concept — see AuthorizeTrackDownloadAction).
+    $primaryStreamingLink = $release['streaming_links']->first();
+
     $genres = $release['tracks']->flatMap(fn ($track) => $track->categories->pluck('name'))->unique()->values();
 
     $embedUrl = null;
@@ -248,8 +255,7 @@
                     data-music-track-row
                     data-music-track-active="1"
                     data-music-track-title="{{ $release['stream_track']->title }}"
-                    @if ($release['stream_track']->audio_media_id) data-music-track-stream="{{ route('music.tracks.stream', $release['stream_track']) }}" @endif
-                    @if ($release['streaming_links']->isNotEmpty()) data-music-track-external="{{ $release['streaming_links']->first()->url }}" @endif
+                    @if ($primaryStreamingLink) data-music-track-src="{{ $primaryStreamingLink->url }}" @endif
                     class="hidden"
                 ></div>
             @endif
@@ -271,7 +277,7 @@
                             </button>
                         </div>
 
-                        <div class="flex items-center gap-3 justify-self-center">
+                        <div data-music-player-controls class="flex items-center gap-3 justify-self-center">
                             @if (! $isSingleTrack)
                                 <button type="button" data-music-player-prev aria-label="Previous track" class="text-brand-navy/60 transition hover:text-brand-gold">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M5 5h2v14H5zM18 5v14l-9-7z"/></svg>
@@ -288,16 +294,20 @@
                             @endif
                         </div>
 
-                        <div class="col-span-2 flex items-center justify-end gap-3 lg:col-span-1 lg:justify-self-end">
+                        <div data-music-player-controls class="col-span-2 flex items-center justify-end gap-3 lg:col-span-1 lg:justify-self-end">
                             <p data-music-player-time class="mr-[60px] shrink-0 text-xs text-brand-navy/50 tabular-nums">0:00 / {{ Duration::format($release['stream_track']->duration_seconds) }}</p>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4 shrink-0 text-brand-navy/60"><path d="M3 10v4h4l5 4V6L7 10H3Z" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.5 8.5a5 5 0 0 1 0 7" stroke-linecap="round"/></svg>
                             <input type="range" data-music-player-volume min="0" max="100" value="100" aria-label="Volume" class="h-1 w-20 shrink-0 accent-brand-gold">
                         </div>
                     </div>
 
-                    <div class="mt-4">
+                    <div data-music-player-controls class="mt-4">
                         <input type="range" data-music-player-seek min="0" max="100" value="0" class="h-1 w-full accent-brand-gold lg:ml-[220px] lg:w-1/2">
                     </div>
+
+                    <p data-music-player-fallback class="mt-4 hidden text-sm text-brand-navy/70">
+                        Audio unavailable for this track.
+                    </p>
                 </div>
             @endif
 
@@ -332,12 +342,11 @@
                             <li
                                 data-music-track-row
                                 data-music-track-title="{{ $track->title }}"
-                                @if ($track->audio_media_id) data-music-track-stream="{{ route('music.tracks.stream', $track) }}" @endif
-                                @if ($release['streaming_links']->isNotEmpty()) data-music-track-external="{{ $release['streaming_links']->first()->url }}" @endif
+                                @if ($primaryStreamingLink) data-music-track-src="{{ $primaryStreamingLink->url }}" @endif
                                 @if ($loop->first) data-music-track-active="1" @endif
                                 class="flex items-center gap-4 py-3 text-sm transition"
                             >
-                                @if ($track->audio_media_id)
+                                @if ($primaryStreamingLink)
                                     <button type="button" data-music-track-play aria-label="Play {{ $track->title }}" class="shrink-0 text-brand-navy/50 transition hover:text-brand-gold">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M8 5v14l11-7z"/></svg>
                                     </button>

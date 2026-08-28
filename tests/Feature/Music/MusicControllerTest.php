@@ -523,6 +523,60 @@ class MusicControllerTest extends TestCase
         $response->assertNotFound();
     }
 
+    public function test_a_singles_track_row_uses_the_streaming_link_as_the_direct_playback_source(): void
+    {
+        $single = $this->single(['status' => ReleaseStatus::Published]);
+        $this->track(null, $single, ['status' => TrackStatus::Published]);
+        $single->streamingLinks()->create(['provider' => 'other', 'url' => 'https://cdn.example.com/music/presence.mp3', 'sort_order' => 0]);
+
+        $response = $this->get(route('music.singles.show', $single));
+
+        $response->assertOk();
+        $response->assertSee('data-music-track-src="https://cdn.example.com/music/presence.mp3"', false);
+    }
+
+    public function test_a_track_row_never_uses_the_uploaded_audio_file_as_the_playback_source(): void
+    {
+        $single = $this->single(['status' => ReleaseStatus::Published]);
+        $media = $this->audioMedia();
+        $track = $this->track(null, $single, ['status' => TrackStatus::Published, 'audio_media_id' => $media->id]);
+        $single->streamingLinks()->create(['provider' => 'other', 'url' => 'https://cdn.example.com/music/presence.mp3', 'sort_order' => 0]);
+
+        $response = $this->get(route('music.singles.show', $single));
+
+        $response->assertOk();
+        $response->assertDontSee(route('music.tracks.stream', $track), false);
+        $response->assertSee('data-music-track-src="https://cdn.example.com/music/presence.mp3"', false);
+    }
+
+    public function test_a_track_row_has_no_playback_source_when_the_release_has_no_streaming_link(): void
+    {
+        $single = $this->single(['status' => ReleaseStatus::Published]);
+        $media = $this->audioMedia();
+        $this->track(null, $single, ['status' => TrackStatus::Published, 'audio_media_id' => $media->id]);
+
+        $response = $this->get(route('music.singles.show', $single));
+
+        $response->assertOk();
+        $response->assertDontSee('data-music-track-src', false);
+    }
+
+    public function test_an_albums_track_rows_all_share_the_albums_streaming_link(): void
+    {
+        $album = $this->album(['status' => ReleaseStatus::Published]);
+        $this->track($album, null, ['title' => 'Track One', 'status' => TrackStatus::Published, 'track_number' => 1]);
+        $this->track($album, null, ['title' => 'Track Two', 'slug' => 'track-two', 'status' => TrackStatus::Published, 'track_number' => 2]);
+        $album->streamingLinks()->create(['provider' => 'other', 'url' => 'https://cdn.example.com/music/album-stream.mp3', 'sort_order' => 0]);
+
+        $response = $this->get(route('music.albums.show', $album));
+
+        $response->assertOk();
+        $this->assertSame(
+            2,
+            substr_count($response->getContent(), 'data-music-track-src="https://cdn.example.com/music/album-stream.mp3"')
+        );
+    }
+
     private function audioMedia(): Media
     {
         Storage::fake('local');

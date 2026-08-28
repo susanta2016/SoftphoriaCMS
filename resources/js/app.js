@@ -321,6 +321,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const volume = player?.querySelector('[data-music-player-volume]');
     const prevButton = player?.querySelector('[data-music-player-prev]');
     const nextButton = player?.querySelector('[data-music-player-next]');
+    const controlEls = player ? Array.from(player.querySelectorAll('[data-music-player-controls]')) : [];
+    const fallbackEl = player?.querySelector('[data-music-player-fallback]');
 
     let currentIndex = Math.max(rows.findIndex((row) => row.dataset.musicTrackActive === '1'), 0);
 
@@ -338,6 +340,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const showFallback = (isFallback) => {
+        controlEls.forEach((el) => el.classList.toggle('hidden', isFallback));
+        fallbackEl?.classList.toggle('hidden', !isFallback);
+    };
+
     const loadTrack = (index, autoplay) => {
         const row = rows[index];
         if (!audio || !row) return;
@@ -346,16 +353,19 @@ document.addEventListener('DOMContentLoaded', () => {
         rows.forEach((r) => r.classList.toggle('bg-brand-gold/10', r === row));
         if (titleEl) titleEl.textContent = row.dataset.musicTrackTitle || '';
 
-        const streamUrl = row.dataset.musicTrackStream;
-        if (streamUrl) {
-            audio.src = streamUrl;
-            if (autoplay) audio.play().catch(() => {});
-        } else {
+        audio.pause();
+        setPlayingState(false);
+
+        const src = row.dataset.musicTrackSrc;
+        if (!src) {
             audio.removeAttribute('src');
-            setPlayingState(false);
-            const externalUrl = row.dataset.musicTrackExternal;
-            if (autoplay && externalUrl) window.open(externalUrl, '_blank', 'noopener');
+            showFallback(true);
+            return;
         }
+
+        showFallback(false);
+        audio.src = src;
+        if (autoplay) audio.play().catch(() => {});
     };
 
     rows.forEach((row, index) => {
@@ -383,6 +393,14 @@ document.addEventListener('DOMContentLoaded', () => {
     audio?.addEventListener('ended', () => {
         if (currentIndex < rows.length - 1) loadTrack(currentIndex + 1, true);
     });
+    // A real load/playback failure of a configured streaming URL (bad host,
+    // 404, unsupported format) — not fired when we deliberately have no src,
+    // since audio.src reads back empty once removeAttribute('src') is used.
+    audio?.addEventListener('error', () => {
+        if (!audio.src) return;
+        setPlayingState(false);
+        showFallback(true);
+    });
     seek?.addEventListener('input', () => {
         if (audio?.duration) audio.currentTime = (seek.value / 100) * audio.duration;
     });
@@ -393,6 +411,8 @@ document.addEventListener('DOMContentLoaded', () => {
             audio.volume = volume.value / 100;
         });
     }
+
+    loadTrack(currentIndex, false);
 });
 
 document.addEventListener('DOMContentLoaded', () => {
