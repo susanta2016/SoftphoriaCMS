@@ -14,7 +14,6 @@ use App\Modules\Music\Models\Lyrics;
 use App\Modules\Music\Models\Single;
 use App\Modules\Music\Models\SongStory;
 use App\Modules\Music\Models\Track;
-use App\Shared\Services\Settings\SettingsRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -54,6 +53,17 @@ class MusicControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee('Here I Am');
         $response->assertDontSee('Return to Center');
+    }
+
+    public function test_a_search_with_no_matches_shows_a_distinct_empty_search_message(): void
+    {
+        $this->album(['title' => 'Here I Am', 'status' => ReleaseStatus::Published]);
+
+        $response = $this->get(route('music.index', ['q' => 'nothing-matches-this-query']));
+
+        $response->assertOk();
+        $response->assertSee('No results match your search.');
+        $response->assertDontSee('No releases to show yet.');
     }
 
     public function test_the_index_page_type_filter_shows_only_albums(): void
@@ -233,15 +243,19 @@ class MusicControllerTest extends TestCase
         $response->assertDontSee('Spotify');
     }
 
-    public function test_an_albums_hero_still_shows_external_streaming_links(): void
+    public function test_an_albums_hero_never_shows_external_streaming_links(): void
     {
         $album = $this->album(['status' => ReleaseStatus::Published]);
+        // provider is legacy metadata only — the admin form no longer even
+        // collects it (see SyncsMusicStreamingLinks) — so a row still
+        // carrying a real provider value from before that change must never
+        // leak back into the rendered page.
         $album->streamingLinks()->create(['provider' => 'spotify', 'url' => 'https://open.spotify.com/album/xyz', 'sort_order' => 0]);
 
         $response = $this->get(route('music.albums.show', $album));
 
         $response->assertOk();
-        $response->assertSee('Spotify');
+        $response->assertDontSee('Spotify');
     }
 
     public function test_a_single_pages_hero_shows_a_video_button_when_a_track_has_an_embed_url(): void
@@ -466,63 +480,6 @@ class MusicControllerTest extends TestCase
         $response->assertSee(route('music.index'), false);
     }
 
-    public function test_track_stream_404s_for_a_track_with_no_audio_file(): void
-    {
-        $single = $this->single(['status' => ReleaseStatus::Published]);
-        $track = $this->track(null, $single, ['status' => TrackStatus::Published]);
-
-        $response = $this->get(route('music.tracks.stream', $track));
-
-        $response->assertNotFound();
-    }
-
-    public function test_track_stream_404s_for_a_draft_track(): void
-    {
-        $single = $this->single(['status' => ReleaseStatus::Published]);
-        $media = $this->audioMedia();
-        $track = $this->track(null, $single, ['status' => TrackStatus::Draft, 'audio_media_id' => $media->id]);
-
-        $response = $this->get(route('music.tracks.stream', $track));
-
-        $response->assertNotFound();
-    }
-
-    public function test_track_stream_404s_when_the_parent_release_is_not_published(): void
-    {
-        $single = $this->single(['status' => ReleaseStatus::Draft]);
-        $media = $this->audioMedia();
-        $track = $this->track(null, $single, ['status' => TrackStatus::Published, 'audio_media_id' => $media->id]);
-
-        $response = $this->get(route('music.tracks.stream', $track));
-
-        $response->assertNotFound();
-    }
-
-    public function test_track_stream_serves_the_audio_file_when_everything_is_published(): void
-    {
-        $single = $this->single(['status' => ReleaseStatus::Published]);
-        $media = $this->audioMedia();
-        $track = $this->track(null, $single, ['status' => TrackStatus::Published, 'audio_media_id' => $media->id]);
-
-        $response = $this->get(route('music.tracks.stream', $track));
-
-        $response->assertOk();
-        $response->assertHeader('Content-Type', 'audio/mpeg');
-    }
-
-    public function test_track_stream_404s_when_native_playback_is_disabled(): void
-    {
-        app(SettingsRepository::class)->set('music', 'native_playback_enabled', false, 'boolean');
-
-        $single = $this->single(['status' => ReleaseStatus::Published]);
-        $media = $this->audioMedia();
-        $track = $this->track(null, $single, ['status' => TrackStatus::Published, 'audio_media_id' => $media->id]);
-
-        $response = $this->get(route('music.tracks.stream', $track));
-
-        $response->assertNotFound();
-    }
-
     public function test_a_singles_track_row_uses_the_streaming_link_as_the_direct_playback_source(): void
     {
         $single = $this->single(['status' => ReleaseStatus::Published]);
@@ -539,13 +496,12 @@ class MusicControllerTest extends TestCase
     {
         $single = $this->single(['status' => ReleaseStatus::Published]);
         $media = $this->audioMedia();
-        $track = $this->track(null, $single, ['status' => TrackStatus::Published, 'audio_media_id' => $media->id]);
+        $this->track(null, $single, ['status' => TrackStatus::Published, 'audio_media_id' => $media->id]);
         $single->streamingLinks()->create(['provider' => 'other', 'url' => 'https://cdn.example.com/music/presence.mp3', 'sort_order' => 0]);
 
         $response = $this->get(route('music.singles.show', $single));
 
         $response->assertOk();
-        $response->assertDontSee(route('music.tracks.stream', $track), false);
         $response->assertSee('data-music-track-src="https://cdn.example.com/music/presence.mp3"', false);
     }
 

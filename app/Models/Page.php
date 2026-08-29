@@ -88,13 +88,18 @@ class Page extends Model implements Sitemapable
      * The "home" slug is excluded: PageController permanently redirects it
      * to "/", so HomeController::sitemapEntries() is the one place that URL
      * is represented — otherwise it would appear in the sitemap twice, at
-     * both "/" and "/home".
+     * both "/" and "/home". "music" is excluded for the same reason: it's
+     * only ever a content/Hero-banner source consumed by MusicController
+     * (see its own private musicPage()) — the Music module's own routes (registered
+     * ahead of the {page:slug} catch-all in routes/web.php) always win at
+     * that URL, so MusicController::sitemapEntries() is the one place "/music"
+     * is represented, not this one.
      */
     public static function sitemapEntries(): Collection
     {
         return static::query()
             ->published()
-            ->where('slug', '!=', 'home')
+            ->whereNotIn('slug', ['home', 'music'])
             ->with('seo')
             ->orderBy('slug')
             ->get()

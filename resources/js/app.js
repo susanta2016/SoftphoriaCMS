@@ -76,11 +76,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (open) {
             player?.play();
 
-            if (iframe) {
-                const src = iframe.dataset.src;
-                const separator = src.includes('?') ? '&' : '?';
-                iframe.src = `${src}${separator}autoplay=1`;
-            }
+            // No autoplay param — opening the modal only loads the embed;
+            // the user presses Play inside it themselves.
+            if (iframe) iframe.src = iframe.dataset.src;
         } else {
             player?.pause();
             if (player) player.currentTime = 0;

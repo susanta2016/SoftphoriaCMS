@@ -93,6 +93,25 @@ class RobotsAndSitemapTest extends TestCase
         $response->assertDontSee(route('pages.show', $home), false);
     }
 
+    /**
+     * The "music" Page record exists purely as a content/Hero-banner source
+     * for MusicController — its slug happens to collide with the Music
+     * module's own dedicated /music route, which always wins (registered
+     * ahead of the {page:slug} catch-all). Before this fix, both
+     * Page::sitemapEntries() and MusicController::sitemapEntries() emitted
+     * the identical "/music" <loc>, so a plain assertSee/assertDontSee can't
+     * tell "present once" from "present twice" — this counts occurrences.
+     */
+    public function test_the_music_page_slug_produces_the_url_exactly_once_in_the_sitemap(): void
+    {
+        $this->page(['slug' => 'music', 'status' => PageStatus::Published->value]);
+
+        $response = $this->get('/sitemap.xml');
+
+        $response->assertOk();
+        $this->assertSame(1, substr_count($response->getContent(), '<loc>'.route('music.index').'</loc>'));
+    }
+
     private function page(array $overrides = []): Page
     {
         return Page::create(array_merge([

@@ -55,7 +55,9 @@
 
 <section class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
     @if ($releases->isEmpty())
-        <p class="py-16 text-center text-sm text-brand-navy/60">No releases to show yet.</p>
+        <p class="py-16 text-center text-sm text-brand-navy/60">
+            {{ $filters['q'] ? 'No results match your search.' : 'No releases to show yet.' }}
+        </p>
     @else
         <div class="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5">
             @foreach ($releases as $release)
