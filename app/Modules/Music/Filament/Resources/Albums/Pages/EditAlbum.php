@@ -36,7 +36,6 @@ class EditAlbum extends EditRecord
     {
         $data['links'] = $this->record->streamingLinks
             ->map(fn (MusicStreamingLink $link): array => [
-                'provider' => $link->provider->value,
                 'url' => $link->url,
             ])
             ->all();

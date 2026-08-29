@@ -43,7 +43,7 @@ class SingleTest extends TestCase
                 'status' => ReleaseStatus::Published->value,
                 'is_featured' => true,
                 'links' => [
-                    ['provider' => 'apple_music', 'url' => 'https://music.apple.com/single/xyz'],
+                    ['url' => 'https://cdn.example.com/audio/still-water.mp3'],
                 ],
                 'seo' => ['meta_title' => 'Still Water'],
             ])
@@ -54,7 +54,7 @@ class SingleTest extends TestCase
 
         $this->assertTrue($single->is_featured);
         $this->assertCount(1, $single->streamingLinks);
-        $this->assertSame('https://music.apple.com/single/xyz', $single->streamingLinks->first()->url);
+        $this->assertSame('https://cdn.example.com/audio/still-water.mp3', $single->streamingLinks->first()->url);
         $this->assertSame('Still Water', $single->seo->meta_title);
     }
 

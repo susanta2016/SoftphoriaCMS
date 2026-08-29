@@ -8,7 +8,6 @@ use App\Filament\Support\Media\RichEditorMediaAttachments;
 use App\Filament\Support\Seo\SeoFields;
 use App\Modules\Commerce\Actions\PurchaseReadiness\CheckAlbumReadinessAction;
 use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
-use App\Modules\Music\Enums\MusicLinkProvider;
 use App\Modules\Music\Enums\ReleaseStatus;
 use App\Modules\Music\Models\Album;
 use Filament\Forms\Components\DatePicker;
@@ -95,19 +94,15 @@ class AlbumForm
                                         ->reorderable()
                                         ->defaultItems(0)
                                         ->addActionLabel('Add streaming link')
-                                        ->itemLabel(fn (array $state): ?string => isset($state['provider'])
-                                            ? MusicLinkProvider::from($state['provider'])->getLabel()
-                                            : null)
+                                        ->itemLabel(fn (?int $index): ?string => 'Streaming Link #'.($index + 1))
                                         ->schema([
-                                            Select::make('provider')
-                                                ->options(MusicLinkProvider::options())
-                                                ->required(),
                                             TextInput::make('url')
+                                                ->label('Audio Stream URL')
                                                 ->url()
                                                 ->required()
-                                                ->maxLength(255),
-                                        ])
-                                        ->columns(2),
+                                                ->maxLength(255)
+                                                ->helperText('Enter a direct audio-stream URL (MP3, M4A, or another browser-supported audio format). This URL is used by the website\'s custom audio player. Spotify, Apple Music, YouTube, and SoundCloud webpage URLs are not supported for inline playback.'),
+                                        ]),
                                 ]),
 
                             Section::make('SEO')

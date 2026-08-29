@@ -43,7 +43,7 @@ class AlbumTest extends TestCase
                 'status' => ReleaseStatus::Published->value,
                 'is_featured' => true,
                 'links' => [
-                    ['provider' => 'spotify', 'url' => 'https://open.spotify.com/album/xyz'],
+                    ['url' => 'https://cdn.example.com/audio/here-i-am.mp3'],
                 ],
                 'seo' => ['meta_title' => 'Here I Am'],
             ])
@@ -54,7 +54,7 @@ class AlbumTest extends TestCase
 
         $this->assertTrue($album->is_featured);
         $this->assertCount(1, $album->streamingLinks);
-        $this->assertSame('https://open.spotify.com/album/xyz', $album->streamingLinks->first()->url);
+        $this->assertSame('https://cdn.example.com/audio/here-i-am.mp3', $album->streamingLinks->first()->url);
         $this->assertSame('Here I Am', $album->seo->meta_title);
     }
 
@@ -67,9 +67,9 @@ class AlbumTest extends TestCase
                 'slug' => 'multi-link-album',
                 'status' => ReleaseStatus::Published->value,
                 'links' => [
-                    ['provider' => 'spotify', 'url' => 'https://open.spotify.com/album/multi'],
-                    ['provider' => 'apple_music', 'url' => 'https://music.apple.com/album/multi'],
-                    ['provider' => 'youtube', 'url' => 'https://youtube.com/playlist/multi'],
+                    ['url' => 'https://cdn.example.com/audio/multi-1.mp3'],
+                    ['url' => 'https://cdn.example.com/audio/multi-2.mp3'],
+                    ['url' => 'https://cdn.example.com/audio/multi-3.mp3'],
                 ],
             ])
             ->call('create')
@@ -79,7 +79,38 @@ class AlbumTest extends TestCase
 
         $this->assertCount(3, $album->streamingLinks);
         $this->assertSame(
-            ['spotify', 'apple_music', 'youtube'],
+            [
+                'https://cdn.example.com/audio/multi-1.mp3',
+                'https://cdn.example.com/audio/multi-2.mp3',
+                'https://cdn.example.com/audio/multi-3.mp3',
+            ],
+            $album->streamingLinks->pluck('url')->all(),
+        );
+        // provider is no longer collected from the admin form — every new
+        // row is written with the same constant placeholder value (see
+        // SyncsMusicStreamingLinks), never read anywhere on the frontend.
+        $this->assertTrue($album->streamingLinks->pluck('provider')->every(fn ($provider) => $provider->value === 'other'));
+    }
+
+    public function test_editing_an_album_preserves_an_existing_streaming_links_legacy_provider(): void
+    {
+        $album = $this->createAlbum();
+        $album->streamingLinks()->create(['provider' => 'youtube', 'url' => 'https://cdn.example.com/audio/legacy.mp3', 'sort_order' => 0]);
+
+        // Same URL resubmitted — the form itself never collects/sends
+        // provider at all — and a second, brand-new URL alongside it.
+        Livewire::actingAs($this->admin())
+            ->test(EditAlbum::class, ['record' => $album->getRouteKey()])
+            ->fillForm(['links' => [
+                ['url' => 'https://cdn.example.com/audio/legacy.mp3'],
+                ['url' => 'https://cdn.example.com/audio/brand-new.mp3'],
+            ]])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $album->refresh();
+        $this->assertSame(
+            ['youtube', 'other'],
             $album->streamingLinks->pluck('provider')->map(fn ($provider) => $provider->value)->all(),
         );
     }
@@ -87,13 +118,13 @@ class AlbumTest extends TestCase
     public function test_admin_can_edit_an_albums_streaming_links_back_to_multiple(): void
     {
         $album = $this->createAlbum();
-        $album->streamingLinks()->create(['provider' => 'spotify', 'url' => 'https://open.spotify.com/album/existing', 'sort_order' => 0]);
+        $album->streamingLinks()->create(['provider' => 'other', 'url' => 'https://cdn.example.com/audio/existing.mp3', 'sort_order' => 0]);
 
         Livewire::actingAs($this->admin())
             ->test(EditAlbum::class, ['record' => $album->getRouteKey()])
             ->fillForm(['links' => [
-                ['provider' => 'spotify', 'url' => 'https://open.spotify.com/album/existing'],
-                ['provider' => 'soundcloud', 'url' => 'https://soundcloud.com/album/existing'],
+                ['url' => 'https://cdn.example.com/audio/existing.mp3'],
+                ['url' => 'https://cdn.example.com/audio/existing-2.mp3'],
             ]])
             ->call('save')
             ->assertHasNoFormErrors();
