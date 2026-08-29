@@ -28,25 +28,14 @@ class EditPodcastEpisode extends EditRecord
     }
 
     /**
-     * links/seo aren't real form-bound relationships (see PodcastEpisodeForm's
-     * docblock), so their state has to be filled in manually.
-     *
-     * The form only presents a single streaming link (state path
-     * `links.0`), so only the first link (by sort_order — see
-     * PodcastEpisode::links()) is shown here even if this episode has more
-     * than one stored from before the client's single-link rule. Any
-     * additional link this form doesn't show is left untouched on save —
-     * see SavesPodcastEpisodeRelations::syncPrimaryLink() — never silently
-     * deleted just because the episode was edited.
+     * seo isn't a real form-bound relationship (see PodcastEpisodeForm's
+     * docblock), so its state has to be filled in manually. The Streaming
+     * Link field was removed from this form (2026-08-29); any podcast_links
+     * row a legacy episode still has is left untouched — see
+     * PodcastEpisodeForm's docblock.
      */
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $firstLink = $this->record->links->first();
-
-        $data['links'] = $firstLink
-            ? [['provider' => $firstLink->provider->value, 'url' => $firstLink->url]]
-            : [];
-
         $data['categoryIds'] = $this->record->categories()->pluck('categories.id')->all();
         $data['tagIds'] = $this->record->tags()->pluck('tags.id')->all();
 

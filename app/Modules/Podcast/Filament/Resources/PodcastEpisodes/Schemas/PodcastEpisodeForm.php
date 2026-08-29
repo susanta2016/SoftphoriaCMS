@@ -9,7 +9,6 @@ use App\Filament\Support\Seo\SeoFields;
 use App\Models\Category;
 use App\Models\Tag;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
-use App\Modules\Podcast\Enums\PodcastLinkProvider;
 use App\Modules\Podcast\Models\Podcast;
 use App\Modules\Podcast\Models\PodcastEpisode;
 use Filament\Forms\Components\DatePicker;
@@ -26,27 +25,14 @@ use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
 
 /**
- * Streaming links are a plain array field (not a Filament relationship
- * repeater) so Create/UpdatePodcastEpisodeAction — not Filament's automatic
- * relationship save — own reconciling podcast_links, same reasoning as
- * PageForm's sections Repeater.
- *
- * Client-confirmed 2026-08-24: an Episode has exactly one streaming link in
- * the admin UI — a flat provider/URL pair (state paths `links.0.provider`/
- * `links.0.url`), not a Repeater, so there is no "Add streaming link"
- * option. The podcast_links table/`links()` HasMany stay multi-row (shared
- * shape with Music's streaming links, and no reason to redesign the schema
- * for a UI-only rule). See EditPodcastEpisode's mutateFormDataBeforeFill()
- * for how a legacy episode with more than one stored link is represented
- * here (its first link only) and
- * SavesPodcastEpisodeRelations::syncPrimaryLink() for why saving never
- * deletes any additional legacy link this form can't show — only removing
- * Video/the multi-add UI was asked for, not destroying pre-existing data.
- *
- * Video is permanently removed from this form (client-confirmed
- * 2026-08-24, not merely presentation-mode) — unlike Track, it is not
- * gated behind config('admin_ui.show_video_fields'). video_media_id and
- * the video() relation stay on the model/DB untouched.
+ * Video and Streaming Link are both permanently removed from this form
+ * (client-confirmed 2026-08-24 for Video, 2026-08-29 for Streaming Link —
+ * not merely presentation-mode). Unlike Track, Video is not gated behind
+ * config('admin_ui.show_video_fields'). video_media_id/video(), and
+ * podcast_links/PodcastLink/links(), all stay on the model/DB untouched —
+ * only the admin form fields were asked to go, not the underlying data. An
+ * episode's only audio sources now are the Audio File upload
+ * (audio_media_id) and the external Embed URL.
  */
 class PodcastEpisodeForm
 {
@@ -132,19 +118,6 @@ class PodcastEpisodeForm
                                         ])
                                         ->createOptionUsing(fn (array $data): int => Tag::query()->create($data)->getKey())
                                         ->dehydrated(),
-                                ]),
-
-                            Section::make('Streaming Link')
-                                ->description('Where listeners can play this episode.')
-                                ->columns(2)
-                                ->schema([
-                                    Select::make('links.0.provider')
-                                        ->label('Provider')
-                                        ->options(PodcastLinkProvider::options()),
-                                    TextInput::make('links.0.url')
-                                        ->label('URL')
-                                        ->url()
-                                        ->maxLength(255),
                                 ]),
 
                             Section::make('SEO')

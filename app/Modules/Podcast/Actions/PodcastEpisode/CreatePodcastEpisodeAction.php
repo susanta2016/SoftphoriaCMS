@@ -22,13 +22,12 @@ class CreatePodcastEpisodeAction
     {
         return DB::transaction(function () use ($data, $actor): PodcastEpisode {
             $episode = new PodcastEpisode;
-            $episode->fill(collect($data)->except(['links', 'seo', 'categoryIds', 'tagIds'])->all());
+            $episode->fill(collect($data)->except(['seo', 'categoryIds', 'tagIds'])->all());
             $episode->status ??= PodcastEpisodeStatus::Draft;
             $episode->created_by = $actor->getKey();
             $episode->updated_by = $actor->getKey();
             $episode->save();
 
-            $this->syncPrimaryLink($episode, $data['links'] ?? []);
             $this->saveSeo($episode, $data['seo'] ?? []);
             $this->syncCategories($episode, $data['categoryIds'] ?? []);
             $this->syncTags($episode, $data['tagIds'] ?? []);
