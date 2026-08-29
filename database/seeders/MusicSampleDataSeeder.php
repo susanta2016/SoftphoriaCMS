@@ -57,10 +57,17 @@ class MusicSampleDataSeeder extends Seeder
             coverColor: [214, 178, 122],
             isFeatured: true,
             embedVideoUrl: 'https://www.youtube.com/watch?v=qm-sample-001',
+            // provider is legacy metadata only (see MusicLinkProvider's own
+            // docblock) — these keys just avoid duplicate array keys below;
+            // the url is what the custom <audio> player actually plays, so
+            // it must be a direct, browser-playable audio file, never a
+            // provider webpage URL. SoundHelix's example MP3s are a
+            // long-standing, freely-licensed, auth-free source built
+            // specifically for this kind of player demo/testing.
             links: [
-                MusicLinkProvider::Spotify->value => 'https://open.spotify.com/album/quiet-mornings',
-                MusicLinkProvider::AppleMusic->value => 'https://music.apple.com/album/quiet-mornings',
-                MusicLinkProvider::YouTube->value => 'https://www.youtube.com/playlist?list=quiet-mornings',
+                MusicLinkProvider::Spotify->value => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+                MusicLinkProvider::AppleMusic->value => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+                MusicLinkProvider::YouTube->value => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
             ],
             uploader: $uploader,
             tracks: [
@@ -98,8 +105,8 @@ class MusicSampleDataSeeder extends Seeder
             isFeatured: false,
             embedVideoUrl: null,
             links: [
-                MusicLinkProvider::SoundCloud->value => 'https://soundcloud.com/iawarii/sets/return-to-center',
-                MusicLinkProvider::Spotify->value => 'https://open.spotify.com/album/return-to-center',
+                MusicLinkProvider::SoundCloud->value => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
+                MusicLinkProvider::Spotify->value => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
             ],
             uploader: $uploader,
             tracks: [
@@ -117,9 +124,9 @@ class MusicSampleDataSeeder extends Seeder
             isFeatured: true,
             embedVideoUrl: 'https://www.youtube.com/watch?v=presence-sample-001',
             links: [
-                MusicLinkProvider::Spotify->value => 'https://open.spotify.com/track/presence',
-                MusicLinkProvider::AppleMusic->value => 'https://music.apple.com/song/presence',
-                MusicLinkProvider::YouTube->value => 'https://www.youtube.com/watch?v=presence-sample-001',
+                MusicLinkProvider::Spotify->value => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3',
+                MusicLinkProvider::AppleMusic->value => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3',
+                MusicLinkProvider::YouTube->value => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3',
             ],
             uploader: $uploader,
             track: [
@@ -143,7 +150,7 @@ class MusicSampleDataSeeder extends Seeder
             isFeatured: false,
             embedVideoUrl: null,
             links: [
-                MusicLinkProvider::Spotify->value => 'https://open.spotify.com/track/gratitude',
+                MusicLinkProvider::Spotify->value => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3',
             ],
             uploader: $uploader,
             track: [
