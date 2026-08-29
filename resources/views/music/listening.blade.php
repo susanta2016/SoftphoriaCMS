@@ -25,7 +25,7 @@
 @endphp
 
 <x-layouts.site :seo="$seo">
-    <x-site.header :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
+    <x-site.header :transparent="(bool) $topBannerUrl" :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
 
     @if (session('cart_added'))
         <div data-cart-added-modal class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
