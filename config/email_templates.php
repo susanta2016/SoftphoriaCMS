@@ -55,6 +55,18 @@ return [
         'variables' => ['subscriber_email', 'site_name'],
     ],
 
+    'order_confirmation' => [
+        'label' => 'Order Confirmation',
+        'recipients' => ['user'],
+        'variables' => ['user_name', 'order_items', 'order_total', 'account_orders_url', 'site_name'],
+    ],
+
+    'guest_download_access' => [
+        'label' => 'Guest Download Access',
+        'recipients' => ['user'],
+        'variables' => ['order_items', 'order_total', 'download_access_url', 'site_name'],
+    ],
+
     'contact_form_submitted' => [
         'label' => 'Contact Form',
         'recipients' => ['user', 'admin'],

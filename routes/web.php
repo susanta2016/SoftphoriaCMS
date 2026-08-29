@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Account\DashboardController;
+use App\Http\Controllers\Account\OrderController as AccountOrderController;
 use App\Http\Controllers\Account\PasswordController as AccountPasswordController;
 use App\Http\Controllers\Account\ProfileController as AccountProfileController;
 use App\Http\Controllers\Account\SubscriptionController as AccountSubscriptionController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Media\PublicHeroVideoStreamController;
 use App\Http\Controllers\Media\StreamMediaController;
 use App\Http\Controllers\Music\CartController;
 use App\Http\Controllers\Music\CheckoutController;
+use App\Http\Controllers\Music\GuestDownloadController;
 use App\Http\Controllers\Music\MusicController;
 use App\Http\Controllers\Music\TrackDownloadController;
 use App\Http\Controllers\Music\TrackStreamController;
@@ -130,6 +132,12 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
 
     Route::get('/subscription', AccountSubscriptionController::class)->name('subscription');
     Route::get('/transactions', AccountTransactionController::class)->name('transactions');
+
+    // Phase 4: the registered purchaser's digital purchase/download library —
+    // distinct from /account/transactions (the payment/subscription ledger
+    // above, unchanged). Scoped entirely through Auth::user()->orders(); see
+    // OrderController's own docblock.
+    Route::get('/orders', AccountOrderController::class)->name('orders');
 });
 
 // Public Poetry/Prose — fully public once Published (client-confirmed: no
@@ -177,6 +185,26 @@ Route::post('/checkout', [CheckoutController::class, 'process'])
     ->middleware('throttle:6,1')
     ->name('checkout.process');
 Route::get('/checkout/return/{order:public_id}', [CheckoutController::class, 'returnPage'])->name('checkout.return');
+
+// Phase 4: guest download access, reached only via the one-per-order link
+// SendGuestDownloadAccessEmailAction sends once an Order is paid. Two
+// independent gates (emailed token possession + purchase-email knowledge) —
+// see GuestDownloadController's own docblock — with every actual download
+// still going through the existing, unmodified AuthorizeTrackDownloadAction.
+Route::get('/downloads/guest/{order:public_id}', [GuestDownloadController::class, 'show'])->name('downloads.guest.show');
+Route::post('/downloads/guest/{order:public_id}/verify', [GuestDownloadController::class, 'verify'])
+    ->middleware('throttle:6,1')
+    ->name('downloads.guest.verify');
+Route::get('/downloads/guest/{order:public_id}/items', [GuestDownloadController::class, 'items'])->name('downloads.guest.items');
+// withoutScopedBindings(): Order has no tracks() relation for Laravel's
+// automatic parent-scoped implicit binding to call (a guest order's
+// entitlements can cover a whole Album, not a fixed track list) — the
+// controller itself already re-derives which entitlement/token covers this
+// exact track for this exact order, so route-level scoping would be
+// redundant even if it existed.
+Route::get('/downloads/guest/{order:public_id}/tracks/{track:slug}', [GuestDownloadController::class, 'download'])
+    ->withoutScopedBindings()
+    ->name('downloads.guest.track');
 
 // Public CMS page viewer (Stage D) — kept last so it never shadows a more
 // specific route above; PageController itself 404s anything not published.

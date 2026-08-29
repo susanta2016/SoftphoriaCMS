@@ -3,6 +3,8 @@
 namespace App\Modules\Commerce\Actions\Webhook;
 
 use App\Actions\Registration\SendProRegistrationWelcomeEmailAction;
+use App\Modules\Commerce\Actions\Notification\SendGuestDownloadAccessEmailAction;
+use App\Modules\Commerce\Actions\Notification\SendOrderConfirmationEmailAction;
 use App\Modules\Commerce\Actions\Order\MarkOrderPaidAction;
 use App\Modules\Commerce\Enums\PaymentTransactionStatus;
 use App\Modules\Commerce\Enums\PaymentTransactionType;
@@ -28,6 +30,8 @@ class HandleCheckoutSessionCompletedAction
     public function __construct(
         private readonly MarkOrderPaidAction $markOrderPaid,
         private readonly SendProRegistrationWelcomeEmailAction $sendProWelcomeEmail,
+        private readonly SendOrderConfirmationEmailAction $sendOrderConfirmation,
+        private readonly SendGuestDownloadAccessEmailAction $sendGuestDownloadAccess,
     ) {}
 
     public function handle(StripeEvent $event): void
@@ -53,7 +57,18 @@ class HandleCheckoutSessionCompletedAction
             $order->save();
         }
 
-        $this->markOrderPaid->handle($order, (string) $session['payment_intent'], $event->id);
+        $issued = $this->markOrderPaid->handle($order, (string) $session['payment_intent'], $event->id);
+
+        // $issued is [] on a webhook retry (MarkOrderPaidAction's own
+        // provider_event_id idempotency guard) — only send the purchase
+        // email the one time entitlements are actually newly issued, exactly
+        // like SendProRegistrationWelcomeEmailAction's wasJustRegistered
+        // guard on the subscription branch below.
+        if ($issued !== []) {
+            $order->isGuest()
+                ? $this->sendGuestDownloadAccess->handle($order, $issued)
+                : $this->sendOrderConfirmation->handle($order);
+        }
     }
 
     /**
