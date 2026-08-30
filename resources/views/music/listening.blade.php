@@ -273,7 +273,7 @@
 
                     <div class="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-4 lg:grid-cols-[1fr_auto_1fr]">
                         <div class="flex min-w-0 items-center gap-3">
-                            <div class="flex w-52 min-w-0 shrink-0 items-center gap-3">
+                            <div class="flex min-w-0 flex-1 items-center gap-3 lg:w-52 lg:flex-none">
                                 @if ($coverUrl)
                                     <img src="{{ $coverUrl }}" alt="" class="h-12 w-12 shrink-0 rounded-md object-cover">
                                 @endif
@@ -302,7 +302,7 @@
                         </div>
 
                         <div data-music-player-controls class="col-span-2 flex items-center justify-end gap-3 lg:col-span-1 lg:justify-self-end">
-                            <p data-music-player-time class="mr-[60px] shrink-0 text-xs text-brand-navy/50 tabular-nums">0:00 / {{ Duration::format($release['stream_track']->duration_seconds) }}</p>
+                            <p data-music-player-time class="shrink-0 text-xs text-brand-navy/50 tabular-nums lg:mr-[60px]">0:00 / {{ Duration::format($release['stream_track']->duration_seconds) }}</p>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4 shrink-0 text-brand-navy/60"><path d="M3 10v4h4l5 4V6L7 10H3Z" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.5 8.5a5 5 0 0 1 0 7" stroke-linecap="round"/></svg>
                             <input type="range" data-music-player-volume min="0" max="100" value="100" aria-label="Volume" class="h-1 w-20 shrink-0 accent-brand-gold">
                         </div>
