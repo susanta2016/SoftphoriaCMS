@@ -149,6 +149,22 @@
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M12 4v11m0 0 4-4m-4 4-4-4M4 19h16" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                         Download
                                     </a>
+                                @elseif (! $isSingleTrack && $release['tracks']->contains(fn ($track) => $track->audio_media_id !== null))
+                                    @php
+                                        $downloadableTrackUrls = $release['tracks']
+                                            ->filter(fn ($track) => $track->audio_media_id !== null)
+                                            ->map(fn ($track) => route('music.tracks.download', $track))
+                                            ->values();
+                                    @endphp
+                                    <button
+                                        type="button"
+                                        data-music-download-all
+                                        data-music-download-urls="{{ $downloadableTrackUrls->toJson(JSON_UNESCAPED_SLASHES) }}"
+                                        class="inline-flex items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-5 py-3 text-sm font-semibold text-brand-navy transition hover:bg-brand-gold/20 disabled:opacity-60"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M12 4v11m0 0 4-4m-4 4-4-4M4 19h16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        <span data-music-download-label>Download</span>
+                                    </button>
                                 @else
                                     <span class="inline-flex items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-5 py-3 text-sm font-semibold text-brand-navy">
                                         Included with your Pro Membership

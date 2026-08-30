@@ -510,3 +510,49 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchAndSwap(window.location.href, { pushState: false });
     });
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const buttons = Array.from(document.querySelectorAll('[data-music-download-all]'));
+
+    // Each track download is a same-origin GET that responds with
+    // Content-Disposition: attachment, so triggering several in quick
+    // succession downloads each one without navigating away — staggered so
+    // the browser doesn't treat the burst as a popup flood.
+    buttons.forEach((button) => {
+        const label = button.querySelector('[data-music-download-label]');
+        const originalLabel = label?.textContent ?? 'Download';
+
+        let urls = [];
+        try {
+            urls = JSON.parse(button.dataset.musicDownloadUrls || '[]');
+        } catch (e) {
+            urls = [];
+        }
+
+        if (urls.length === 0) return;
+
+        button.addEventListener('click', () => {
+            button.disabled = true;
+
+            urls.forEach((url, index) => {
+                window.setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.rel = 'noopener';
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+
+                    if (label) label.textContent = `Downloading ${index + 1}/${urls.length}…`;
+
+                    if (index === urls.length - 1) {
+                        window.setTimeout(() => {
+                            button.disabled = false;
+                            if (label) label.textContent = originalLabel;
+                        }, 600);
+                    }
+                }, index * 600);
+            });
+        });
+    });
+});

@@ -29,6 +29,11 @@
             'icon' => '<path d="M9 7V5a3 3 0 0 1 6 0v2M5 9h14l-1 11H6L5 9Z" stroke-linejoin="round" stroke-linecap="round"/>',
         ],
         [
+            'route' => 'account.downloads',
+            'label' => 'Downloads',
+            'icon' => '<path d="M12 4v11m0 0 4-4m-4 4-4-4M4 19h16" stroke-linecap="round" stroke-linejoin="round"/>',
+        ],
+        [
             'route' => 'account.transactions',
             'label' => 'Transaction History',
             'icon' => '<path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/>',

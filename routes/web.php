@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Account\DashboardController;
+use App\Http\Controllers\Account\DownloadController as AccountDownloadController;
 use App\Http\Controllers\Account\OrderController as AccountOrderController;
 use App\Http\Controllers\Account\PasswordController as AccountPasswordController;
 use App\Http\Controllers\Account\ProfileController as AccountProfileController;
@@ -137,6 +138,11 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
     // above, unchanged). Scoped entirely through Auth::user()->orders(); see
     // OrderController's own docblock.
     Route::get('/orders', AccountOrderController::class)->name('orders');
+
+    // The registered member's own download history (Purchase + Pro
+    // Membership downloads alike) — see DownloadController's own docblock
+    // for why this is distinct from /account/orders.
+    Route::get('/downloads', AccountDownloadController::class)->name('downloads');
 });
 
 // Public Poetry/Prose — fully public once Published (client-confirmed: no

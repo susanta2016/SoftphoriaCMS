@@ -111,4 +111,49 @@ class TrackDownloadControllerTest extends TestCase
         $this->assertNotFalse($downloadPosition);
         $this->assertLessThan($downloadPosition, $playPosition);
     }
+
+    public function test_the_album_page_shows_a_download_all_button_instead_of_the_included_badge_for_a_pro_member(): void
+    {
+        $user = $this->proMember();
+        $album = $this->readyAlbum();
+
+        $response = $this->actingAs($user)->get(route('music.albums.show', $album));
+
+        $response->assertOk();
+        $response->assertSee('data-music-download-all', false);
+        $response->assertSee(route('music.tracks.download', $album->tracks->first()), false);
+        $response->assertDontSee('Included with your Pro Membership');
+    }
+
+    public function test_an_active_pro_member_can_download_an_album_track_via_the_same_route(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('media/audio/test-track.mp3', 'fake-audio-bytes');
+
+        $user = $this->proMember();
+        $album = $this->readyAlbum();
+
+        $response = $this->actingAs($user)->get(route('music.tracks.download', $album->tracks->first()));
+
+        $response->assertOk();
+        $response->assertHeader('content-disposition');
+
+        $log = DownloadLog::query()->where('status', DownloadLogStatus::Succeeded)->first();
+        $this->assertNotNull($log);
+        $this->assertSame(DownloadAccessType::Membership, $log->access_type);
+        $this->assertSame($album->tracks->first()->getKey(), $log->track_id);
+    }
+
+    public function test_a_non_subscriber_sees_a_buy_button_not_the_download_all_button(): void
+    {
+        $user = $this->admin();
+        $album = $this->readyAlbum();
+
+        $response = $this->actingAs($user)->get(route('music.albums.show', $album));
+
+        $response->assertOk();
+        $response->assertSee('Buy —', false);
+        $response->assertDontSee('data-music-download-all', false);
+        $response->assertDontSee('Included with your Pro Membership');
+    }
 }
