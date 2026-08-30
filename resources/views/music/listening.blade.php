@@ -271,28 +271,28 @@
                 <div data-music-player class="mx-auto mt-10 w-4/5 rounded-xl border border-brand-navy/10 bg-[#fff6ec] p-4 sm:p-5">
                     <audio data-music-player-audio preload="none"></audio>
 
-                    <div class="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-4 lg:grid-cols-[1fr_auto_1fr]">
-                        <div class="flex min-w-0 items-center gap-3">
-                            <div class="flex min-w-0 flex-1 items-center gap-3 lg:w-52 lg:flex-none">
+                    <div class="grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-4 lg:grid-cols-[1fr_auto_1fr] lg:gap-x-4">
+                        <div class="flex min-w-0 items-center gap-2 lg:gap-3">
+                            <div class="flex min-w-0 flex-1 items-center gap-2 lg:w-52 lg:flex-none lg:gap-3">
                                 @if ($coverUrl)
-                                    <img src="{{ $coverUrl }}" alt="" class="h-12 w-12 shrink-0 rounded-md object-cover">
+                                    <img src="{{ $coverUrl }}" alt="" class="h-10 w-10 shrink-0 rounded-md object-cover lg:h-12 lg:w-12">
                                 @endif
                                 <p data-music-player-title class="min-w-0 flex-1 truncate text-sm font-semibold text-brand-navy">{{ $release['stream_track']->title }}</p>
                             </div>
                             <button type="button" data-music-save-toggle data-music-save-id="{{ $release['type'] }}-{{ $release['model']->public_id }}" aria-pressed="false" aria-label="Save" class="shrink-0 text-brand-navy/60 transition hover:text-brand-gold">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3Zm-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05Z"/></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 lg:h-6 lg:w-6"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3Zm-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05Z"/></svg>
                             </button>
                         </div>
 
-                        <div data-music-player-controls class="flex items-center gap-3 justify-self-center">
+                        <div data-music-player-controls class="flex items-center gap-1.5 justify-self-center lg:gap-3">
                             @if (! $isSingleTrack)
                                 <button type="button" data-music-player-prev aria-label="Previous track" class="text-brand-navy/60 transition hover:text-brand-gold">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M5 5h2v14H5zM18 5v14l-9-7z"/></svg>
                                 </button>
                             @endif
-                            <button type="button" data-music-player-play aria-label="Play/pause" class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-brand-gold text-white transition hover:bg-brand-gold-light">
-                                <svg data-music-player-play-icon xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-7 w-7"><path d="M8 5v14l11-7z"/></svg>
-                                <svg data-music-player-pause-icon xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="hidden h-7 w-7"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+                            <button type="button" data-music-player-play aria-label="Play/pause" class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-brand-gold text-white transition hover:bg-brand-gold-light lg:h-14 lg:w-14">
+                                <svg data-music-player-play-icon xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 lg:h-7 lg:w-7"><path d="M8 5v14l11-7z"/></svg>
+                                <svg data-music-player-pause-icon xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="hidden h-5 w-5 lg:h-7 lg:w-7"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
                             </button>
                             @if (! $isSingleTrack)
                                 <button type="button" data-music-player-next aria-label="Next track" class="text-brand-navy/60 transition hover:text-brand-gold">
