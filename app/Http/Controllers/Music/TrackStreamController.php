@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Music;
 use App\Http\Controllers\Controller;
 use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Models\Track;
-use App\Modules\Music\Models\TrackListen;
+use App\Modules\Music\Support\DailyListenQuota;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
@@ -53,13 +53,9 @@ class TrackStreamController extends Controller
         $user = $request->user();
 
         if ($user !== null) {
-            $limit = (int) config('features.registered_user_whole_song_listens_per_day');
-            $listensToday = TrackListen::query()
-                ->where('user_id', $user->id)
-                ->whereDate('created_at', now()->toDateString())
-                ->count();
+            $quota = app(DailyListenQuota::class)->check($user->id);
 
-            abort_if($listensToday >= $limit, 403, 'Daily listening limit reached.');
+            abort_if($quota['reached'], 403, 'Daily listening limit reached.');
 
             return response()->file($path, [
                 'Content-Type' => $media->mime_type,

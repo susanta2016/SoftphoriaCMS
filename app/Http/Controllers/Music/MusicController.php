@@ -15,7 +15,7 @@ use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Single;
 use App\Modules\Music\Models\SongStory;
 use App\Modules\Music\Models\Track;
-use App\Modules\Music\Models\TrackListen;
+use App\Modules\Music\Support\DailyListenQuota;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use App\Shared\Support\Seo\Sitemapable;
@@ -531,18 +531,15 @@ class MusicController extends Controller implements Sitemapable
     private function listeningAccessState(): array
     {
         $user = Auth::user();
-        $dailyLimit = (int) config('features.registered_user_whole_song_listens_per_day');
-
-        $dailyLimitReached = $user !== null && TrackListen::query()
-            ->where('user_id', $user->id)
-            ->whereDate('created_at', now()->toDateString())
-            ->count() >= $dailyLimit;
+        $quota = $user !== null
+            ? app(DailyListenQuota::class)->check($user->id)
+            : ['limit' => (int) config('features.registered_user_whole_song_listens_per_day'), 'reached' => false];
 
         return [
             'is_guest' => $user === null,
             'guest_limit_seconds' => (int) config('features.guest_user_listening_limit_seconds'),
-            'daily_limit' => $dailyLimit,
-            'daily_limit_reached' => $dailyLimitReached,
+            'daily_limit' => $quota['limit'],
+            'daily_limit_reached' => $quota['reached'],
         ];
     }
 

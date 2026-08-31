@@ -342,6 +342,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
     let currentIndex = Math.max(rows.findIndex((row) => row.dataset.musicTrackActive === '1'), 0);
+    // Set the moment a completed listen (this page, or discovered via a
+    // stream request denied from another tab) reaches the server's daily
+    // quota. The single guard every play/next/prev/auto-advance path goes
+    // through — see loadTrack() below — so there is no path left that can
+    // start another track after this is true, and no race with the
+    // reload it schedules.
+    let quotaReached = false;
 
     const formatTime = (seconds) => {
         if (!isFinite(seconds) || seconds < 0) return '0:00';
@@ -374,7 +381,29 @@ document.addEventListener('DOMContentLoaded', () => {
         limitReachedEl?.classList.remove('hidden');
     };
 
+    // The daily quota was just confirmed reached (either by this page's own
+    // completion beacon, or by discovering a live 403 from another tab) —
+    // stop playback for good on this page and hand off to a fresh page load
+    // so every row's data-music-track-* attributes (and the Buy/Included
+    // state, etc.) are rebuilt from the server's current quota state.
+    const enterQuotaReachedState = () => {
+        if (quotaReached) return;
+        quotaReached = true;
+
+        audio?.pause();
+        if (audio) {
+            audio.removeAttribute('src');
+            audio.load();
+        }
+        setPlayingState(false);
+        showLimitReached();
+
+        window.setTimeout(() => window.location.reload(), 2500);
+    };
+
     const loadTrack = (index, autoplay) => {
+        if (quotaReached) return;
+
         const row = rows[index];
         if (!audio || !row) return;
 
@@ -404,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     playButtons.forEach((button) => {
         button.addEventListener('click', () => {
-            if (!audio) return;
+            if (!audio || quotaReached) return;
             if (!audio.src) { loadTrack(currentIndex, true); return; }
             if (audio.paused) audio.play().catch(() => {}); else audio.pause();
         });
@@ -420,7 +449,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (seek) seek.value = (audio.currentTime / audio.duration) * 100;
         timeEl.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
     });
-    audio?.addEventListener('ended', () => {
+    audio?.addEventListener('ended', async () => {
+        if (quotaReached) return;
+
         const row = rows[currentIndex];
 
         // A guest's own request for this track was already hard-truncated by
@@ -429,10 +460,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (row?.dataset.musicTrackGuestLimited === '1') {
             guestEndedEl?.classList.remove('hidden');
         } else if (row?.dataset.musicTrackCompleteUrl && csrfToken) {
-            fetch(row.dataset.musicTrackCompleteUrl, {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-            }).catch(() => {});
+            try {
+                const response = await fetch(row.dataset.musicTrackCompleteUrl, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.limit_reached) {
+                        enterQuotaReachedState();
+                        return;
+                    }
+                }
+            } catch (e) {
+                // Recording the listen failed over the network — fall through
+                // to the normal auto-advance; TrackStreamController remains
+                // the real authority on the next actual stream request
+                // either way, so nothing is bypassed by this failing silently.
+            }
         }
 
         if (currentIndex < rows.length - 1) loadTrack(currentIndex + 1, true);
@@ -441,11 +487,37 @@ document.addEventListener('DOMContentLoaded', () => {
     // unsupported format, or the daily limit denying the request server-side)
     // — not fired when we deliberately have no src, since audio.src reads
     // back empty once removeAttribute('src') is used.
-    audio?.addEventListener('error', () => {
-        if (!audio.src) return;
+    audio?.addEventListener('error', async () => {
+        if (!audio.src || quotaReached) return;
         setPlayingState(false);
+
         const row = rows[currentIndex];
-        if (row?.dataset.musicTrackLimitReached === '1') showLimitReached(); else showFallback(true);
+
+        if (row?.dataset.musicTrackLimitReached === '1') {
+            showLimitReached();
+            return;
+        }
+
+        // A registered listener's row whose src was still stale (rendered
+        // before the quota was reached, e.g. reached from another tab) can
+        // fail for that reason without app.js knowing yet — <audio>'s error
+        // event never exposes an HTTP status, so verify with one lightweight
+        // HEAD request rather than assume. Guest rows never reach this
+        // (they have no complete-url) and keep the existing generic fallback.
+        if (row?.dataset.musicTrackCompleteUrl) {
+            try {
+                const check = await fetch(row.dataset.musicTrackSrc, { method: 'HEAD' });
+                if (check.status === 403) {
+                    enterQuotaReachedState();
+                    return;
+                }
+            } catch (e) {
+                // Couldn't verify the cause — fall through to the generic
+                // fallback below rather than guess.
+            }
+        }
+
+        showFallback(true);
     });
     seek?.addEventListener('input', () => {
         if (audio?.duration) audio.currentTime = (seek.value / 100) * audio.duration;
