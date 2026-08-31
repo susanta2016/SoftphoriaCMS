@@ -42,11 +42,15 @@ class MediaPicker
 {
     public const int PER_PAGE = 24;
 
+    /**
+     * @param  array<int, Component>  $extraSchema  Additional components rendered inside this same Fieldset, after the picker's own actions — e.g. a read-only detail about the selected file. Empty by default; every existing call site is unaffected.
+     */
     public static function make(
         string $name,
         string $label,
         MediaCategory $category = MediaCategory::Image,
         bool $multiple = false,
+        array $extraSchema = [],
     ): Fieldset {
         return Fieldset::make($label)
             ->columns(1)
@@ -60,6 +64,7 @@ class MediaPicker
                     self::selectAction($name, $category, $multiple),
                     self::clearAction($name, $multiple),
                 ])->key(self::actionKey($name).'__actions'),
+                ...$extraSchema,
             ]);
     }
 

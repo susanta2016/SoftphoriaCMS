@@ -6,7 +6,6 @@ use App\Filament\Support\Seo\SeoFields;
 use App\Models\User;
 use App\Modules\Music\Actions\Album\UpdateAlbumAction;
 use App\Modules\Music\Filament\Resources\Albums\AlbumResource;
-use App\Modules\Music\Models\MusicStreamingLink;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -29,17 +28,11 @@ class EditAlbum extends EditRecord
     }
 
     /**
-     * links/seo aren't real form-bound relationships (see AlbumForm's
-     * docblock), so their state has to be filled in manually.
+     * seo isn't a real form-bound relationship (see AlbumForm's docblock),
+     * so its state has to be filled in manually.
      */
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $data['links'] = $this->record->streamingLinks
-            ->map(fn (MusicStreamingLink $link): array => [
-                'url' => $link->url,
-            ])
-            ->all();
-
         $seo = $this->record->seo;
         $storedCanonicalUrl = $seo->canonical_url ?? null;
         $path = 'music/'.(string) ($this->record->slug ?? '');

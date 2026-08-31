@@ -6,7 +6,6 @@ use App\Filament\Support\Seo\SeoFields;
 use App\Models\User;
 use App\Modules\Music\Actions\Single\UpdateSingleAction;
 use App\Modules\Music\Filament\Resources\Singles\SingleResource;
-use App\Modules\Music\Models\MusicStreamingLink;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -28,14 +27,12 @@ class EditSingle extends EditRecord
         return [];
     }
 
+    /**
+     * seo isn't a real form-bound relationship (see AlbumForm's docblock),
+     * so its state has to be filled in manually.
+     */
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $data['links'] = $this->record->streamingLinks
-            ->map(fn (MusicStreamingLink $link): array => [
-                'url' => $link->url,
-            ])
-            ->all();
-
         $seo = $this->record->seo;
         $storedCanonicalUrl = $seo->canonical_url ?? null;
         $path = 'music/'.(string) ($this->record->slug ?? '');

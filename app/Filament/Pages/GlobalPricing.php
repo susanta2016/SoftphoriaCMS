@@ -56,7 +56,7 @@ class GlobalPricing extends Page
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->components(array_filter([
             Section::make('Music')
                 ->description('Prices shown wherever a track or album can be purchased.')
                 ->schema([
@@ -75,24 +75,29 @@ class GlobalPricing extends Page
                         ->step(0.01)
                         ->required(),
                 ]),
-            Section::make('Membership')
-                ->schema([
-                    TextInput::make('pro_member_monthly_price')
-                        ->label('Pro Member')
-                        ->prefix('$')
-                        ->suffix('/ month')
-                        ->numeric()
-                        ->minValue(0)
-                        ->step(0.01)
-                        ->required(),
-                    Textarea::make('pro_member_cancellation_note')
-                        ->label('Cancellation Information')
-                        ->rows(3)
-                        ->maxLength(1000)
-                        ->helperText('Shown to visitors alongside the "Become a Pro Member" registration option.')
-                        ->columnSpanFull(),
-                ]),
-        ]);
+            // Phase 1: no paid membership — hidden, not deleted, so Phase 2
+            // just flips config('features.member_subscription_enabled')
+            // back on. See save()'s matching guard below.
+            config('features.member_subscription_enabled')
+                ? Section::make('Membership')
+                    ->schema([
+                        TextInput::make('pro_member_monthly_price')
+                            ->label('Pro Member')
+                            ->prefix('$')
+                            ->suffix('/ month')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(0.01)
+                            ->required(),
+                        Textarea::make('pro_member_cancellation_note')
+                            ->label('Cancellation Information')
+                            ->rows(3)
+                            ->maxLength(1000)
+                            ->helperText('Shown to visitors alongside the "Become a Pro Member" registration option.')
+                            ->columnSpanFull(),
+                    ])
+                : null,
+        ]));
     }
 
     public function content(Schema $schema): Schema
@@ -118,8 +123,14 @@ class GlobalPricing extends Page
 
         $settings->set('pricing', 'music_per_song_price', $state['music_per_song_price']);
         $settings->set('pricing', 'full_album_price', $state['full_album_price']);
-        $settings->set('pricing', 'pro_member_monthly_price', $state['pro_member_monthly_price']);
-        $settings->set('pricing', 'pro_member_cancellation_note', $state['pro_member_cancellation_note']);
+
+        // The Membership section isn't in $state at all when the flag is
+        // off (form() never built it) — leave the stored values untouched
+        // rather than error on a missing key or silently wipe them.
+        if (config('features.member_subscription_enabled')) {
+            $settings->set('pricing', 'pro_member_monthly_price', $state['pro_member_monthly_price']);
+            $settings->set('pricing', 'pro_member_cancellation_note', $state['pro_member_cancellation_note']);
+        }
 
         $this->recordAudit(array_keys($state));
 

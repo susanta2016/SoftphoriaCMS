@@ -13,7 +13,6 @@ use App\Modules\Music\Models\Single;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -31,7 +30,8 @@ use Illuminate\Support\Str;
  * See Album's AlbumForm — identical shape (Single mirrors Album's
  * release-level fields exactly per Master Scope Specification §8.1). The
  * song itself (lyrics/song story/credits/details) is added separately under
- * Music > Tracks once this single is saved, same as an album's tracks.
+ * Music > Tracks once this single is saved, same as an album's tracks. No
+ * Streaming Links field — see AlbumForm's docblock for why.
  */
 class SingleForm
 {
@@ -76,27 +76,8 @@ class SingleForm
                                 ]),
 
                             Section::make('Song')
-                                ->description('Add this single\'s song — lyrics, song story, credits — under Music > Tracks once it\'s saved.')
+                                ->description('Add this single\'s song — lyrics, song story, credits, and its own uploaded audio file — under Music > Tracks once it\'s saved. Playback uses that uploaded audio file, not an external link.')
                                 ->schema([]),
-
-                            Section::make('Streaming Links')
-                                ->description('Where listeners can play this single.')
-                                ->schema([
-                                    Repeater::make('links')
-                                        ->hiddenLabel()
-                                        ->reorderable()
-                                        ->defaultItems(0)
-                                        ->addActionLabel('Add streaming link')
-                                        ->itemLabel(fn (?int $index): ?string => 'Streaming Link #'.($index + 1))
-                                        ->schema([
-                                            TextInput::make('url')
-                                                ->label('Audio Stream URL')
-                                                ->url()
-                                                ->required()
-                                                ->maxLength(255)
-                                                ->helperText('Enter a direct audio-stream URL (MP3, M4A, or another browser-supported audio format). This URL is used by the website\'s custom audio player. Spotify, Apple Music, YouTube, and SoundCloud webpage URLs are not supported for inline playback.'),
-                                        ]),
-                                ]),
 
                             Section::make('SEO')
                                 ->description('Independent per-single metadata (title, description, canonical, Open Graph, Twitter card, structured data).')

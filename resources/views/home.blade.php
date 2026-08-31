@@ -1,12 +1,22 @@
 @php
     $bannerUrl = $hero['media'] ? \Illuminate\Support\Facades\Storage::disk($hero['media']->disk)->url($hero['media']->path) : null;
 
-    $comments = [
-        ['name' => 'Sophia R.', 'time' => '2h ago', 'quote' => 'This reflection really spoke to my heart today.', 'initials' => 'SR', 'color' => 'bg-rose-100 text-rose-700'],
-        ['name' => 'Daniel M.', 'time' => '4h ago', 'quote' => "Jacob's words have a way of bringing so much clarity.", 'initials' => 'DM', 'color' => 'bg-sky-100 text-sky-700'],
-        ['name' => 'Maria L.', 'time' => '6h ago', 'quote' => "The new song 'Here I Am' is pure peace. Thank you!", 'initials' => 'ML', 'color' => 'bg-amber-100 text-amber-700'],
-        ['name' => 'James T.', 'time' => '5h ago', 'quote' => 'Grateful for this space and this beautiful community.', 'initials' => 'JT', 'color' => 'bg-emerald-100 text-emerald-700'],
-    ];
+    // Real public Light Posts (registration's "Share My Light" prompt) —
+    // reuses this existing "Latest Community Comments" display slot rather
+    // than a parallel mechanism.
+    $lightPostColors = ['bg-rose-100 text-rose-700', 'bg-sky-100 text-sky-700', 'bg-amber-100 text-amber-700', 'bg-emerald-100 text-emerald-700'];
+    $comments = $lightPosts->values()->map(function ($post, $index) use ($lightPostColors) {
+        $name = $post->user?->name ?: 'A Member';
+        $initials = collect(preg_split('/\s+/', trim($name)))->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))->take(2)->implode('');
+
+        return [
+            'name' => $name,
+            'time' => $post->created_at->diffForHumans(),
+            'quote' => $post->content,
+            'initials' => $initials !== '' ? $initials : '?',
+            'color' => $lightPostColors[$index % count($lightPostColors)],
+        ];
+    });
 @endphp
 
 <x-layouts.site :seo="$seo">
@@ -90,38 +100,40 @@
         </div>
     </div>
 
-    <div class="relative z-10 mx-auto -mt-14 max-w-7xl px-4 sm:-mt-16 sm:px-6 lg:px-8">
-        <div class="rounded-2xl bg-white p-5 shadow-xl ring-1 ring-brand-navy/5 sm:p-7">
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-2 text-brand-navy">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="h-5 w-5 text-brand-gold">
-                        <path d="M21 12a8 8 0 1 1-3.2-6.4L21 4l-1 3.5A8 8 0 0 1 21 12Z" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <h2 class="text-xs font-semibold tracking-wider uppercase">Latest Community Comments</h2>
+    @if ($comments->isNotEmpty())
+        <div class="relative z-10 mx-auto -mt-14 max-w-7xl px-4 sm:-mt-16 sm:px-6 lg:px-8">
+            <div class="rounded-2xl bg-white p-5 shadow-xl ring-1 ring-brand-navy/5 sm:p-7">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-2 text-brand-navy">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="h-5 w-5 text-brand-gold">
+                            <path d="M21 12a8 8 0 1 1-3.2-6.4L21 4l-1 3.5A8 8 0 0 1 21 12Z" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <h2 class="text-xs font-semibold tracking-wider uppercase">Latest Community Comments</h2>
+                    </div>
+                    <a href="#" class="hidden shrink-0 text-sm font-medium text-brand-gold transition hover:text-brand-navy sm:inline-block">
+                        Join the conversation →
+                    </a>
                 </div>
-                <a href="#" class="hidden shrink-0 text-sm font-medium text-brand-gold transition hover:text-brand-navy sm:inline-block">
-                    Join the conversation →
-                </a>
-            </div>
 
-            <ul class="mt-5 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
-                @foreach ($comments as $comment)
-                    <li class="w-64 shrink-0 snap-start rounded-xl border border-brand-navy/10 p-4 sm:w-auto">
-                        <div class="flex items-center gap-2.5">
-                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold {{ $comment['color'] }}" aria-hidden="true">
-                                {{ $comment['initials'] }}
-                            </span>
-                            <div class="min-w-0">
-                                <p class="truncate text-sm font-semibold text-brand-navy">{{ $comment['name'] }}</p>
-                                <p class="text-xs text-brand-navy/50">{{ $comment['time'] }}</p>
+                <ul class="mt-5 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
+                    @foreach ($comments as $comment)
+                        <li class="w-64 shrink-0 snap-start rounded-xl border border-brand-navy/10 p-4 sm:w-auto">
+                            <div class="flex items-center gap-2.5">
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold {{ $comment['color'] }}" aria-hidden="true">
+                                    {{ $comment['initials'] }}
+                                </span>
+                                <div class="min-w-0">
+                                    <p class="truncate text-sm font-semibold text-brand-navy">{{ $comment['name'] }}</p>
+                                    <p class="text-xs text-brand-navy/50">{{ $comment['time'] }}</p>
+                                </div>
                             </div>
-                        </div>
-                        <p class="mt-3 text-sm text-brand-navy/75">&ldquo;{{ $comment['quote'] }}&rdquo;</p>
-                    </li>
-                @endforeach
-            </ul>
+                            <p class="mt-3 text-sm text-brand-navy/75">&ldquo;{{ $comment['quote'] }}&rdquo;</p>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
         </div>
-    </div>
+    @endif
 
     <div class="h-7 bg-white sm:h-10" aria-hidden="true"></div>
 

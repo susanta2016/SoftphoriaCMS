@@ -20,11 +20,10 @@ class UpdateSingleAction
     public function handle(Single $single, array $data, User $actor): Single
     {
         return DB::transaction(function () use ($single, $data, $actor): Single {
-            $single->fill(collect($data)->except(['links', 'seo'])->all());
+            $single->fill(collect($data)->except(['seo'])->all());
             $single->updated_by = $actor->getKey();
             $single->save();
 
-            $this->syncStreamingLinks($single, $data['links'] ?? []);
             $this->saveMusicSeo($single, $data['seo'] ?? []);
 
             $this->auditLog->record($actor, 'single.updated', $single, ['title' => $single->title]);

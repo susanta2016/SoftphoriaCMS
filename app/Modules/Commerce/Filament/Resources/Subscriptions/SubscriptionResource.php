@@ -35,10 +35,14 @@ class SubscriptionResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'stripe_subscription_id';
 
-    // Temporary presentation-mode hide — UI only, see config/admin_ui.php.
+    // Phase 1: no paid membership — UI only, see config/features.php. Also
+    // still subject to the broader Commerce menu presentation switch
+    // (config/admin_ui.php), unlike Orders/Entitlements/Download History,
+    // which stay visible under that flag regardless of this one (Phase 1
+    // still sells individual Singles/Albums).
     public static function shouldRegisterNavigation(): bool
     {
-        return config('admin_ui.show_commerce_menu');
+        return config('admin_ui.show_commerce_menu') && config('features.member_subscription_enabled');
     }
 
     public static function infolist(Schema $schema): Schema

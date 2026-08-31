@@ -19,7 +19,7 @@ class TracksTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['audio', 'video']))
+            ->modifyQueryUsing(fn ($query) => $query->with(['audio']))
             ->columns([
                 TextColumn::make('title')
                     ->searchable()
@@ -35,17 +35,6 @@ class TracksTable
                     ->getStateUsing(fn (Track $record): HtmlString => $record->audio
                         ? MediaPreview::audioPlayer($record->audio)
                         : MediaPreview::empty('No audio')),
-                TextColumn::make('video_preview')
-                    ->label('Video')
-                    ->html()
-                    // Same admin-only mechanism/guarantees as the Audio
-                    // column above — distinct from video_embed_url, which
-                    // is always an external reference, never this source.
-                    ->getStateUsing(fn (Track $record): HtmlString => $record->video
-                        ? MediaPreview::videoPlayer($record->video)
-                        : MediaPreview::empty('No video'))
-                    // Temporary presentation-mode hide — UI only, see config/admin_ui.php.
-                    ->visible(fn (): bool => config('admin_ui.show_video_fields')),
                 TextColumn::make('release')
                     ->label('Release')
                     ->state(fn ($record): string => $record->album ? 'Album' : 'Single')

@@ -1,4 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const textarea = document.querySelector('[data-light-post-textarea]');
+    const counter = document.querySelector('[data-light-post-counter]');
+
+    if (!textarea || !counter) return;
+
+    const maxLength = Number(textarea.getAttribute('maxlength')) || 0;
+
+    const update = () => {
+        counter.textContent = `${textarea.value.length} / ${maxLength}`;
+    };
+
+    textarea.addEventListener('input', update);
+    update();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
     const toggle = document.querySelector('[data-mobile-menu-toggle]');
     const menu = document.querySelector('[data-mobile-menu]');
 
@@ -321,6 +337,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextButton = player?.querySelector('[data-music-player-next]');
     const controlEls = player ? Array.from(player.querySelectorAll('[data-music-player-controls]')) : [];
     const fallbackEl = player?.querySelector('[data-music-player-fallback]');
+    const guestEndedEl = player?.querySelector('[data-music-player-guest-ended]');
+    const limitReachedEl = player?.querySelector('[data-music-player-limit-reached]');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
     let currentIndex = Math.max(rows.findIndex((row) => row.dataset.musicTrackActive === '1'), 0);
 
@@ -338,9 +357,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const hideMessages = () => {
+        fallbackEl?.classList.add('hidden');
+        guestEndedEl?.classList.add('hidden');
+        limitReachedEl?.classList.add('hidden');
+    };
+
     const showFallback = (isFallback) => {
         controlEls.forEach((el) => el.classList.toggle('hidden', isFallback));
-        fallbackEl?.classList.toggle('hidden', !isFallback);
+        if (isFallback) { hideMessages(); fallbackEl?.classList.remove('hidden'); }
+    };
+
+    const showLimitReached = () => {
+        controlEls.forEach((el) => el.classList.add('hidden'));
+        hideMessages();
+        limitReachedEl?.classList.remove('hidden');
     };
 
     const loadTrack = (index, autoplay) => {
@@ -353,11 +384,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         audio.pause();
         setPlayingState(false);
+        hideMessages();
 
         const src = row.dataset.musicTrackSrc;
         if (!src) {
             audio.removeAttribute('src');
-            showFallback(true);
+            if (row.dataset.musicTrackLimitReached === '1') showLimitReached(); else showFallback(true);
             return;
         }
 
@@ -389,15 +421,31 @@ document.addEventListener('DOMContentLoaded', () => {
         timeEl.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
     });
     audio?.addEventListener('ended', () => {
+        const row = rows[currentIndex];
+
+        // A guest's own request for this track was already hard-truncated by
+        // the server (TrackStreamController) — the clip simply ran out, this
+        // is not a real completed listen, so no beacon is ever sent here.
+        if (row?.dataset.musicTrackGuestLimited === '1') {
+            guestEndedEl?.classList.remove('hidden');
+        } else if (row?.dataset.musicTrackCompleteUrl && csrfToken) {
+            fetch(row.dataset.musicTrackCompleteUrl, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            }).catch(() => {});
+        }
+
         if (currentIndex < rows.length - 1) loadTrack(currentIndex + 1, true);
     });
-    // A real load/playback failure of a configured streaming URL (bad host,
-    // 404, unsupported format) — not fired when we deliberately have no src,
-    // since audio.src reads back empty once removeAttribute('src') is used.
+    // A real load/playback failure of the native audio source (bad file,
+    // unsupported format, or the daily limit denying the request server-side)
+    // — not fired when we deliberately have no src, since audio.src reads
+    // back empty once removeAttribute('src') is used.
     audio?.addEventListener('error', () => {
         if (!audio.src) return;
         setPlayingState(false);
-        showFallback(true);
+        const row = rows[currentIndex];
+        if (row?.dataset.musicTrackLimitReached === '1') showLimitReached(); else showFallback(true);
     });
     seek?.addEventListener('input', () => {
         if (audio?.duration) audio.currentTime = (seek.value / 100) * audio.duration;

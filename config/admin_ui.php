@@ -4,21 +4,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Show Video Fields (Admin)
+    | Show Video Fields (Admin) — now unused, kept for a possible Phase 2
     |--------------------------------------------------------------------------
     |
-    | Temporary presentation-mode switch, Track (Music) only. When false,
-    | the Video MediaPicker field and "Video" preview column are not
-    | rendered on the Track admin screens — UI visibility only.
-    | video_media_id, the Video MediaPicker/MediaCategory, storage, and all
-    | Video data stay fully intact; flip this back to true (or unset the
-    | env var) to restore the admin UI, no rebuild required.
-    |
-    | Podcast Episode is NOT gated by this flag. The client permanently
-    | rejected Video for Episodes (2026-08-24, a confirmed product
-    | requirement, not a presentation setting) — its Video field/column are
-    | removed outright from PodcastEpisodeForm/PodcastEpisodesTable and do
-    | not respond to this env var at all.
+    | Formerly gated the Video MediaPicker field/"Video" preview column on
+    | the Track (Music) admin screens. As of 2026-08-31, Track's Video File
+    | option was removed outright (client decision, same treatment Podcast
+    | Episode's Video already had — see PodcastEpisodeVideoHiddenTest) — no
+    | code reads this key anymore. video_media_id, the Video
+    | MediaPicker/MediaCategory, storage, and all existing Video data stay
+    | fully intact in the database; only the admin form/table UI is gone.
+    | Left here rather than deleted in case a future task wants it back —
+    | confirm with the client before either restoring the UI or deleting
+    | this key and video_media_id together.
     |
     */
 

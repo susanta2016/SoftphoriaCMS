@@ -32,7 +32,7 @@ class SingleTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_admin_can_create_a_single_with_links_and_seo(): void
+    public function test_admin_can_create_a_single_with_seo(): void
     {
         Livewire::actingAs($this->admin())
             ->test(CreateSingle::class)
@@ -42,9 +42,6 @@ class SingleTest extends TestCase
                 'description' => 'A single about stillness.',
                 'status' => ReleaseStatus::Published->value,
                 'is_featured' => true,
-                'links' => [
-                    ['url' => 'https://cdn.example.com/audio/still-water.mp3'],
-                ],
                 'seo' => ['meta_title' => 'Still Water'],
             ])
             ->call('create')
@@ -53,9 +50,30 @@ class SingleTest extends TestCase
         $single = Single::query()->where('slug', 'still-water')->firstOrFail();
 
         $this->assertTrue($single->is_featured);
-        $this->assertCount(1, $single->streamingLinks);
-        $this->assertSame('https://cdn.example.com/audio/still-water.mp3', $single->streamingLinks->first()->url);
         $this->assertSame('Still Water', $single->seo->meta_title);
+    }
+
+    /**
+     * Streaming Links removed from the Single admin form — see AlbumTest's
+     * matching test for the full reasoning.
+     */
+    public function test_the_single_form_no_longer_has_a_streaming_links_section(): void
+    {
+        Livewire::actingAs($this->admin())
+            ->test(CreateSingle::class)
+            ->assertFormFieldDoesNotExist('links')
+            ->fillForm([
+                'title' => 'No Streaming Links Single',
+                'slug' => 'no-streaming-links-single',
+                'status' => ReleaseStatus::Published->value,
+                'links' => [['url' => 'https://cdn.example.com/audio/ignored.mp3']],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $single = Single::query()->where('slug', 'no-streaming-links-single')->firstOrFail();
+
+        $this->assertCount(0, $single->streamingLinks);
     }
 
     public function test_admin_can_view_the_single_list(): void

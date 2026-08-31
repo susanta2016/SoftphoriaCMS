@@ -22,13 +22,12 @@ class CreateAlbumAction
     {
         return DB::transaction(function () use ($data, $actor): Album {
             $album = new Album;
-            $album->fill(collect($data)->except(['links', 'seo'])->all());
+            $album->fill(collect($data)->except(['seo'])->all());
             $album->status ??= ReleaseStatus::Draft;
             $album->created_by = $actor->getKey();
             $album->updated_by = $actor->getKey();
             $album->save();
 
-            $this->syncStreamingLinks($album, $data['links'] ?? []);
             $this->saveMusicSeo($album, $data['seo'] ?? []);
 
             $this->auditLog->record($actor, 'album.created', $album, ['title' => $album->title]);

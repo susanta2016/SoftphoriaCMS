@@ -7,6 +7,7 @@ use App\Enums\PageStatus;
 use App\Enums\PageTemplate;
 use App\Models\Media;
 use App\Models\Page;
+use App\Models\User;
 use App\Modules\Music\Enums\ReleaseStatus;
 use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Models\Album;
@@ -14,6 +15,7 @@ use App\Modules\Music\Models\Lyrics;
 use App\Modules\Music\Models\Single;
 use App\Modules\Music\Models\SongStory;
 use App\Modules\Music\Models\Track;
+use App\Modules\Music\Models\TrackListen;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -480,7 +482,7 @@ class MusicControllerTest extends TestCase
         $response->assertSee(route('music.index'), false);
     }
 
-    public function test_a_singles_track_row_uses_the_streaming_link_as_the_direct_playback_source(): void
+    public function test_a_singles_track_row_never_uses_the_streaming_link_as_the_playback_source(): void
     {
         $single = $this->single(['status' => ReleaseStatus::Published]);
         $this->track(null, $single, ['status' => TrackStatus::Published]);
@@ -489,27 +491,28 @@ class MusicControllerTest extends TestCase
         $response = $this->get(route('music.singles.show', $single));
 
         $response->assertOk();
-        $response->assertSee('data-music-track-src="https://cdn.example.com/music/presence.mp3"', false);
+        $response->assertDontSee('data-music-track-src="https://cdn.example.com/music/presence.mp3"', false);
     }
 
-    public function test_a_track_row_never_uses_the_uploaded_audio_file_as_the_playback_source(): void
+    public function test_a_track_row_uses_its_own_uploaded_audio_file_as_the_playback_source(): void
     {
         $single = $this->single(['status' => ReleaseStatus::Published]);
         $media = $this->audioMedia();
-        $this->track(null, $single, ['status' => TrackStatus::Published, 'audio_media_id' => $media->id]);
+        $track = $this->track(null, $single, ['status' => TrackStatus::Published, 'audio_media_id' => $media->id]);
         $single->streamingLinks()->create(['provider' => 'other', 'url' => 'https://cdn.example.com/music/presence.mp3', 'sort_order' => 0]);
 
         $response = $this->get(route('music.singles.show', $single));
 
         $response->assertOk();
-        $response->assertSee('data-music-track-src="https://cdn.example.com/music/presence.mp3"', false);
+        $response->assertSee('data-music-track-src="'.route('music.tracks.stream', $track).'"', false);
+        $response->assertDontSee('cdn.example.com', false);
     }
 
-    public function test_a_track_row_has_no_playback_source_when_the_release_has_no_streaming_link(): void
+    public function test_a_track_row_has_no_playback_source_when_it_has_no_uploaded_audio_file(): void
     {
         $single = $this->single(['status' => ReleaseStatus::Published]);
-        $media = $this->audioMedia();
-        $this->track(null, $single, ['status' => TrackStatus::Published, 'audio_media_id' => $media->id]);
+        $single->streamingLinks()->create(['provider' => 'other', 'url' => 'https://cdn.example.com/music/presence.mp3', 'sort_order' => 0]);
+        $this->track(null, $single, ['status' => TrackStatus::Published]);
 
         $response = $this->get(route('music.singles.show', $single));
 
@@ -517,20 +520,53 @@ class MusicControllerTest extends TestCase
         $response->assertDontSee('data-music-track-src', false);
     }
 
-    public function test_an_albums_track_rows_all_share_the_albums_streaming_link(): void
+    public function test_an_albums_track_rows_each_use_their_own_uploaded_audio_file(): void
     {
         $album = $this->album(['status' => ReleaseStatus::Published]);
-        $this->track($album, null, ['title' => 'Track One', 'status' => TrackStatus::Published, 'track_number' => 1]);
-        $this->track($album, null, ['title' => 'Track Two', 'slug' => 'track-two', 'status' => TrackStatus::Published, 'track_number' => 2]);
+        $media1 = $this->audioMedia();
+        $media2 = $this->audioMedia();
+        $trackOne = $this->track($album, null, ['title' => 'Track One', 'status' => TrackStatus::Published, 'track_number' => 1, 'audio_media_id' => $media1->id]);
+        $trackTwo = $this->track($album, null, ['title' => 'Track Two', 'slug' => 'track-two', 'status' => TrackStatus::Published, 'track_number' => 2, 'audio_media_id' => $media2->id]);
         $album->streamingLinks()->create(['provider' => 'other', 'url' => 'https://cdn.example.com/music/album-stream.mp3', 'sort_order' => 0]);
 
         $response = $this->get(route('music.albums.show', $album));
 
         $response->assertOk();
-        $this->assertSame(
-            2,
-            substr_count($response->getContent(), 'data-music-track-src="https://cdn.example.com/music/album-stream.mp3"')
-        );
+        $response->assertSee('data-music-track-src="'.route('music.tracks.stream', $trackOne).'"', false);
+        $response->assertSee('data-music-track-src="'.route('music.tracks.stream', $trackTwo).'"', false);
+        $response->assertDontSee('cdn.example.com', false);
+    }
+
+    public function test_a_guest_limited_track_row_carries_the_guest_limited_flag(): void
+    {
+        config(['features.guest_user_listening_limit_seconds' => 30]);
+        $single = $this->single(['status' => ReleaseStatus::Published]);
+        $media = $this->audioMedia();
+        $this->track(null, $single, ['status' => TrackStatus::Published, 'audio_media_id' => $media->id, 'duration_seconds' => 200]);
+
+        $response = $this->get(route('music.singles.show', $single));
+
+        $response->assertOk();
+        $response->assertSee('data-music-track-guest-limited="1"', false);
+    }
+
+    public function test_a_registered_user_at_their_daily_limit_sees_no_playback_source_and_a_clear_message(): void
+    {
+        config(['features.registered_user_whole_song_listens_per_day' => 5]);
+        $single = $this->single(['status' => ReleaseStatus::Published]);
+        $media = $this->audioMedia();
+        $track = $this->track(null, $single, ['status' => TrackStatus::Published, 'audio_media_id' => $media->id]);
+
+        $user = User::factory()->create();
+        for ($i = 0; $i < 5; $i++) {
+            TrackListen::query()->create(['user_id' => $user->id, 'track_id' => $track->id]);
+        }
+
+        $response = $this->actingAs($user)->get(route('music.singles.show', $single));
+
+        $response->assertOk();
+        $response->assertDontSee('data-music-track-src', false);
+        $response->assertSee("You've reached your 5 listens for today", false);
     }
 
     private function audioMedia(): Media

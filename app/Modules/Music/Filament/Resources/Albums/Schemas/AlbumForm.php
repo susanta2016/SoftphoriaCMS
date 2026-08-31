@@ -13,7 +13,6 @@ use App\Modules\Music\Models\Album;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -28,10 +27,12 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 
 /**
- * Streaming links are a plain array field (not a Filament relationship
- * repeater) so Create/UpdateAlbumAction — not Filament's automatic
- * relationship save — own reconciling music_streaming_links, same reasoning
- * as Podcast's PodcastEpisodeForm.
+ * No Streaming Links field (removed 2026-08-31): native playback now uses
+ * each Track's own uploaded audio file exclusively (see
+ * TrackStreamController), so an Album-level external streaming URL is no
+ * longer meaningful to collect here. The underlying music_streaming_links
+ * table/MusicStreamingLink model/MusicLinkProvider enum are left in place
+ * (unused, not deleted) — client-approved UI removal only.
  */
 class AlbumForm
 {
@@ -83,27 +84,8 @@ class AlbumForm
                                 ]),
 
                             Section::make('Tracks')
-                                ->description('Manage this album\'s tracks — including reordering — below once it\'s saved. Full song editing (lyrics, story, credits) is under Music > Tracks.')
+                                ->description('Manage this album\'s tracks — including reordering — below once it\'s saved. Full song editing (lyrics, story, credits, and each song\'s own uploaded audio file) is under Music > Tracks. Playback uses each track\'s own uploaded audio file, not an external link.')
                                 ->schema([]),
-
-                            Section::make('Streaming Links')
-                                ->description('Where listeners can play this album.')
-                                ->schema([
-                                    Repeater::make('links')
-                                        ->hiddenLabel()
-                                        ->reorderable()
-                                        ->defaultItems(0)
-                                        ->addActionLabel('Add streaming link')
-                                        ->itemLabel(fn (?int $index): ?string => 'Streaming Link #'.($index + 1))
-                                        ->schema([
-                                            TextInput::make('url')
-                                                ->label('Audio Stream URL')
-                                                ->url()
-                                                ->required()
-                                                ->maxLength(255)
-                                                ->helperText('Enter a direct audio-stream URL (MP3, M4A, or another browser-supported audio format). This URL is used by the website\'s custom audio player. Spotify, Apple Music, YouTube, and SoundCloud webpage URLs are not supported for inline playback.'),
-                                        ]),
-                                ]),
 
                             Section::make('SEO')
                                 ->description('Independent per-album metadata (title, description, canonical, Open Graph, Twitter card, structured data).')

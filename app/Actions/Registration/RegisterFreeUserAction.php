@@ -2,6 +2,7 @@
 
 namespace App\Actions\Registration;
 
+use App\Actions\Registration\Concerns\CreatesLightPostOnRegistration;
 use App\Actions\Registration\Concerns\GeneratesVerificationTokens;
 use App\Actions\Registration\Concerns\SavesOptionalRegistrationProfile;
 use App\Enums\EmailRecipientType;
@@ -23,13 +24,14 @@ use Throwable;
  */
 class RegisterFreeUserAction
 {
+    use CreatesLightPostOnRegistration;
     use GeneratesVerificationTokens;
     use SavesOptionalRegistrationProfile;
 
     public function __construct(private readonly TemplatedMailer $mailer) {}
 
     /**
-     * @param  array{name: string, email: string, password: string, phone_number?: ?string, bio?: ?string, address?: ?string, zip_code?: ?string}  $data
+     * @param  array{name: string, email: string, password: string, phone_number?: ?string, address?: ?string, zip_code?: ?string, light_post_action?: ?string, light_message?: ?string}  $data
      */
     public function handle(array $data): User
     {
@@ -41,6 +43,7 @@ class RegisterFreeUserAction
         $user->save();
 
         $this->saveOptionalProfile($user, $data);
+        $this->createLightPostIfRequested($user, $data);
 
         $rawToken = $this->issueVerificationToken($user);
 

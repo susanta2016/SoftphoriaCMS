@@ -54,6 +54,7 @@ class RegistrationController extends Controller
                 'pro_member_cancellation_note',
                 'If you cancel, your Pro membership stays active until the end of your current billing period — you will not lose access immediately.',
             ),
+            'lightPostMaxLength' => (int) config('features.light_post_max_length'),
         ]);
     }
 
@@ -64,6 +65,7 @@ class RegistrationController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             ...self::optionalProfileRules(),
+            ...self::lightPostRules(),
         ]);
 
         if ($validator->fails()) {
@@ -105,6 +107,7 @@ class RegistrationController extends Controller
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             ...self::optionalProfileRules(),
+            ...self::lightPostRules(),
         ]);
 
         if ($validator->fails()) {
@@ -188,10 +191,12 @@ class RegistrationController extends Controller
      * Profile fields mirroring the admin User form's "Profile" section
      * (UserForm) field for field — same labels, same max lengths — so a
      * self-registered account can carry the same data an admin-created one
-     * can. Only Biography stays optional here; Phone Number, Address and
-     * Zip Code are required on the registration form (unlike the admin
-     * form, where every one of these is optional). Shared by
-     * registerFree/registerPro rather than duplicated.
+     * can. Phone Number, Address and Zip Code are required on the
+     * registration form (unlike the admin form, where every one of these is
+     * optional). Biography is deliberately not collected here anymore
+     * (Phase 1: replaced by the "Leave a Little Light" prompt below — see
+     * lightPostRules()); it remains an admin-settable field on the User
+     * Profile. Shared by registerFree/registerPro rather than duplicated.
      *
      * @return array<string, array<int, string>>
      */
@@ -199,9 +204,27 @@ class RegistrationController extends Controller
     {
         return [
             'phone_number' => ['required', 'string', 'max:30'],
-            'bio' => ['nullable', 'string', 'max:65535'],
             'address' => ['required', 'string', 'max:500'],
             'zip_code' => ['required', 'string', 'max:20'],
+        ];
+    }
+
+    /**
+     * The "Leave a Little Light ✨" registration prompt (Phase 1, replacing
+     * Biography) — light_post_action distinguishes "Share My Light" from
+     * "Share Another Time" (see CreatesLightPostOnRegistration, which is the
+     * only place that decides whether a Light Post actually gets created).
+     * The max length is server-configured (config('features.light_post_max_length'))
+     * rather than hard-coded, since the client has not confirmed a final
+     * number for this specific flow.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    private static function lightPostRules(): array
+    {
+        return [
+            'light_post_action' => ['nullable', 'in:share,skip'],
+            'light_message' => ['nullable', 'string', 'max:'.config('features.light_post_max_length')],
         ];
     }
 

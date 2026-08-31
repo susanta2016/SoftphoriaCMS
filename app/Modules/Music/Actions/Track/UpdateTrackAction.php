@@ -26,6 +26,7 @@ class UpdateTrackAction
             ]);
             $track->save();
 
+            $this->detectAndSetDuration($track);
             $this->saveLyrics($track, $data['lyrics'] ?? []);
             $this->saveSongStory($track, $data['song_story'] ?? []);
             $this->syncCredits($track, $data['credits'] ?? []);

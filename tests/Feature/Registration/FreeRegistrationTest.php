@@ -31,7 +31,7 @@ class FreeRegistrationTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('12.34');
-        $response->assertSee('Register Free');
+        $response->assertSee('Share My Light');
         $response->assertSee('Become a Pro Member');
     }
 
@@ -88,7 +88,6 @@ class FreeRegistrationTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'phone_number' => '+44 7700 900001',
-            'bio' => 'Writes things.',
             'address' => '221B Baker Street',
             'zip_code' => 'NW1 6XE',
         ]);
@@ -97,19 +96,101 @@ class FreeRegistrationTest extends TestCase
 
         $user = User::query()->where('email', 'jane.profile@example.com')->firstOrFail();
         $this->assertSame('+44 7700 900001', $user->profile->phone_number);
-        $this->assertSame('Writes things.', $user->profile->bio);
         $this->assertSame('221B Baker Street', $user->profile->address);
         $this->assertSame('NW1 6XE', $user->profile->zip_code);
     }
 
-    public function test_registering_free_without_a_biography_still_succeeds(): void
+    public function test_the_registration_page_no_longer_shows_a_biography_field(): void
+    {
+        $response = $this->get(route('register.show'));
+
+        $response->assertOk();
+        $response->assertDontSee('Biography');
+        $response->assertDontSee('name="bio"', false);
+    }
+
+    public function test_the_registration_page_shows_the_leave_a_little_light_prompt(): void
+    {
+        $response = $this->get(route('register.show'));
+
+        $response->assertOk();
+        $response->assertSee('Leave a Little Light');
+        $response->assertSee('What words of light would you like to share with the gathering?');
+        $response->assertSee('This Light Post will be shared publicly.');
+        $response->assertSee('Leave a little light...');
+        $response->assertSee('Share My Light');
+        $response->assertSee('Share Another Time');
+    }
+
+    public function test_sharing_my_light_creates_a_public_light_post_for_the_new_user(): void
     {
         Mail::fake();
         $this->seed(EmailTemplateSeeder::class);
 
         $response = $this->post(route('register.free'), [
             'name' => 'Jane Doe',
-            'email' => 'jane.nobio@example.com',
+            'email' => 'jane.light@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'light_post_action' => 'share',
+            'light_message' => 'Grateful for this space.',
+            ...$this->requiredProfileFields(),
+        ]);
+
+        $response->assertRedirect(route('register.free.thank-you'));
+
+        $user = User::query()->where('email', 'jane.light@example.com')->firstOrFail();
+        $post = $user->lightPosts()->firstOrFail();
+        $this->assertSame('Grateful for this space.', $post->content);
+        $this->assertTrue($post->is_public);
+    }
+
+    public function test_sharing_another_time_creates_no_light_post_even_with_text_typed(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+
+        $this->post(route('register.free'), [
+            'name' => 'Jane Doe',
+            'email' => 'jane.skip@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'light_post_action' => 'skip',
+            'light_message' => 'Typed but not shared.',
+            ...$this->requiredProfileFields(),
+        ]);
+
+        $user = User::query()->where('email', 'jane.skip@example.com')->firstOrFail();
+        $this->assertSame(0, $user->lightPosts()->count());
+    }
+
+    public function test_sharing_my_light_with_a_blank_message_creates_no_light_post(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+
+        $this->post(route('register.free'), [
+            'name' => 'Jane Doe',
+            'email' => 'jane.blank@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'light_post_action' => 'share',
+            'light_message' => '   ',
+            ...$this->requiredProfileFields(),
+        ]);
+
+        $user = User::query()->where('email', 'jane.blank@example.com')->firstOrFail();
+        $this->assertSame(0, $user->lightPosts()->count());
+    }
+
+    public function test_registering_free_without_any_light_post_choice_still_succeeds_and_creates_no_post(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+
+        $response = $this->post(route('register.free'), [
+            'name' => 'Jane Doe',
+            'email' => 'jane.nolight@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
             ...$this->requiredProfileFields(),
@@ -117,8 +198,46 @@ class FreeRegistrationTest extends TestCase
 
         $response->assertRedirect(route('register.free.thank-you'));
 
-        $user = User::query()->where('email', 'jane.nobio@example.com')->firstOrFail();
-        $this->assertNull($user->profile->bio);
+        $user = User::query()->where('email', 'jane.nolight@example.com')->firstOrFail();
+        $this->assertSame(0, $user->lightPosts()->count());
+    }
+
+    public function test_a_light_message_longer_than_the_configured_limit_is_rejected(): void
+    {
+        config(['features.light_post_max_length' => 50]);
+
+        $response = $this->post(route('register.free'), [
+            'name' => 'Jane Doe',
+            'email' => 'jane.toolong@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'light_post_action' => 'share',
+            'light_message' => str_repeat('a', 51),
+            ...$this->requiredProfileFields(),
+        ]);
+
+        $response->assertSessionHasErrors('light_message');
+        $this->assertSame(0, User::query()->where('email', 'jane.toolong@example.com')->count());
+    }
+
+    public function test_the_pro_membership_option_is_hidden_when_the_feature_flag_is_disabled(): void
+    {
+        config(['features.member_subscription_enabled' => false]);
+
+        $response = $this->get(route('register.show'));
+
+        $response->assertOk();
+        $response->assertDontSee('Become a Pro Member');
+    }
+
+    public function test_the_pro_membership_option_is_shown_when_the_feature_flag_is_enabled(): void
+    {
+        config(['features.member_subscription_enabled' => true]);
+
+        $response = $this->get(route('register.show'));
+
+        $response->assertOk();
+        $response->assertSee('Become a Pro Member');
     }
 
     public function test_registering_free_requires_phone_number_address_and_zip_code(): void

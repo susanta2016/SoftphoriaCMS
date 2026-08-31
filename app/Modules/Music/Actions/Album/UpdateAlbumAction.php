@@ -20,11 +20,10 @@ class UpdateAlbumAction
     public function handle(Album $album, array $data, User $actor): Album
     {
         return DB::transaction(function () use ($album, $data, $actor): Album {
-            $album->fill(collect($data)->except(['links', 'seo'])->all());
+            $album->fill(collect($data)->except(['seo'])->all());
             $album->updated_by = $actor->getKey();
             $album->save();
 
-            $this->syncStreamingLinks($album, $data['links'] ?? []);
             $this->saveMusicSeo($album, $data['seo'] ?? []);
 
             $this->auditLog->record($actor, 'album.updated', $album, ['title' => $album->title]);

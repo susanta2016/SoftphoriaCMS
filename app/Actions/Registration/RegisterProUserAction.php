@@ -2,6 +2,7 @@
 
 namespace App\Actions\Registration;
 
+use App\Actions\Registration\Concerns\CreatesLightPostOnRegistration;
 use App\Actions\Registration\Concerns\SavesOptionalRegistrationProfile;
 use App\Actions\Registration\Support\ProRegistrationOutcome;
 use App\Enums\UserStatus;
@@ -32,6 +33,7 @@ use Illuminate\Validation\ValidationException;
  */
 class RegisterProUserAction
 {
+    use CreatesLightPostOnRegistration;
     use SavesOptionalRegistrationProfile;
 
     public function __construct(
@@ -40,7 +42,7 @@ class RegisterProUserAction
     ) {}
 
     /**
-     * @param  array{name: string, email: string, password: string, phone_number?: ?string, bio?: ?string, address?: ?string, zip_code?: ?string}  $data
+     * @param  array{name: string, email: string, password: string, phone_number?: ?string, address?: ?string, zip_code?: ?string, light_post_action?: ?string, light_message?: ?string}  $data
      */
     public function handle(array $data): ProRegistrationOutcome
     {
@@ -70,6 +72,7 @@ class RegisterProUserAction
             $user->save();
 
             $this->saveOptionalProfile($user, $data);
+            $this->createLightPostIfRequested($user, $data);
         }
 
         $clientSecret = $this->stripe->createEmbeddedSubscriptionCheckoutSession(

@@ -20,6 +20,8 @@ use App\Http\Controllers\Music\CheckoutController;
 use App\Http\Controllers\Music\GuestDownloadController;
 use App\Http\Controllers\Music\MusicController;
 use App\Http\Controllers\Music\TrackDownloadController;
+use App\Http\Controllers\Music\TrackListenController;
+use App\Http\Controllers\Music\TrackStreamController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\Page\PageController;
 use App\Http\Controllers\Page\PreviewPageController;
@@ -171,6 +173,16 @@ Route::get('/music/tracks/{track:slug}', [MusicController::class, 'showTrack'])-
 Route::get('/music/tracks/{track:slug}/download', TrackDownloadController::class)
     ->middleware('auth')
     ->name('music.tracks.download');
+
+// Native playback (see TrackStreamController's own docblock) — public, no
+// auth middleware, since guests must be able to reach it too; the guest
+// 30-second truncation and the registered daily-quota check both happen
+// inside the controller itself. The completion beacon is auth-only: it is
+// the sole writer of a registered user's daily listen count.
+Route::get('/music/tracks/{track:slug}/stream', TrackStreamController::class)->name('music.tracks.stream');
+Route::post('/music/tracks/{track:slug}/listen-complete', TrackListenController::class)
+    ->middleware(['auth', 'throttle:20,1'])
+    ->name('music.tracks.listen-complete');
 
 // Digital-only cart/checkout for Music purchases (Single/Album — see
 // CartSession's docblock for why the cart itself is session-only, never a

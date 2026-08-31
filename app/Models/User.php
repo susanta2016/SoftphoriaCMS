@@ -56,6 +56,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasOne(UserPreference::class);
     }
 
+    public function lightPosts(): HasMany
+    {
+        return $this->hasMany(LightPost::class);
+    }
+
     public function downloads(): HasMany
     {
         return $this->hasMany(DownloadLog::class);

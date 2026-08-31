@@ -32,7 +32,7 @@ class AlbumTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_admin_can_create_an_album_with_links_and_seo(): void
+    public function test_admin_can_create_an_album_with_seo(): void
     {
         Livewire::actingAs($this->admin())
             ->test(CreateAlbum::class)
@@ -42,9 +42,6 @@ class AlbumTest extends TestCase
                 'description' => 'A song is a message about meaning.',
                 'status' => ReleaseStatus::Published->value,
                 'is_featured' => true,
-                'links' => [
-                    ['url' => 'https://cdn.example.com/audio/here-i-am.mp3'],
-                ],
                 'seo' => ['meta_title' => 'Here I Am'],
             ])
             ->call('create')
@@ -53,84 +50,34 @@ class AlbumTest extends TestCase
         $album = Album::query()->where('slug', 'here-i-am')->firstOrFail();
 
         $this->assertTrue($album->is_featured);
-        $this->assertCount(1, $album->streamingLinks);
-        $this->assertSame('https://cdn.example.com/audio/here-i-am.mp3', $album->streamingLinks->first()->url);
         $this->assertSame('Here I Am', $album->seo->meta_title);
     }
 
-    public function test_admin_can_add_multiple_streaming_links_to_an_album(): void
+    /**
+     * Streaming Links removed from the Album admin form (native playback
+     * now uses each Track's own uploaded audio file exclusively — see
+     * TrackStreamController); the underlying music_streaming_links
+     * table/MusicStreamingLink model are left in place, just unreachable
+     * from this form. A stray 'links' submission (e.g. a stale client) is
+     * simply ignored, not bound to any field.
+     */
+    public function test_the_album_form_no_longer_has_a_streaming_links_section(): void
     {
         Livewire::actingAs($this->admin())
             ->test(CreateAlbum::class)
+            ->assertFormFieldDoesNotExist('links')
             ->fillForm([
-                'title' => 'Multi Link Album',
-                'slug' => 'multi-link-album',
+                'title' => 'No Streaming Links Album',
+                'slug' => 'no-streaming-links-album',
                 'status' => ReleaseStatus::Published->value,
-                'links' => [
-                    ['url' => 'https://cdn.example.com/audio/multi-1.mp3'],
-                    ['url' => 'https://cdn.example.com/audio/multi-2.mp3'],
-                    ['url' => 'https://cdn.example.com/audio/multi-3.mp3'],
-                ],
+                'links' => [['url' => 'https://cdn.example.com/audio/ignored.mp3']],
             ])
             ->call('create')
             ->assertHasNoFormErrors();
 
-        $album = Album::query()->where('slug', 'multi-link-album')->firstOrFail();
+        $album = Album::query()->where('slug', 'no-streaming-links-album')->firstOrFail();
 
-        $this->assertCount(3, $album->streamingLinks);
-        $this->assertSame(
-            [
-                'https://cdn.example.com/audio/multi-1.mp3',
-                'https://cdn.example.com/audio/multi-2.mp3',
-                'https://cdn.example.com/audio/multi-3.mp3',
-            ],
-            $album->streamingLinks->pluck('url')->all(),
-        );
-        // provider is no longer collected from the admin form — every new
-        // row is written with the same constant placeholder value (see
-        // SyncsMusicStreamingLinks), never read anywhere on the frontend.
-        $this->assertTrue($album->streamingLinks->pluck('provider')->every(fn ($provider) => $provider->value === 'other'));
-    }
-
-    public function test_editing_an_album_preserves_an_existing_streaming_links_legacy_provider(): void
-    {
-        $album = $this->createAlbum();
-        $album->streamingLinks()->create(['provider' => 'youtube', 'url' => 'https://cdn.example.com/audio/legacy.mp3', 'sort_order' => 0]);
-
-        // Same URL resubmitted — the form itself never collects/sends
-        // provider at all — and a second, brand-new URL alongside it.
-        Livewire::actingAs($this->admin())
-            ->test(EditAlbum::class, ['record' => $album->getRouteKey()])
-            ->fillForm(['links' => [
-                ['url' => 'https://cdn.example.com/audio/legacy.mp3'],
-                ['url' => 'https://cdn.example.com/audio/brand-new.mp3'],
-            ]])
-            ->call('save')
-            ->assertHasNoFormErrors();
-
-        $album->refresh();
-        $this->assertSame(
-            ['youtube', 'other'],
-            $album->streamingLinks->pluck('provider')->map(fn ($provider) => $provider->value)->all(),
-        );
-    }
-
-    public function test_admin_can_edit_an_albums_streaming_links_back_to_multiple(): void
-    {
-        $album = $this->createAlbum();
-        $album->streamingLinks()->create(['provider' => 'other', 'url' => 'https://cdn.example.com/audio/existing.mp3', 'sort_order' => 0]);
-
-        Livewire::actingAs($this->admin())
-            ->test(EditAlbum::class, ['record' => $album->getRouteKey()])
-            ->fillForm(['links' => [
-                ['url' => 'https://cdn.example.com/audio/existing.mp3'],
-                ['url' => 'https://cdn.example.com/audio/existing-2.mp3'],
-            ]])
-            ->call('save')
-            ->assertHasNoFormErrors();
-
-        $album->refresh();
-        $this->assertCount(2, $album->streamingLinks);
+        $this->assertCount(0, $album->streamingLinks);
     }
 
     public function test_admin_can_view_the_album_list(): void

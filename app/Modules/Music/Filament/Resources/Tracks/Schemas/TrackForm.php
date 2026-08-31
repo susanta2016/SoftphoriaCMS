@@ -12,6 +12,7 @@ use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Single;
 use App\Modules\Music\Models\Track;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -63,12 +64,6 @@ class TrackForm
                                         ->maxLength(255)
                                         ->unique(table: Track::class, column: 'slug', ignoreRecord: true)
                                         ->helperText('Auto-filled from the title — override it if needed.'),
-                                    TextInput::make('duration_seconds')
-                                        ->label('Length (seconds)')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->live()
-                                        ->hint(fn ($state): string => gmdate('i:s', (int) ($state ?: 0))),
                                     TextInput::make('written_by')
                                         ->label('Written By')
                                         ->maxLength(255),
@@ -78,22 +73,23 @@ class TrackForm
                                     TextInput::make('isrc')
                                         ->label('ISRC')
                                         ->maxLength(255),
-                                    TextInput::make('video_embed_url')
-                                        ->label('Embedded Video URL')
-                                        ->url()
-                                        ->maxLength(255)
-                                        ->helperText('An external video source (YouTube/Vimeo) — never a download source.')
-                                        ->columnSpanFull(),
-                                    MediaPicker::make('audio_media_id', 'Downloadable Audio File', MediaCategory::Audio)
-                                        ->columnSpanFull(),
-                                    Text::make('The audio file customers will receive when they purchase this Single or an Album containing this Track.')
+                                    MediaPicker::make('audio_media_id', 'Audio File', MediaCategory::Audio, extraSchema: [
+                                        Placeholder::make('duration_display')
+                                            ->label('Length')
+                                            ->content(function (?Track $record): string {
+                                                if ($record?->duration_seconds !== null) {
+                                                    return gmdate('i:s', $record->duration_seconds);
+                                                }
+
+                                                return $record?->audio_media_id !== null
+                                                    ? 'Could not be detected from the uploaded file.'
+                                                    : 'Detected automatically once an Audio File is uploaded and saved.';
+                                            }),
+                                    ])->columnSpanFull(),
+                                    Text::make('The audio file used for playback on the listening page, and the file customers receive when they purchase this Single or an Album containing this Track.')
                                         ->size(TextSize::Small)
                                         ->color('gray')
                                         ->columnSpanFull(),
-                                    MediaPicker::make('video_media_id', 'Video File', MediaCategory::Video)
-                                        ->columnSpanFull()
-                                        // Temporary presentation-mode hide — UI only, see config/admin_ui.php.
-                                        ->visible(fn (): bool => config('admin_ui.show_video_fields')),
                                 ]),
 
                             Section::make('About This Song')
@@ -123,6 +119,12 @@ class TrackForm
                                     Textarea::make('song_story.content')
                                         ->hiddenLabel()
                                         ->rows(6)
+                                        ->columnSpanFull(),
+                                    TextInput::make('video_embed_url')
+                                        ->label('Embedded Video URL')
+                                        ->url()
+                                        ->maxLength(255)
+                                        ->helperText('An external video source (YouTube) — never a download source. Shown as a "watch video" icon beside the Song Story heading on the listening page.')
                                         ->columnSpanFull(),
                                     MediaPicker::make('song_story.media_id', 'Accompanying Image', MediaCategory::Image)
                                         ->columnSpanFull(),

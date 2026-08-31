@@ -53,7 +53,6 @@ class TrackTest extends TestCase
                 'slug' => 'here-i-am-track',
                 'description' => 'An invitation to presence.',
                 'track_number' => 1,
-                'duration_seconds' => 333,
                 'written_by' => 'IAWARII',
                 'produced_by' => 'IAWARII',
                 'isrc' => 'US-AT2-24-00001',

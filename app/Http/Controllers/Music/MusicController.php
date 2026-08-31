@@ -15,6 +15,7 @@ use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Single;
 use App\Modules\Music\Models\SongStory;
 use App\Modules\Music\Models\Track;
+use App\Modules\Music\Models\TrackListen;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use App\Shared\Support\Seo\Sitemapable;
@@ -448,6 +449,7 @@ class MusicController extends Controller implements Sitemapable
             'parent_purchase' => null,
             'parent_purchase_type' => null,
             'parent_purchase_slug' => null,
+            'listening' => $this->listeningAccessState(),
         ];
     }
 
@@ -479,6 +481,7 @@ class MusicController extends Controller implements Sitemapable
             'parent_purchase' => null,
             'parent_purchase_type' => null,
             'parent_purchase_slug' => null,
+            'listening' => $this->listeningAccessState(),
         ];
     }
 
@@ -512,6 +515,34 @@ class MusicController extends Controller implements Sitemapable
             'parent_purchase' => $this->purchaseState($album),
             'parent_purchase_type' => 'album',
             'parent_purchase_slug' => $album->slug,
+            'listening' => $this->listeningAccessState(),
+        ];
+    }
+
+    /**
+     * Guest/registered playback-access state, shared by every listening
+     * page's view model — see TrackStreamController, which enforces the
+     * same two limits server-side; this is only what the page needs to
+     * decide, per track row, whether to render a playable source at all and
+     * which message to show when it can't.
+     *
+     * @return array{is_guest: bool, guest_limit_seconds: int, daily_limit: int, daily_limit_reached: bool}
+     */
+    private function listeningAccessState(): array
+    {
+        $user = Auth::user();
+        $dailyLimit = (int) config('features.registered_user_whole_song_listens_per_day');
+
+        $dailyLimitReached = $user !== null && TrackListen::query()
+            ->where('user_id', $user->id)
+            ->whereDate('created_at', now()->toDateString())
+            ->count() >= $dailyLimit;
+
+        return [
+            'is_guest' => $user === null,
+            'guest_limit_seconds' => (int) config('features.guest_user_listening_limit_seconds'),
+            'daily_limit' => $dailyLimit,
+            'daily_limit_reached' => $dailyLimitReached,
         ];
     }
 

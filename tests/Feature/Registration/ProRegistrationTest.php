@@ -79,16 +79,32 @@ class ProRegistrationTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'phone_number' => '+44 7700 900001',
-            'bio' => 'Writes things.',
             'address' => '221B Baker Street',
             'zip_code' => 'NW1 6XE',
         ]);
 
         $user = User::query()->where('email', 'jane.pro.profile@example.com')->firstOrFail();
         $this->assertSame('+44 7700 900001', $user->profile->phone_number);
-        $this->assertSame('Writes things.', $user->profile->bio);
         $this->assertSame('221B Baker Street', $user->profile->address);
         $this->assertSame('NW1 6XE', $user->profile->zip_code);
+    }
+
+    public function test_sharing_my_light_on_pro_registration_creates_a_public_light_post(): void
+    {
+        $this->post(route('register.pro'), [
+            'name' => 'Jane Pro',
+            'email' => 'jane.pro.light@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'light_post_action' => 'share',
+            'light_message' => 'Sharing my light as a Pro member.',
+            ...$this->requiredProfileFields(),
+        ]);
+
+        $user = User::query()->where('email', 'jane.pro.light@example.com')->firstOrFail();
+        $post = $user->lightPosts()->firstOrFail();
+        $this->assertSame('Sharing my light as a Pro member.', $post->content);
+        $this->assertTrue($post->is_public);
     }
 
     public function test_registering_pro_requires_phone_number_address_and_zip_code(): void
@@ -111,7 +127,6 @@ class ProRegistrationTest extends TestCase
             'email' => 'retry.profile@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'bio' => 'Original bio.',
             ...$this->requiredProfileFields(),
         ]);
 
@@ -120,12 +135,40 @@ class ProRegistrationTest extends TestCase
             'email' => 'retry.profile@example.com',
             'password' => 'a-different-password',
             'password_confirmation' => 'a-different-password',
-            'bio' => 'A stranger-submitted bio.',
-            ...$this->requiredProfileFields(),
+            'phone_number' => '+44 7700 900001',
+            'address' => '221B Baker Street',
+            'zip_code' => 'DIFFERENT-ZIP',
         ]);
 
         $user = User::query()->where('email', 'retry.profile@example.com')->firstOrFail();
-        $this->assertSame('Original bio.', $user->profile->bio);
+        $this->assertSame('NW1 6XE', $user->profile->zip_code);
+    }
+
+    public function test_resuming_an_abandoned_pro_registration_does_not_create_a_second_light_post(): void
+    {
+        $this->post(route('register.pro'), [
+            'name' => 'Retry Light',
+            'email' => 'retry.light@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'light_post_action' => 'share',
+            'light_message' => 'Original light post.',
+            ...$this->requiredProfileFields(),
+        ]);
+
+        $this->post(route('register.pro'), [
+            'name' => 'Retry Light Again',
+            'email' => 'retry.light@example.com',
+            'password' => 'a-different-password',
+            'password_confirmation' => 'a-different-password',
+            'light_post_action' => 'share',
+            'light_message' => 'A stranger-submitted light post.',
+            ...$this->requiredProfileFields(),
+        ]);
+
+        $user = User::query()->where('email', 'retry.light@example.com')->firstOrFail();
+        $this->assertSame(1, $user->lightPosts()->count());
+        $this->assertSame('Original light post.', $user->lightPosts()->first()->content);
     }
 
     public function test_the_server_resolves_the_current_global_pricing_value_never_the_client(): void

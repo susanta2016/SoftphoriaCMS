@@ -4,6 +4,7 @@ namespace App\Modules\Music\Actions\Track\Concerns;
 
 use App\Modules\Music\Actions\Concerns\SavesMusicSeo;
 use App\Modules\Music\Models\Track;
+use App\Modules\Music\Support\AudioDurationDetector;
 use InvalidArgumentException;
 
 /**
@@ -119,5 +120,37 @@ trait SavesTrackRelations
     protected function syncTags(Track $track, array $tagIds): void
     {
         $track->tags()->sync($tagIds);
+    }
+
+    /**
+     * duration_seconds is not an admin-editable form field (see TrackForm's
+     * read-only "Length" Placeholder) — this is the only place it's ever
+     * written, always recomputed from the real uploaded file rather than
+     * trusted from a prior value, on every save. That's deliberate: an
+     * admin-typed value that understated the file's real length previously
+     * let a guest's byte-cap fraction exceed 1 and clamp to the full file —
+     * the same class of bug as the missing-duration case AudioDurationDetector
+     * was originally added for (2026-08-31), just reachable through manual
+     * entry instead of an empty field. Removing the audio entirely clears
+     * duration_seconds rather than leaving a stale value behind.
+     */
+    protected function detectAndSetDuration(Track $track): void
+    {
+        if ($track->audio_media_id === null) {
+            if ($track->duration_seconds !== null) {
+                $track->duration_seconds = null;
+                $track->save();
+            }
+
+            return;
+        }
+
+        $media = $track->audio()->first();
+        $seconds = $media !== null ? app(AudioDurationDetector::class)->detect($media) : null;
+
+        if ($seconds !== $track->duration_seconds) {
+            $track->duration_seconds = $seconds;
+            $track->save();
+        }
     }
 }

@@ -22,22 +22,25 @@
             </a>
         </div>
 
-        <div class="rounded-2xl bg-white p-6 shadow-xl ring-1 ring-brand-navy/5">
-            <h2 class="font-serif text-lg text-brand-navy">Membership</h2>
-            <p class="mt-4 text-sm text-brand-navy">
-                @if ($hasActiveMembership)
-                    <span class="inline-flex items-center rounded-full bg-brand-gold/10 px-3 py-1 text-xs font-semibold tracking-wide text-brand-gold uppercase">Pro Member</span>
-                @else
-                    <span class="inline-flex items-center rounded-full bg-brand-navy/10 px-3 py-1 text-xs font-semibold tracking-wide text-brand-navy/70 uppercase">Free Member</span>
+        {{-- Phase 1: no paid membership (UI only, config/features.php) --}}
+        @if (config('features.member_subscription_enabled'))
+            <div class="rounded-2xl bg-white p-6 shadow-xl ring-1 ring-brand-navy/5">
+                <h2 class="font-serif text-lg text-brand-navy">Membership</h2>
+                <p class="mt-4 text-sm text-brand-navy">
+                    @if ($hasActiveMembership)
+                        <span class="inline-flex items-center rounded-full bg-brand-gold/10 px-3 py-1 text-xs font-semibold tracking-wide text-brand-gold uppercase">Pro Member</span>
+                    @else
+                        <span class="inline-flex items-center rounded-full bg-brand-navy/10 px-3 py-1 text-xs font-semibold tracking-wide text-brand-navy/70 uppercase">Free Member</span>
+                    @endif
+                </p>
+                @if ($subscriptionStatusLabel)
+                    <p class="mt-3 text-sm text-brand-navy/60">Status: {{ $subscriptionStatusLabel }}</p>
                 @endif
-            </p>
-            @if ($subscriptionStatusLabel)
-                <p class="mt-3 text-sm text-brand-navy/60">Status: {{ $subscriptionStatusLabel }}</p>
-            @endif
-            <a href="{{ route('account.subscription') }}" class="mt-4 inline-block text-sm font-medium text-brand-gold transition hover:text-brand-gold-light">
-                View Subscription →
-            </a>
-        </div>
+                <a href="{{ route('account.subscription') }}" class="mt-4 inline-block text-sm font-medium text-brand-gold transition hover:text-brand-gold-light">
+                    View Subscription →
+                </a>
+            </div>
+        @endif
     </div>
 
     <div class="mt-6 rounded-2xl bg-white p-6 shadow-xl ring-1 ring-brand-navy/5">
@@ -49,9 +52,11 @@
             <a href="{{ route('account.password.edit') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
                 Change Password
             </a>
-            <a href="{{ route('account.subscription') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
-                View Subscription
-            </a>
+            @if (config('features.member_subscription_enabled'))
+                <a href="{{ route('account.subscription') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
+                    View Subscription
+                </a>
+            @endif
             <a href="{{ route('account.transactions') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
                 Transaction History
             </a>

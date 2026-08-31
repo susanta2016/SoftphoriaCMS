@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PageSectionType;
+use App\Models\LightPost;
 use App\Models\Media;
 use App\Models\Page;
 use App\Shared\Services\Settings\SettingsRepository;
@@ -27,6 +28,7 @@ class HomeController extends Controller implements Sitemapable
     {
         $hero = null;
         $seo = null;
+        $lightPosts = collect();
 
         // A freshly deployed/not-yet-migrated environment has neither table
         // yet — same "fail open onto the approved defaults" reasoning as
@@ -58,6 +60,7 @@ class HomeController extends Controller implements Sitemapable
             $logo = $logoMediaId ? Media::find($logoMediaId) : null;
 
             $hero = $this->heroContent($page);
+            $lightPosts = $this->latestLightPosts();
 
             $seo = SeoTagBuilder::build($page?->seo, [
                 'title' => $page?->title ?: $siteName,
@@ -110,6 +113,7 @@ class HomeController extends Controller implements Sitemapable
         return view('home', [
             'hero' => $hero,
             'community' => $this->communityContent($page),
+            'lightPosts' => $lightPosts,
             'siteName' => $siteName,
             'tagline' => $tagline,
             'logo' => $logo,
@@ -188,6 +192,20 @@ class HomeController extends Controller implements Sitemapable
         }
 
         return null;
+    }
+
+    /**
+     * The "Latest Community Comments" strip's real content — reuses that
+     * existing display slot rather than a parallel mechanism (it was
+     * previously hardcoded fake quotes, unconditionally shown). Only
+     * explicitly public Light Posts (registration's "Share My Light",
+     * is_public = true) ever surface here.
+     *
+     * @return Collection<int, LightPost>
+     */
+    private function latestLightPosts(): Collection
+    {
+        return LightPost::query()->public()->with('user')->latest()->limit(4)->get();
     }
 
     /**

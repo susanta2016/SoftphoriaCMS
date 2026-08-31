@@ -22,13 +22,12 @@ class CreateSingleAction
     {
         return DB::transaction(function () use ($data, $actor): Single {
             $single = new Single;
-            $single->fill(collect($data)->except(['links', 'seo'])->all());
+            $single->fill(collect($data)->except(['seo'])->all());
             $single->status ??= ReleaseStatus::Draft;
             $single->created_by = $actor->getKey();
             $single->updated_by = $actor->getKey();
             $single->save();
 
-            $this->syncStreamingLinks($single, $data['links'] ?? []);
             $this->saveMusicSeo($single, $data['seo'] ?? []);
 
             $this->auditLog->record($actor, 'single.created', $single, ['title' => $single->title]);

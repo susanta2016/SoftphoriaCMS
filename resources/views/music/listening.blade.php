@@ -7,14 +7,38 @@
     $isSingleTrack = in_array($release['type'], ['single', 'track'], true);
     $onlyTrack = $isSingleTrack ? $release['tracks']->first() : null;
 
-    // The Streaming Link belongs to the release (Album/Single), not to an
-    // individual Track, so every track row in this release shares the same
-    // direct playback source — it's fed straight into the <audio> element,
-    // never the Track's own downloadable audio file (that's a separate,
-    // purchase-only concept — see AuthorizeTrackDownloadAction).
-    $primaryStreamingLink = $release['streaming_links']->first();
-
     $genres = $release['tracks']->flatMap(fn ($track) => $track->categories->pluck('name'))->unique()->values();
+
+    // Native playback only — see App\Http\Controllers\Music\TrackStreamController.
+    // A track without its own uploaded audio file has no playback source at
+    // all; external MusicStreamingLink URLs (still stored/admin-editable)
+    // are never used as the <audio> source. Guests never get a src once
+    // today's registered daily quota is reached for them (n/a — quota only
+    // applies to authenticated users); a registered user who has already
+    // reached today's quota gets no src and a distinct "come back tomorrow"
+    // message instead of "audio unavailable".
+    $trackPlayback = function (?\App\Modules\Music\Models\Track $track) use ($release) {
+        if (! $track || ! $track->audio_media_id) {
+            return ['src' => null, 'guest_limited' => false, 'limit_reached' => false, 'complete_url' => null];
+        }
+
+        $listening = $release['listening'];
+
+        if (! $listening['is_guest'] && $listening['daily_limit_reached']) {
+            return ['src' => null, 'guest_limited' => false, 'limit_reached' => true, 'complete_url' => null];
+        }
+
+        $guestLimited = $listening['is_guest']
+            && $track->duration_seconds
+            && $track->duration_seconds > $listening['guest_limit_seconds'];
+
+        return [
+            'src' => route('music.tracks.stream', $track),
+            'guest_limited' => $guestLimited,
+            'limit_reached' => false,
+            'complete_url' => $listening['is_guest'] ? null : route('music.tracks.listen-complete', $track),
+        ];
+    };
 
     $embedUrl = null;
     if ($release['embed_video_url']) {
@@ -118,12 +142,6 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M18.9 3H21l-6.6 7.5L22 21h-6.8l-4.7-6.2L5 21H3l7.1-8-8-10h6.9l4.3 5.7L18.9 3Z"/></svg>
                             </a>
                         </div>
-
-                        @if ($isSingleTrack && $embedUrl)
-                            <button type="button" data-video-modal-toggle aria-label="Watch video" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><rect x="2.5" y="5.5" width="14" height="13" rx="2"/><path d="M16.5 10.5 21 7.5v9l-4.5-3Z" stroke-linejoin="round"/></svg>
-                            </button>
-                        @endif
                     </div>
 
                     @if ($purchase && $purchase['state'] !== 'not_ready')
@@ -258,11 +276,15 @@
             </div>
 
             @if ($isSingleTrack && $release['stream_track'])
+                @php $heroPlayback = $trackPlayback($release['stream_track']); @endphp
                 <div
                     data-music-track-row
                     data-music-track-active="1"
                     data-music-track-title="{{ $release['stream_track']->title }}"
-                    @if ($primaryStreamingLink) data-music-track-src="{{ $primaryStreamingLink->url }}" @endif
+                    @if ($heroPlayback['src']) data-music-track-src="{{ $heroPlayback['src'] }}" @endif
+                    @if ($heroPlayback['complete_url']) data-music-track-complete-url="{{ $heroPlayback['complete_url'] }}" @endif
+                    @if ($heroPlayback['guest_limited']) data-music-track-guest-limited="1" @endif
+                    @if ($heroPlayback['limit_reached']) data-music-track-limit-reached="1" @endif
                     class="hidden"
                 ></div>
             @endif
@@ -315,14 +337,29 @@
                     <p data-music-player-fallback class="mt-4 hidden text-sm text-brand-navy/70">
                         Audio unavailable for this track.
                     </p>
+                    <p data-music-player-guest-ended class="mt-4 hidden rounded-md border border-brand-gold/30 bg-brand-gold/10 px-4 py-3 text-sm text-brand-navy">
+                        You've reached the {{ $release['listening']['guest_limit_seconds'] }}-second preview limit. <a href="{{ route('register.show') }}" class="font-semibold text-brand-gold hover:text-brand-navy">Register</a> or <a href="{{ route('login') }}" class="font-semibold text-brand-gold hover:text-brand-navy">log in</a> to keep listening.
+                    </p>
+                    <p data-music-player-limit-reached class="mt-4 hidden rounded-md border border-brand-gold/30 bg-brand-gold/10 px-4 py-3 text-sm text-brand-navy">
+                        You've reached your {{ $release['listening']['daily_limit'] }} {{ \Illuminate\Support\Str::plural('listen', $release['listening']['daily_limit']) }} for today. Please come back tomorrow.
+                    </p>
                 </div>
             @endif
 
-            @if ($isSingleTrack && $onlyTrack?->songStory)
+            @if ($isSingleTrack && ($onlyTrack?->songStory || $embedUrl))
                 <div class="mt-14 grid grid-cols-1 gap-10 lg:grid-cols-2">
                     <div>
-                        <h2 class="font-serif text-2xl text-brand-navy">Song Story</h2>
-                        <p class="mt-4 text-sm leading-relaxed text-brand-navy/75">{{ $onlyTrack->songStory->content }}</p>
+                        <div class="flex items-center gap-2">
+                            <h2 class="font-serif text-2xl text-brand-navy">Song Story</h2>
+                            @if ($embedUrl)
+                                <button type="button" data-video-modal-toggle aria-label="Watch video" class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-3.5 w-3.5"><rect x="2.5" y="5.5" width="14" height="13" rx="2"/><path d="M16.5 10.5 21 7.5v9l-4.5-3Z" stroke-linejoin="round"/></svg>
+                                </button>
+                            @endif
+                        </div>
+                        @if ($onlyTrack?->songStory)
+                            <p class="mt-4 text-sm leading-relaxed text-brand-navy/75">{{ $onlyTrack->songStory->content }}</p>
+                        @endif
                     </div>
 
                     @if ($onlyTrack->credits->isNotEmpty())
@@ -346,14 +383,18 @@
                     <h2 class="font-serif text-2xl text-brand-navy">Track List</h2>
                     <ol class="mt-4 divide-y divide-brand-navy/10 border-y border-brand-navy/10">
                         @foreach ($release['tracks'] as $track)
+                            @php $rowPlayback = $trackPlayback($track); @endphp
                             <li
                                 data-music-track-row
                                 data-music-track-title="{{ $track->title }}"
-                                @if ($primaryStreamingLink) data-music-track-src="{{ $primaryStreamingLink->url }}" @endif
+                                @if ($rowPlayback['src']) data-music-track-src="{{ $rowPlayback['src'] }}" @endif
+                                @if ($rowPlayback['complete_url']) data-music-track-complete-url="{{ $rowPlayback['complete_url'] }}" @endif
+                                @if ($rowPlayback['guest_limited']) data-music-track-guest-limited="1" @endif
+                                @if ($rowPlayback['limit_reached']) data-music-track-limit-reached="1" @endif
                                 @if ($loop->first) data-music-track-active="1" @endif
                                 class="flex items-center gap-4 py-3 text-sm transition"
                             >
-                                @if ($primaryStreamingLink)
+                                @if ($track->audio_media_id)
                                     <button type="button" data-music-track-play aria-label="Play {{ $track->title }}" class="shrink-0 text-brand-navy/50 transition hover:text-brand-gold">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M8 5v14l11-7z"/></svg>
                                     </button>
