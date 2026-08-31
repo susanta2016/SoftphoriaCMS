@@ -256,6 +256,49 @@ class PageMediaAndSeoTest extends TestCase
     }
 
     /**
+     * The About page's "About Jacob d'IAWARII" section reuses this same
+     * Rich Text video field (content_json.video_media_id) — same
+     * repeater-addressing limitation as the Hero smoke test above, so this
+     * only verifies the field renders and round-trips through save.
+     */
+    public function test_a_rich_text_section_using_the_video_media_picker_field_renders_and_saves(): void
+    {
+        Storage::fake('local');
+        $admin = $this->admin();
+        $video = $this->storeVideo($admin, "media/video/About Jacob d'IAWARII.mp4");
+
+        Livewire::actingAs($admin)
+            ->test(CreatePage::class)
+            ->fillForm([
+                'title' => 'About',
+                'slug' => 'about-video-test',
+                'template' => PageTemplate::Standard->value,
+                'sections' => [
+                    [
+                        'section_type' => 'rich_text',
+                        'title' => "About Jacob d'IAWARII",
+                        'is_enabled' => true,
+                        'content_json' => ['body' => '', 'video_media_id' => $video->id],
+                    ],
+                ],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $page = Page::query()->where('slug', 'about-video-test')->firstOrFail();
+        $section = $page->sections()->firstOrFail();
+        $this->assertSame('rich_text', $section->section_type);
+        $this->assertSame($video->id, $section->content_json['video_media_id']);
+    }
+
+    private function storeVideo(User $admin, string $path): Media
+    {
+        Storage::disk('local')->put($path, 'fake-mp4-bytes');
+
+        return app(StoreUploadedMediaAction::class)->handle('local', $path, $admin, 'protected');
+    }
+
+    /**
      * The bug being fixed: a bare RichEditor::make() never configured disk/
      * directory/accepted types, so "Attach File" fell back to Filament's
      * unconfigured default (no Media row, no variants). This asserts the

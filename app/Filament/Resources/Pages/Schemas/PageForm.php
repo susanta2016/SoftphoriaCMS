@@ -230,6 +230,8 @@ class PageForm
 
             RichEditorMediaAttachments::configure(RichEditor::make('content_json.body')->label('Content')->columnSpanFull())
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::RichText->value),
+            MediaPicker::make('content_json.video_media_id', 'Video', MediaCategory::Video)
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::RichText->value),
 
             // A distinct key from RichText's content_json.body above, even
             // though both are only ever visible one-at-a-time — Filament

@@ -39,6 +39,8 @@
         .faq-item dd { margin: 0.25rem 0 0; color: #4b5563; }
         .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; }
         .gallery img { width: 100%; height: 140px; object-fit: cover; border-radius: 0.375rem; }
+        .section-title { font-size: 1.5rem; margin: 0 0 1rem; }
+        .rich-text video { width: 100%; max-width: 640px; border-radius: 0.5rem; margin-top: 1rem; display: block; }
         .inert-notice { color: #9ca3af; font-size: 0.875rem; border: 1px dashed #d1d5db; padding: 1rem; border-radius: 0.375rem; }
         .disabled-badge { display: inline-block; margin-left: 0.5rem; font-size: 0.75rem; color: #9ca3af; }
     </style>
@@ -57,6 +59,9 @@
         @forelse ($page->sections->where('is_enabled', true)->sortBy('sort_order') as $section)
             @php $content = $section->content_json ?? []; @endphp
             <section class="block">
+                @if ($section->title)
+                    <h2 class="section-title">{{ $section->title }}</h2>
+                @endif
                 @switch($section->section_type)
                     @case('hero')
                         <div class="hero">
@@ -82,7 +87,14 @@
                         @break
 
                     @case('rich_text')
-                        <div class="rich-text">{!! $content['body'] ?? '' !!}</div>
+                        <div class="rich-text">
+                            {!! $content['body'] ?? '' !!}
+                            @if (!empty($content['video_media_id']) && ($video = \App\Models\Media::find($content['video_media_id'])) && $video->category() === \App\Enums\MediaCategory::Video)
+                                <video controls preload="none">
+                                    <source src="{{ route('media.watch', $video) }}" type="{{ $video->mime_type }}">
+                                </video>
+                            @endif
+                        </div>
                         @break
 
                     @case('image_text')

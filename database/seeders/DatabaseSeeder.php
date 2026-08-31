@@ -26,5 +26,6 @@ class DatabaseSeeder extends Seeder
         $this->call(EmailTemplateSeeder::class);
         $this->call(HomePageSeeder::class);
         $this->call(PrivacyPolicyPageSeeder::class);
+        $this->call(AboutPageSeeder::class);
     }
 }
