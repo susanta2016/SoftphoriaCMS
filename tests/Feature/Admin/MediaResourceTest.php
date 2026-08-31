@@ -210,9 +210,9 @@ class MediaResourceTest extends TestCase
             ->assertHasFormErrors(['file']);
     }
 
-    public function test_video_category_accepts_uploads_up_to_the_200mb_limit(): void
+    public function test_video_category_accepts_uploads_up_to_the_512mb_limit(): void
     {
-        $this->assertSame(200 * 1024, config('media.categories.video.max_size'));
+        $this->assertSame(512 * 1024, config('media.categories.video.max_size'));
     }
 
     public function test_admin_can_upload_audio_and_it_is_categorized_and_stored(): void

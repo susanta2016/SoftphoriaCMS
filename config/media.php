@@ -46,7 +46,7 @@ return [
         MediaCategory::Video->value => [
             'mimes' => ['mp4', 'webm'],
             'accepted_mime_types' => ['video/mp4', 'video/webm'],
-            'max_size' => 200 * 1024,
+            'max_size' => 512 * 1024,
             'disk' => 'local',
             'directory' => 'media/video',
         ],
