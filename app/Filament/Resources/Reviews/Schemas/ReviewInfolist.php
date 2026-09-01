@@ -22,6 +22,7 @@ class ReviewInfolist
                 Section::make('Review')
                     ->columns(3)
                     ->schema([
+                        TextEntry::make('reviewableType')->label('Content Type')->badge()->state(fn (Review $record): string => $record->reviewableType()),
                         TextEntry::make('reviewableLabel')->label('Reviewed Item')->state(fn (Review $record): string => $record->reviewableLabel()),
                         TextEntry::make('user.name')->label('Reviewer'),
                         TextEntry::make('user.email')->label('Reviewer Email')->copyable(),

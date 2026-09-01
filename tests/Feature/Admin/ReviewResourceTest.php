@@ -9,6 +9,10 @@ use App\Filament\Resources\Reviews\Pages\ListReviews;
 use App\Models\Review;
 use App\Models\Role;
 use App\Models\User;
+use App\Modules\Music\Enums\ReleaseStatus;
+use App\Modules\Music\Enums\TrackStatus;
+use App\Modules\Music\Models\Single;
+use App\Modules\Music\Models\Track;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
 use App\Modules\Podcast\Enums\PodcastStatus;
 use App\Modules\Podcast\Models\Podcast;
@@ -101,6 +105,55 @@ class ReviewResourceTest extends TestCase
 
         $this->assertSame(ReviewStatus::Rejected, $review->refresh()->status);
         Mail::assertNothingSent();
+    }
+
+    /**
+     * Confirms the shared ReviewResource (never a Music-specific admin
+     * resource — see ReviewResource's docblock) manages a Music Track
+     * review through the exact same Approve/Reject actions Podcast uses,
+     * and that the "Content Type" column/state distinguishes it from a
+     * Podcast review moderated alongside it.
+     */
+    public function test_admin_can_view_and_approve_a_music_track_review_distinguished_from_podcast(): void
+    {
+        $podcastReview = $this->createReview();
+        $trackReview = $this->createTrackReview();
+
+        Livewire::actingAs($this->admin())
+            ->test(ListReviews::class)
+            ->assertCanSeeTableRecords([$podcastReview, $trackReview]);
+
+        $this->assertSame('Podcast Episode', $podcastReview->reviewableType());
+        $this->assertSame('Track', $trackReview->reviewableType());
+
+        app(PublishReviewAction::class)->handle($trackReview);
+
+        $this->assertSame(ReviewStatus::Approved, $trackReview->refresh()->status);
+    }
+
+    private function createTrackReview(): Review
+    {
+        $single = Single::query()->create([
+            'title' => 'Admin Review Test Single '.uniqid(),
+            'slug' => 'admin-review-test-single-'.uniqid(),
+            'status' => ReleaseStatus::Published,
+        ]);
+
+        $track = Track::query()->create([
+            'single_id' => $single->id,
+            'title' => 'Admin Review Test Track',
+            'slug' => 'admin-review-test-track-'.uniqid(),
+            'status' => TrackStatus::Published,
+        ]);
+
+        return Review::query()->create([
+            'reviewable_type' => Track::class,
+            'reviewable_id' => $track->id,
+            'user_id' => User::factory()->create()->id,
+            'rating' => 4,
+            'content' => 'A Music review awaiting moderation.',
+            'status' => ReviewStatus::Pending,
+        ]);
     }
 
     private function createReview(): Review

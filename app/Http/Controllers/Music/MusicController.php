@@ -6,6 +6,7 @@ use App\Enums\PageSectionType;
 use App\Http\Controllers\Controller;
 use App\Models\Media;
 use App\Models\Page;
+use App\Models\Review;
 use App\Modules\Commerce\Actions\PurchaseReadiness\CheckAlbumReadinessAction;
 use App\Modules\Commerce\Actions\PurchaseReadiness\CheckSingleReadinessAction;
 use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
@@ -140,6 +141,7 @@ class MusicController extends Controller implements Sitemapable
             'release' => $this->singleViewModel($single),
             'related' => $this->relatedReleases($single->id, 'single'),
             'topBanner' => $this->topBannerMedia(),
+            ...$this->reviewSummary($single->track),
         ]);
     }
 
@@ -183,6 +185,7 @@ class MusicController extends Controller implements Sitemapable
             'release' => $this->trackViewModel($track, $album),
             'related' => $this->relatedReleases($album->id, 'album'),
             'topBanner' => $this->topBannerMedia(),
+            ...$this->reviewSummary($track),
         ]);
     }
 
@@ -578,6 +581,31 @@ class MusicController extends Controller implements Sitemapable
         $price = $item instanceof Album ? $pricing->fullAlbumPrice() : $pricing->perSongPrice();
 
         return ['state' => 'buy', 'price' => (float) $price];
+    }
+
+    /**
+     * Reviews/ratings belong to the individual Track — never the Album — so
+     * only showSingle()/showTrack() call this (a Single's "track" is its one
+     * underlying Track row; see Single::track()). Mirrors
+     * PodcastController::show()'s inline computation exactly, reusing the
+     * same App\Models\Review::scopeApproved() so an unapproved review can
+     * never affect the public average/count.
+     *
+     * @return array{reviews: Collection<int, Review>, averageRating: float, reviewCount: int}
+     */
+    private function reviewSummary(?Track $track): array
+    {
+        if (! $track) {
+            return ['reviews' => collect(), 'averageRating' => 0.0, 'reviewCount' => 0];
+        }
+
+        $reviews = $track->reviews()->approved()->with('user.profile.avatar')->latest()->get();
+
+        return [
+            'reviews' => $reviews,
+            'averageRating' => round((float) $reviews->avg('rating'), 1),
+            'reviewCount' => $reviews->count(),
+        ];
     }
 
     private function excerpt(?string $text): ?string

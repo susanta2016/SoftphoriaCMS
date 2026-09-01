@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -49,6 +50,35 @@ class User extends Authenticatable implements FilamentUser
     public function profile(): HasOne
     {
         return $this->hasOne(UserProfile::class);
+    }
+
+    /**
+     * The uploaded profile->avatar (Media) when set, otherwise the same
+     * self-contained placeholder used by Filament's UsersTable — a public
+     * frontend page (e.g. a review/rating card) never invents its own
+     * "dummy photo" or reaches for an external avatar service.
+     */
+    public function avatarUrl(): string
+    {
+        $avatar = $this->profile?->avatar;
+
+        return $avatar ? Storage::disk($avatar->disk)->url($avatar->path) : static::defaultAvatarUrl();
+    }
+
+    /**
+     * A self-contained inline SVG (no external service, no stored asset).
+     * Public so tests can assert against the exact fallback string rather
+     * than the rendered HTML.
+     */
+    public static function defaultAvatarUrl(): string
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">'
+            .'<circle cx="20" cy="20" r="20" fill="#e5e7eb"/>'
+            .'<circle cx="20" cy="16" r="7" fill="#9ca3af"/>'
+            .'<path d="M6 34c0-8 6-13 14-13s14 5 14 13" fill="#9ca3af"/>'
+            .'</svg>';
+
+        return 'data:image/svg+xml,'.rawurlencode($svg);
     }
 
     public function preferences(): HasOne

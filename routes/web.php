@@ -21,6 +21,7 @@ use App\Http\Controllers\Music\GuestDownloadController;
 use App\Http\Controllers\Music\MusicController;
 use App\Http\Controllers\Music\TrackDownloadController;
 use App\Http\Controllers\Music\TrackListenController;
+use App\Http\Controllers\Music\TrackReviewController;
 use App\Http\Controllers\Music\TrackStreamController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\Page\PageController;
@@ -191,6 +192,9 @@ Route::get('/music/tracks/{track:slug}', [MusicController::class, 'showTrack'])-
 Route::get('/music/tracks/{track:slug}/download', TrackDownloadController::class)
     ->middleware('auth')
     ->name('music.tracks.download');
+Route::post('/music/tracks/{track:slug}/reviews', [TrackReviewController::class, 'store'])
+    ->middleware(['auth', 'throttle:10,1'])
+    ->name('music.tracks.reviews.store');
 
 // Native playback (see TrackStreamController's own docblock) — public, no
 // auth middleware, since guests must be able to reach it too; the guest

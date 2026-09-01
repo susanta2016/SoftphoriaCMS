@@ -3,6 +3,7 @@
 namespace Tests\Feature\Podcast;
 
 use App\Enums\ReviewStatus;
+use App\Models\Media;
 use App\Models\Review;
 use App\Models\User;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
@@ -13,6 +14,7 @@ use App\Shared\Mail\TemplatedNotificationMail;
 use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -231,6 +233,41 @@ class ReviewSubmissionTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Be the first to share your thoughts');
+    }
+
+    public function test_a_reviewer_with_no_avatar_shows_the_placeholder_image(): void
+    {
+        $episode = $this->episode();
+        $this->createApprovedReview($episode, User::factory()->create(), 5, 'No avatar set for this reviewer.');
+
+        $response = $this->get(route('podcast.episodes.show', $episode));
+
+        $response->assertOk();
+        $response->assertSee(User::defaultAvatarUrl(), false);
+    }
+
+    public function test_a_reviewers_uploaded_avatar_is_shown(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('media/images/avatar.png', 'fake-avatar-bytes');
+        $avatar = Media::query()->create([
+            'disk' => 'public',
+            'path' => 'media/images/avatar.png',
+            'original_filename' => 'avatar.png',
+            'mime_type' => 'image/png',
+            'size' => 17,
+            'visibility' => 'public',
+        ]);
+        $user = User::factory()->create();
+        $user->profile()->create(['avatar_media_id' => $avatar->id]);
+
+        $episode = $this->episode();
+        $this->createApprovedReview($episode, $user, 5, 'This reviewer has a real avatar.');
+
+        $response = $this->get(route('podcast.episodes.show', $episode));
+
+        $response->assertOk();
+        $response->assertSee(Storage::disk('public')->url($avatar->path), false);
     }
 
     private function createApprovedReview(PodcastEpisode $episode, User $user, int $rating, string $content): Review

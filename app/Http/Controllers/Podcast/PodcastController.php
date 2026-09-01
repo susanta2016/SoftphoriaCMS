@@ -149,7 +149,7 @@ class PodcastController extends Controller implements Sitemapable
         $chrome = $this->siteChrome($settings);
         $episode->load(['artwork', 'audio', 'podcast', 'categories', 'tags']);
 
-        $reviews = $episode->reviews()->approved()->with('user')->latest()->get();
+        $reviews = $episode->reviews()->approved()->with('user.profile.avatar')->latest()->get();
 
         $latest = PodcastEpisode::query()
             ->published()

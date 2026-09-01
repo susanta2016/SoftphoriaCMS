@@ -140,16 +140,19 @@
                         @else
                             <div class="mt-6 space-y-4">
                                 @foreach ($reviews as $review)
-                                    <div class="rounded-xl border border-brand-navy/10 p-4">
-                                        <div class="flex items-center gap-2">
-                                            @for ($i = 1; $i <= 5; $i++)
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" @class(['h-4 w-4', 'text-brand-gold' => $i <= $review->rating, 'text-brand-navy/15' => $i > $review->rating])><path d="m12 2 2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.8-6.3 3.8 1.7-7-5.4-4.7 7.1-.7Z"/></svg>
-                                            @endfor
+                                    <div class="flex gap-3 rounded-xl border border-brand-navy/10 p-4">
+                                        <img src="{{ $review->reviewerAvatarUrl() }}" alt="" class="h-9 w-9 shrink-0 rounded-full object-cover">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-2">
+                                                @for ($i = 1; $i <= 5; $i++)
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" @class(['h-4 w-4', 'text-brand-gold' => $i <= $review->rating, 'text-brand-navy/15' => $i > $review->rating])><path d="m12 2 2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.8-6.3 3.8 1.7-7-5.4-4.7 7.1-.7Z"/></svg>
+                                                @endfor
+                                            </div>
+                                            <p class="mt-2 text-sm leading-relaxed text-brand-navy/75">{{ $review->content }}</p>
+                                            <p class="mt-2 text-xs text-brand-navy/50">
+                                                {{ $review->user?->name ?? 'A Member' }} &middot; {{ $review->created_at->format('M j, Y') }}
+                                            </p>
                                         </div>
-                                        <p class="mt-2 text-sm leading-relaxed text-brand-navy/75">{{ $review->content }}</p>
-                                        <p class="mt-2 text-xs text-brand-navy/50">
-                                            {{ $review->user?->name ?? 'A Member' }} &middot; {{ $review->created_at->format('M j, Y') }}
-                                        </p>
                                     </div>
                                 @endforeach
                             </div>

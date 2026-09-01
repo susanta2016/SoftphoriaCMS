@@ -5,11 +5,13 @@ namespace App\Modules\Music\Models;
 use App\Models\Category;
 use App\Models\Concerns\HasPublicId;
 use App\Models\Media;
+use App\Models\Review;
 use App\Models\SeoMetadata;
 use App\Models\Tag;
 use App\Modules\Music\Enums\ReleaseStatus;
 use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Exceptions\InvalidTrackReleaseException;
+use App\Shared\Support\Reviews\Reviewable;
 use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
@@ -38,7 +41,7 @@ use Illuminate\Support\Collection;
     'album_id', 'single_id', 'title', 'slug', 'description', 'track_number', 'duration_seconds',
     'written_by', 'produced_by', 'isrc', 'video_embed_url', 'audio_media_id', 'video_media_id', 'status',
 ])]
-class Track extends Model implements Sitemapable
+class Track extends Model implements Reviewable, Sitemapable
 {
     use HasPublicId, SoftDeletes;
 
@@ -144,6 +147,29 @@ class Track extends Model implements Sitemapable
     public function seo(): MorphOne
     {
         return $this->morphOne(SeoMetadata::class, 'seoable');
+    }
+
+    public function reviews(): MorphMany
+    {
+        return $this->morphMany(Review::class, 'reviewable');
+    }
+
+    public function reviewTitle(): string
+    {
+        return $this->title;
+    }
+
+    /**
+     * A Single-owned track's reviews live on its Single's own listening
+     * page (there is no separate public page for the track itself — see
+     * MusicController::showTrack()'s redirect); an Album-owned track's
+     * reviews live on its own track page.
+     */
+    public function reviewUrl(): string
+    {
+        return $this->single_id !== null
+            ? route('music.singles.show', $this->single)
+            : route('music.tracks.show', $this);
     }
 
     /**

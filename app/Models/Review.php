@@ -62,4 +62,28 @@ class Review extends Model
 
         return class_basename($this->reviewable_type).' #'.$this->reviewable_id;
     }
+
+    /**
+     * The reviewer's avatar for public display — the same real-upload-or-
+     * placeholder resolution as everywhere else a user's avatar is shown
+     * (see User::avatarUrl()). Falls back to the same placeholder directly
+     * on the rare chance a review's user relation is unloadable, even
+     * though `reviews.user_id` cascade-deletes with its user in practice.
+     */
+    public function reviewerAvatarUrl(): string
+    {
+        return $this->user?->avatarUrl() ?? User::defaultAvatarUrl();
+    }
+
+    /**
+     * A human label for the *kind* of content reviewed (e.g. "Podcast
+     * Episode", "Track") — distinct from reviewableLabel(), which names the
+     * specific item. Lets the admin moderation table/filter distinguish
+     * Podcast reviews from Music reviews (and, later, Inspirational
+     * Resources) at a glance without a per-module column of its own.
+     */
+    public function reviewableType(): string
+    {
+        return str(class_basename($this->reviewable_type))->headline()->toString();
+    }
 }

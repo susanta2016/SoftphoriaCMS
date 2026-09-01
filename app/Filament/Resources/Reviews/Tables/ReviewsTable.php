@@ -21,6 +21,7 @@ class ReviewsTable
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with(['user', 'reviewable']))
             ->columns([
+                TextColumn::make('reviewableType')->label('Content Type')->badge()->state(fn (Review $record): string => $record->reviewableType()),
                 TextColumn::make('reviewableLabel')->label('Reviewed Item')->state(fn (Review $record): string => $record->reviewableLabel()),
                 TextColumn::make('user.name')->label('Reviewer')->searchable(),
                 TextColumn::make('rating')->label('Rating')->formatStateUsing(fn (int $state): string => str_repeat('★', $state).str_repeat('☆', 5 - $state)),
@@ -30,6 +31,18 @@ class ReviewsTable
             ])
             ->filters([
                 SelectFilter::make('status')->options(ReviewStatus::options()),
+                // Options are derived from whatever reviewable_type values
+                // actually exist (Podcast today, Music now, Inspirational
+                // Resources later) rather than a hardcoded module list, so
+                // this filter never needs updating when a new module adopts
+                // the shared Review model.
+                SelectFilter::make('reviewable_type')
+                    ->label('Content Type')
+                    ->options(fn (): array => Review::query()
+                        ->distinct()
+                        ->pluck('reviewable_type')
+                        ->mapWithKeys(fn (string $type): array => [$type => str(class_basename($type))->headline()->toString()])
+                        ->all()),
             ])
             ->recordActions([
                 ViewAction::make(),
