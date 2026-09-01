@@ -73,6 +73,8 @@ class Settings extends Page
                         ->schema($this->seoTabSchema()),
                     Tab::make('Footer')
                         ->schema($this->footerTabSchema()),
+                    Tab::make('Podcast')
+                        ->schema($this->podcastTabSchema()),
                     Tab::make('Email')
                         ->schema($this->emailTabSchema()),
                     Tab::make('Registration')
@@ -173,6 +175,21 @@ class Settings extends Page
                 ->label('Copyright Text')
                 ->maxLength(255)
                 ->helperText('Shown at the bottom of the footer. Use {year} anywhere in the text and it will always be replaced with the current year, e.g. "© {year} All The Things Light. All rights reserved."'),
+        ];
+    }
+
+    /**
+     * The public Podcast landing page's hero banner image — its own setting
+     * group (not a `podcasts` row column) since it's a single site-wide
+     * visual for the whole Podcast section, independent of any one Podcast
+     * show, exactly like Footer's own background_media_id above.
+     *
+     * @return array<int, Component>
+     */
+    protected function podcastTabSchema(): array
+    {
+        return [
+            MediaPicker::make('podcast.hero_banner_media_id', 'Podcast Hero Banner', MediaCategory::Image),
         ];
     }
 
@@ -350,6 +367,9 @@ class Settings extends Page
         $settings->set('footer', 'background_media_id', $footer['background_media_id'], 'integer');
         $settings->set('footer', 'copyright_text', $footer['copyright_text']);
 
+        $podcast = $state['podcast'];
+        $settings->set('podcast', 'hero_banner_media_id', $podcast['hero_banner_media_id'], 'integer');
+
         $email = $state['email'];
         $settings->set('email', 'enabled', (bool) $email['enabled'], 'boolean');
         $settings->set('email', 'provider', $email['provider']);
@@ -377,6 +397,7 @@ class Settings extends Page
 
         $this->recordAudit('general', array_keys($general));
         $this->recordAudit('footer', array_keys($footer));
+        $this->recordAudit('podcast', array_keys($podcast));
         // Never log the password value itself, even in metadata.
         $this->recordAudit('email', array_keys(array_diff_key($email, ['smtp_password' => true])));
         $this->recordAudit('registration', array_keys($registration));
@@ -428,6 +449,9 @@ class Settings extends Page
                 'subheading' => $settings->get('footer', 'subheading'),
                 'background_media_id' => $settings->get('footer', 'background_media_id'),
                 'copyright_text' => $settings->get('footer', 'copyright_text'),
+            ],
+            'podcast' => [
+                'hero_banner_media_id' => $settings->get('podcast', 'hero_banner_media_id'),
             ],
             'email' => [
                 'enabled' => $settings->get('email', 'enabled', false),

@@ -79,4 +79,10 @@ return [
         'variables' => ['submitter_name', 'submitter_email', 'subject', 'category', 'site_name'],
     ],
 
+    'review_published' => [
+        'label' => 'Review Published',
+        'recipients' => ['user'],
+        'variables' => ['user_name', 'title', 'rating', 'review_url', 'site_name'],
+    ],
+
 ];

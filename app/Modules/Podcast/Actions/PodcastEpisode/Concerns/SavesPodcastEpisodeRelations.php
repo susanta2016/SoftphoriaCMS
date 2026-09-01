@@ -2,6 +2,7 @@
 
 namespace App\Modules\Podcast\Actions\PodcastEpisode\Concerns;
 
+use App\Modules\Music\Support\AudioDurationDetector;
 use App\Modules\Podcast\Models\PodcastEpisode;
 
 /**
@@ -42,5 +43,35 @@ trait SavesPodcastEpisodeRelations
     protected function syncTags(PodcastEpisode $episode, array $tagIds): void
     {
         $episode->tags()->sync($tagIds);
+    }
+
+    /**
+     * duration_seconds is not an admin-editable form field, same reasoning
+     * and same reused App\Modules\Music\Support\AudioDurationDetector as
+     * Track's SavesTrackRelations::detectAndSetDuration() — always
+     * recomputed from the real uploaded file on every save, never trusted
+     * from a prior value. The public Podcast frontend (hero/list/filters)
+     * is this column's only consumer; unlike Track's, no guest byte-cap
+     * depends on it, but an unset-or-stale value would still misrender the
+     * episode's duration everywhere it's shown.
+     */
+    protected function detectAndSetDuration(PodcastEpisode $episode): void
+    {
+        if ($episode->audio_media_id === null) {
+            if ($episode->duration_seconds !== null) {
+                $episode->duration_seconds = null;
+                $episode->save();
+            }
+
+            return;
+        }
+
+        $media = $episode->audio()->first();
+        $seconds = $media !== null ? app(AudioDurationDetector::class)->detect($media) : null;
+
+        if ($seconds !== $episode->duration_seconds) {
+            $episode->duration_seconds = $seconds;
+            $episode->save();
+        }
     }
 }

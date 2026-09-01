@@ -4,8 +4,9 @@ namespace Tests\Feature\Podcast;
 
 use App\Models\Media;
 use App\Models\User;
-use App\Modules\Commerce\Enums\SubscriptionStatus;
-use App\Modules\Commerce\Models\Subscription;
+use App\Modules\Commerce\Enums\DownloadAccessType;
+use App\Modules\Commerce\Enums\DownloadLogStatus;
+use App\Modules\Commerce\Models\DownloadLog;
 use App\Modules\Podcast\Actions\Download\AuthorizePodcastEpisodeDownloadAction;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
 use App\Modules\Podcast\Enums\PodcastStatus;
@@ -15,111 +16,48 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Client-confirmed rule (2026-08-24): only an active, paid Pro Member may
- * download a Podcast Episode's audio — free Members and guests never get
- * download access merely because the episode is available/streamable, and
- * the existing Pro subscription status/period rules (a cancelled
- * subscription stays active until its already-paid period ends — see
- * App\Modules\Commerce\Models\Subscription::isActive()) govern eligibility
- * exactly as they do for Music, via the same
- * User::hasActiveMembership() this Action reuses read-only. Mirrors
- * SubscriptionCancellationTest's Music-side coverage of the identical
- * period-end rule.
+ * Corrected rule (2026-09-01): a Podcast Episode download is free for any
+ * registered user — no Subscription/Entitlement/purchase, superseding this
+ * action's earlier "active Pro Member only" rule (see its own docblock for
+ * why: Member Subscription defaults to disabled in Phase 1, which would have
+ * made every Podcast download permanently unreachable under the old rule).
+ * Every outcome, success or denial, is written to the same shared DownloadLog
+ * Music's downloads use — no parallel download-history mechanism.
  */
 class AuthorizePodcastEpisodeDownloadActionTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guest_is_denied(): void
-    {
-        $episode = $this->episodeWithAudio();
-
-        $authorized = app(AuthorizePodcastEpisodeDownloadAction::class)->authorize($episode, null);
-
-        $this->assertFalse($authorized);
-    }
-
-    public function test_free_member_without_a_subscription_is_denied(): void
+    public function test_a_registered_user_is_authorized_with_no_subscription_or_purchase_of_any_kind(): void
     {
         $episode = $this->episodeWithAudio();
         $user = $this->member();
 
-        $authorized = app(AuthorizePodcastEpisodeDownloadAction::class)->authorize($episode, $user);
+        $result = app(AuthorizePodcastEpisodeDownloadAction::class)->authorizeForUser($episode, $user);
 
-        $this->assertFalse($authorized);
+        $this->assertTrue($result->authorized);
+        $this->assertSame(DownloadAccessType::Free, $result->accessType);
+        $this->assertNotNull($result->media);
     }
 
-    public function test_active_pro_subscriber_is_authorized(): void
+    public function test_the_successful_download_is_recorded_in_the_shared_download_log(): void
     {
         $episode = $this->episodeWithAudio();
         $user = $this->member();
 
-        Subscription::query()->create([
-            'user_id' => $user->getKey(),
-            'status' => SubscriptionStatus::Active,
-            'current_period_end' => now()->addDays(20),
-            'cancel_at_period_end' => false,
-        ]);
+        app(AuthorizePodcastEpisodeDownloadAction::class)->authorizeForUser($episode, $user, '203.0.113.5', 'PHPUnit');
 
-        $authorized = app(AuthorizePodcastEpisodeDownloadAction::class)->authorize($episode, $user);
-
-        $this->assertTrue($authorized);
+        $log = DownloadLog::query()->where('status', DownloadLogStatus::Succeeded)->first();
+        $this->assertNotNull($log);
+        $this->assertSame($user->getKey(), $log->user_id);
+        $this->assertSame($episode->getKey(), $log->podcast_episode_id);
+        $this->assertNull($log->track_id);
+        $this->assertNull($log->entitlement_id);
+        $this->assertSame(DownloadAccessType::Free, $log->access_type);
+        $this->assertSame('203.0.113.5', $log->ip_address);
     }
 
-    public function test_a_cancelled_subscription_still_authorized_during_the_remaining_paid_period(): void
-    {
-        $episode = $this->episodeWithAudio();
-        $user = $this->member();
-
-        Subscription::query()->create([
-            'user_id' => $user->getKey(),
-            'status' => SubscriptionStatus::Active,
-            'current_period_end' => now()->addDays(10),
-            'cancel_at_period_end' => true,
-            'cancelled_at' => now(),
-        ]);
-
-        $authorized = app(AuthorizePodcastEpisodeDownloadAction::class)->authorize($episode, $user);
-
-        $this->assertTrue($authorized);
-    }
-
-    public function test_access_stops_once_the_paid_period_has_actually_ended(): void
-    {
-        $episode = $this->episodeWithAudio();
-        $user = $this->member();
-
-        Subscription::query()->create([
-            'user_id' => $user->getKey(),
-            'status' => SubscriptionStatus::Active,
-            'current_period_end' => now()->subDay(),
-            'cancel_at_period_end' => true,
-            'cancelled_at' => now()->subDays(30),
-        ]);
-
-        $authorized = app(AuthorizePodcastEpisodeDownloadAction::class)->authorize($episode, $user);
-
-        $this->assertFalse($authorized);
-    }
-
-    public function test_access_stops_once_stripe_reports_the_subscription_fully_ended(): void
-    {
-        $episode = $this->episodeWithAudio();
-        $user = $this->member();
-
-        Subscription::query()->create([
-            'user_id' => $user->getKey(),
-            'status' => SubscriptionStatus::Canceled,
-            'current_period_end' => now()->addDays(5),
-            'ended_at' => now(),
-        ]);
-
-        $authorized = app(AuthorizePodcastEpisodeDownloadAction::class)->authorize($episode, $user);
-
-        $this->assertFalse($authorized);
-    }
-
-    public function test_active_pro_subscriber_is_still_denied_when_the_episode_has_no_audio_asset(): void
+    public function test_a_user_is_denied_when_the_episode_has_no_audio_asset(): void
     {
         $podcast = $this->createPodcast();
         $episode = PodcastEpisode::query()->create([
@@ -130,16 +68,15 @@ class AuthorizePodcastEpisodeDownloadActionTest extends TestCase
         ]);
         $user = $this->member();
 
-        Subscription::query()->create([
-            'user_id' => $user->getKey(),
-            'status' => SubscriptionStatus::Active,
-            'current_period_end' => now()->addDays(20),
-            'cancel_at_period_end' => false,
-        ]);
+        $result = app(AuthorizePodcastEpisodeDownloadAction::class)->authorizeForUser($episode, $user);
 
-        $authorized = app(AuthorizePodcastEpisodeDownloadAction::class)->authorize($episode, $user);
+        $this->assertFalse($result->authorized);
+        $this->assertSame('no_audio_asset', $result->denialReason);
 
-        $this->assertFalse($authorized);
+        $log = DownloadLog::query()->where('status', DownloadLogStatus::Denied)->first();
+        $this->assertNotNull($log);
+        $this->assertSame('no_audio_asset', $log->denial_reason);
+        $this->assertNull($log->access_type);
     }
 
     private function episodeWithAudio(): PodcastEpisode

@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Music\MusicController;
+use App\Http\Controllers\Podcast\PodcastController;
 use App\Models\Page;
 use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Single;
 use App\Modules\Music\Models\Track;
+use App\Modules\Podcast\Models\PodcastEpisode;
 use App\Modules\PoetryProse\Models\PoetryProse;
 
 return [
@@ -45,6 +47,8 @@ return [
         Album::class,
         Single::class,
         Track::class,
+        PodcastController::class,
+        PodcastEpisode::class,
     ],
 
 ];

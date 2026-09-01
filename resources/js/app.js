@@ -77,9 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     const modal = document.querySelector('[data-video-modal]');
-    const toggle = document.querySelector('[data-video-modal-toggle]');
+    const toggles = Array.from(document.querySelectorAll('[data-video-modal-toggle]'));
 
-    if (!modal || !toggle) return;
+    if (!modal || toggles.length === 0) return;
 
     const player = modal.querySelector('[data-video-modal-player]');
     const iframe = modal.querySelector('[data-video-modal-iframe]');
@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    toggle.addEventListener('click', () => setOpen(true));
+    toggles.forEach((toggle) => toggle.addEventListener('click', () => setOpen(true)));
     closeButton?.addEventListener('click', () => setOpen(false));
 
     modal.addEventListener('click', (event) => {
@@ -674,5 +674,143 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, index * 600);
             });
         });
+    });
+});
+
+// The review/rating submission form's clickable star widget — pure
+// progressive enhancement: the hidden input already carries any previously
+// submitted rating (old('rating')/an existing review), so the form still
+// works with JavaScript disabled via the browser's native number entry.
+document.addEventListener('DOMContentLoaded', () => {
+    const widget = document.querySelector('[data-review-rating]');
+    if (!widget) return;
+
+    const input = widget.querySelector('[data-review-rating-input]');
+    const stars = Array.from(widget.querySelectorAll('[data-review-star]'));
+
+    const paint = (value) => {
+        stars.forEach((star) => {
+            star.classList.toggle('text-brand-gold', Number(star.dataset.value) <= value);
+            star.classList.toggle('text-brand-navy/20', Number(star.dataset.value) > value);
+        });
+    };
+
+    paint(Number(input?.value) || 0);
+
+    stars.forEach((star) => {
+        star.addEventListener('click', () => {
+            if (input) input.value = star.dataset.value;
+            paint(Number(star.dataset.value));
+        });
+        star.addEventListener('mouseenter', () => paint(Number(star.dataset.value)));
+    });
+
+    widget.addEventListener('mouseleave', () => paint(Number(input?.value) || 0));
+});
+
+// Client-side guard for the review/rating form — catches an obviously
+// incomplete submission (no star selected, or an empty/whitespace-only
+// review) before it round-trips to the server. This is only a UX nicety;
+// PodcastEpisodeReviewController::store() still re-validates authoritatively
+// (rating between 1-5, content required), so a JS-disabled browser is never
+// left unprotected.
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.querySelector('[data-review-form]');
+    if (!form) return;
+
+    const ratingInput = form.querySelector('[data-review-rating-input]');
+    const ratingError = form.querySelector('[data-review-rating-error]');
+    const contentInput = form.querySelector('[data-review-content-input]');
+    const contentError = form.querySelector('[data-review-content-error]');
+
+    form.querySelectorAll('[data-review-star]').forEach((star) => {
+        star.addEventListener('click', () => ratingError?.classList.add('hidden'));
+    });
+    contentInput?.addEventListener('input', () => contentError?.classList.add('hidden'));
+
+    form.addEventListener('submit', (event) => {
+        const rating = Number(ratingInput?.value);
+        const hasValidRating = Number.isInteger(rating) && rating >= 1 && rating <= 5;
+        const hasContent = (contentInput?.value ?? '').trim().length > 0;
+
+        ratingError?.classList.toggle('hidden', hasValidRating);
+        contentError?.classList.toggle('hidden', hasContent);
+
+        if (!hasValidRating || !hasContent) {
+            event.preventDefault();
+        }
+    });
+});
+
+// The All Episodes page's search/topic/duration/release-date/sort/list-grid
+// controls, all fetched asynchronously — mirrors Music's own
+// [data-catalogue-region] pattern above exactly, just with its own markers
+// (data-podcast-episodes-region/-form) since it's a separate page. The one
+// structural difference from Music: the filter form lives in the sidebar,
+// outside the results region, so its submit is caught via a document-level
+// listener rather than one scoped to the region — link clicks (pagination,
+// list/grid toggle) stay region-scoped since those links are always inside
+// the swapped fragment. The global header search (a distinct, unrelated
+// control — see resources/views/components/site/header.blade.php) is never
+// touched by this block.
+document.addEventListener('DOMContentLoaded', () => {
+    const region = document.querySelector('[data-podcast-episodes-region]');
+    if (!region) return;
+
+    const fetchAndSwap = async (url, { pushState = true } = {}) => {
+        region.setAttribute('aria-busy', 'true');
+        region.classList.add('opacity-50', 'pointer-events-none', 'transition-opacity');
+
+        try {
+            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error(`Unexpected status ${response.status}`);
+
+            region.innerHTML = await response.text();
+            if (pushState) window.history.pushState({ podcastEpisodes: true }, '', url);
+        } catch (error) {
+            // The async refresh failed — fall back to a real navigation so
+            // the user's search/filter/sort/page action still completes.
+            window.location.href = url;
+            return;
+        } finally {
+            region.removeAttribute('aria-busy');
+            region.classList.remove('opacity-50', 'pointer-events-none', 'transition-opacity');
+        }
+    };
+
+    // Document-scoped (not region-scoped): "Clear filters" lives in the
+    // sidebar, outside the region, so pagination/list-grid-toggle/clear-
+    // filters all need to be caught regardless of which side of the region
+    // boundary they're on. Safe because only links whose pathname exactly
+    // matches the current page (i.e. pointing back at /podcast/episodes)
+    // are ever intercepted — an episode card/row link, or any other page's
+    // link, always has a different pathname and navigates normally.
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('a');
+        if (!link) return;
+
+        const url = new URL(link.href, window.location.origin);
+        if (url.pathname !== window.location.pathname) return;
+
+        event.preventDefault();
+        fetchAndSwap(link.href);
+    });
+
+    document.addEventListener('submit', (event) => {
+        const form = event.target.closest('[data-podcast-episodes-form]');
+        if (!form) return;
+
+        event.preventDefault();
+        const params = new URLSearchParams(new FormData(form));
+        Array.from(params.keys()).forEach((key) => {
+            if (params.get(key) === '') params.delete(key);
+        });
+
+        fetchAndSwap(`${form.action}?${params.toString()}`);
+    });
+
+    window.addEventListener('popstate', () => {
+        if (window.location.pathname !== '/podcast/episodes') return;
+        fetchAndSwap(window.location.href, { pushState: false });
     });
 });

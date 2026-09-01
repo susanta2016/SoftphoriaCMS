@@ -7,6 +7,7 @@ use App\Models\Media;
 use App\Models\User;
 use App\Modules\Podcast\Enums\PodcastStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -27,6 +28,11 @@ class Podcast extends Model
         return [
             'status' => PodcastStatus::class,
         ];
+    }
+
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query->where('status', PodcastStatus::Published);
     }
 
     public function artwork(): BelongsTo

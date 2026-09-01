@@ -26,7 +26,7 @@ class DownloadLogsTable
                 TextColumn::make('purchaser')
                     ->label('Purchaser')
                     ->getStateUsing(fn (DownloadLog $record): string => $record->user?->email ?? $record->entitlement?->purchaser_email ?? '—'),
-                TextColumn::make('track.title')->label('Track'),
+                TextColumn::make('track.title')->label('Track')->placeholder('—'),
                 TextColumn::make('item')
                     ->label('Album / Single')
                     ->getStateUsing(function (DownloadLog $record): string {
@@ -34,6 +34,7 @@ class DownloadLogsTable
 
                         return $track?->album?->title ?? $track?->single?->title ?? '—';
                     }),
+                TextColumn::make('podcastEpisode.title')->label('Podcast Episode')->placeholder('—'),
                 TextColumn::make('access_type')->badge()->placeholder('—'),
                 TextColumn::make('status')->badge(),
                 TextColumn::make('denial_reason')->placeholder('—'),

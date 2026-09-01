@@ -31,6 +31,7 @@ class CreatePodcastEpisodeAction
             $this->saveSeo($episode, $data['seo'] ?? []);
             $this->syncCategories($episode, $data['categoryIds'] ?? []);
             $this->syncTags($episode, $data['tagIds'] ?? []);
+            $this->detectAndSetDuration($episode);
 
             $this->auditLog->record($actor, 'podcast_episode.created', $episode, ['title' => $episode->title]);
 

@@ -27,6 +27,7 @@ class UpdatePodcastEpisodeAction
             $this->saveSeo($episode, $data['seo'] ?? []);
             $this->syncCategories($episode, $data['categoryIds'] ?? []);
             $this->syncTags($episode, $data['tagIds'] ?? []);
+            $this->detectAndSetDuration($episode);
 
             $this->auditLog->record($actor, 'podcast_episode.updated', $episode, ['title' => $episode->title]);
 
