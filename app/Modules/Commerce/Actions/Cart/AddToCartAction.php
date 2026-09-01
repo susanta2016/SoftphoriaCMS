@@ -4,12 +4,15 @@ namespace App\Modules\Commerce\Actions\Cart;
 
 use App\Modules\Commerce\Actions\PurchaseReadiness\CheckAlbumReadinessAction;
 use App\Modules\Commerce\Actions\PurchaseReadiness\CheckSingleReadinessAction;
+use App\Modules\Commerce\Actions\PurchaseReadiness\CheckTrackReadinessAction;
 use App\Modules\Commerce\Exceptions\PurchaseNotReadyException;
 use App\Modules\Commerce\Models\Order;
 use App\Modules\Commerce\Models\OrderItem;
 use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
+use App\Modules\Commerce\Support\PurchaseReadinessResult;
 use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Single;
+use App\Modules\Music\Models\Track;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -28,37 +31,35 @@ class AddToCartAction
     public function __construct(
         private readonly CheckAlbumReadinessAction $checkAlbum,
         private readonly CheckSingleReadinessAction $checkSingle,
+        private readonly CheckTrackReadinessAction $checkTrack,
         private readonly GlobalPricingResolver $pricing,
     ) {}
 
     /**
      * @throws PurchaseNotReadyException
      */
-    public function handle(Order $order, Album|Single $item): Order
+    public function handle(Order $order, Album|Single|Track $item): Order
     {
-        $isAlbum = $item instanceof Album;
+        $column = $this->columnFor($item);
 
-        $alreadyInCart = $order->items()
-            ->where($isAlbum ? 'album_id' : 'single_id', $item->getKey())
-            ->exists();
+        $alreadyInCart = $order->items()->where($column, $item->getKey())->exists();
 
         if ($alreadyInCart) {
             return $order;
         }
 
-        $readiness = $isAlbum ? $this->checkAlbum->handle($item) : $this->checkSingle->handle($item);
+        $readiness = $this->checkReadiness($item);
 
         if (! $readiness->ready) {
             throw PurchaseNotReadyException::forIssues($item->title, $readiness->issues);
         }
 
-        $price = $isAlbum ? $this->pricing->fullAlbumPrice() : $this->pricing->perSongPrice();
+        $price = $item instanceof Album ? $this->pricing->fullAlbumPrice() : $this->pricing->perSongPrice();
 
-        return DB::transaction(function () use ($order, $item, $isAlbum, $price): Order {
+        return DB::transaction(function () use ($order, $item, $column, $price): Order {
             $orderItem = new OrderItem;
             $orderItem->order_id = $order->getKey();
-            $orderItem->album_id = $isAlbum ? $item->getKey() : null;
-            $orderItem->single_id = $isAlbum ? null : $item->getKey();
+            $orderItem->{$column} = $item->getKey();
             $orderItem->item_title = $item->title;
             $orderItem->quantity = 1;
             $orderItem->unit_price = $price;
@@ -74,5 +75,23 @@ class AddToCartAction
 
             return $order;
         });
+    }
+
+    private function columnFor(Album|Single|Track $item): string
+    {
+        return match (true) {
+            $item instanceof Album => 'album_id',
+            $item instanceof Single => 'single_id',
+            default => 'track_id',
+        };
+    }
+
+    private function checkReadiness(Album|Single|Track $item): PurchaseReadinessResult
+    {
+        return match (true) {
+            $item instanceof Album => $this->checkAlbum->handle($item),
+            $item instanceof Single => $this->checkSingle->handle($item),
+            default => $this->checkTrack->handle($item),
+        };
     }
 }

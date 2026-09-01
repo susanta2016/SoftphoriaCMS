@@ -123,7 +123,7 @@ class ReviewSubmissionTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
             'rating' => 5,
-            'content' => str_repeat('a', 301),
+            'content' => str_repeat('a', config('reviews.max_length') + 1),
         ]);
 
         $response->assertSessionHasErrors('content');

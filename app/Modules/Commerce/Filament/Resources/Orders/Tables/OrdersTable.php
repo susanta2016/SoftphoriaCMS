@@ -63,12 +63,13 @@ class OrdersTable
                 Filter::make('item_type')
                     ->schema([
                         Select::make('type')
-                            ->options(['album' => 'Album', 'single' => 'Single'])
+                            ->options(['album' => 'Album', 'single' => 'Single', 'track' => 'Track'])
                             ->placeholder('All'),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => match ($data['type'] ?? null) {
                         'album' => $query->whereHas('items', fn ($q) => $q->whereNotNull('album_id')),
                         'single' => $query->whereHas('items', fn ($q) => $q->whereNotNull('single_id')),
+                        'track' => $query->whereHas('items', fn ($q) => $q->whereNotNull('track_id')),
                         default => $query,
                     }),
             ])

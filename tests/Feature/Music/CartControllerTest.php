@@ -7,7 +7,9 @@ use App\Modules\Commerce\Actions\Order\MarkOrderPaidAction;
 use App\Modules\Commerce\Enums\SubscriptionStatus;
 use App\Modules\Commerce\Models\Subscription;
 use App\Modules\Music\Enums\ReleaseStatus;
+use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Models\Album;
+use App\Modules\Music\Models\Track;
 use App\Modules\Music\Support\CartSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\CreatesCommerceFixtures;
@@ -113,6 +115,65 @@ class CartControllerTest extends TestCase
         app(MarkOrderPaidAction::class)->handle($order, 'pi_1', 'evt_1');
 
         $response = $this->actingAs($user)->post(route('cart.add'), ['type' => 'single', 'slug' => $single->slug]);
+
+        $response->assertSessionHas('cart_notice');
+        $this->assertSame(0, CartSession::count());
+    }
+
+    public function test_a_guest_can_add_an_individual_album_owned_track_to_the_cart(): void
+    {
+        $album = $this->readyAlbum();
+        $track = $album->tracks->first();
+
+        $response = $this->post(route('cart.add'), ['type' => 'track', 'slug' => $track->slug]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('cart_added');
+        $this->assertSame(1, CartSession::count());
+        $this->assertTrue(CartSession::has('track', $track->getKey()));
+    }
+
+    public function test_the_track_cart_line_is_priced_at_the_global_per_song_price_not_the_album_price(): void
+    {
+        $album = $this->readyAlbum();
+        $track = $album->tracks->first();
+        CartSession::add('track', $track->getKey());
+
+        $response = $this->get(route('cart.show'));
+
+        $response->assertOk();
+        $response->assertSee('0.99'); // default music_per_song_price
+        $response->assertDontSee('9.99'); // default full_album_price must never appear for a track line
+    }
+
+    public function test_a_second_track_in_the_same_album_can_be_added_independently(): void
+    {
+        $album = $this->readyAlbum();
+        $firstTrack = $album->tracks->first();
+        $secondTrack = Track::query()->create([
+            'album_id' => $album->getKey(),
+            'title' => 'Second Track',
+            'slug' => 'second-track-'.uniqid(),
+            'track_number' => 2,
+            'status' => TrackStatus::Published,
+            'audio_media_id' => $this->audioMedia()->getKey(),
+        ]);
+
+        $this->post(route('cart.add'), ['type' => 'track', 'slug' => $firstTrack->slug]);
+        $this->post(route('cart.add'), ['type' => 'track', 'slug' => $secondTrack->slug]);
+
+        $this->assertSame(2, CartSession::count());
+    }
+
+    public function test_a_user_who_already_owns_the_track_is_told_instead_of_adding_it(): void
+    {
+        $user = $this->admin();
+        $album = $this->readyAlbum();
+        $track = $album->tracks->first();
+        $order = app(CreatePendingOrderAction::class)->handle($track, $user, $user->email);
+        app(MarkOrderPaidAction::class)->handle($order, 'pi_1', 'evt_1');
+
+        $response = $this->actingAs($user)->post(route('cart.add'), ['type' => 'track', 'slug' => $track->slug]);
 
         $response->assertSessionHas('cart_notice');
         $this->assertSame(0, CartSession::count());

@@ -9,6 +9,7 @@ use App\Models\Page;
 use App\Models\Review;
 use App\Modules\Commerce\Actions\PurchaseReadiness\CheckAlbumReadinessAction;
 use App\Modules\Commerce\Actions\PurchaseReadiness\CheckSingleReadinessAction;
+use App\Modules\Commerce\Actions\PurchaseReadiness\CheckTrackReadinessAction;
 use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
 use App\Modules\Music\Enums\ReleaseStatus;
 use App\Modules\Music\Enums\TrackStatus;
@@ -508,16 +509,16 @@ class MusicController extends Controller implements Sitemapable
             'stream_track' => $track,
             'parent_label' => $album->title,
             'parent_route' => route('music.albums.show', $album),
-            // A Track is never independently purchasable — only whole
-            // Albums/Singles are (see CreatePendingOrderAction's Album|Single
-            // type hint). An Album-owned track links to buying the album
-            // instead of showing a Buy button of its own.
-            'purchase' => null,
-            'purchase_type' => null,
-            'purchase_slug' => null,
-            'parent_purchase' => $this->purchaseState($album),
-            'parent_purchase_type' => 'album',
-            'parent_purchase_slug' => $album->slug,
+            // An Album-owned Track is independently purchasable on its own
+            // page at the global per-song price (GlobalPricingResolver::
+            // perSongPrice()) — never the parent Album's price, and buying it
+            // never grants the rest of the Album. See trackPurchaseState().
+            'purchase' => $this->trackPurchaseState($track),
+            'purchase_type' => 'track',
+            'purchase_slug' => $track->slug,
+            'parent_purchase' => null,
+            'parent_purchase_type' => null,
+            'parent_purchase_slug' => null,
             'listening' => $this->listeningAccessState(),
         ];
     }
@@ -579,6 +580,40 @@ class MusicController extends Controller implements Sitemapable
 
         $pricing = app(GlobalPricingResolver::class);
         $price = $item instanceof Album ? $pricing->fullAlbumPrice() : $pricing->perSongPrice();
+
+        return ['state' => 'buy', 'price' => (float) $price];
+    }
+
+    /**
+     * The individual Track's own Buy button state — always priced at
+     * GlobalPricingResolver::perSongPrice(), the exact same global Single/
+     * Track price a Single already uses, regardless of whether this Track
+     * belongs to an Album. The Track's parent Album relationship has zero
+     * effect on this price or on the entitlement a purchase here grants
+     * (see CreatePendingOrderAction/User::ownsTrack()) — mirrors
+     * purchaseState() exactly, one purchasable type at a time.
+     *
+     * @return array{state: 'buy'|'owned'|'included'|'not_ready', price: ?float}
+     */
+    private function trackPurchaseState(Track $track): array
+    {
+        $user = Auth::user();
+
+        if ($user?->hasActiveMembership()) {
+            return ['state' => 'included', 'price' => null];
+        }
+
+        if ($user?->ownsTrack($track)) {
+            return ['state' => 'owned', 'price' => null];
+        }
+
+        $readiness = app(CheckTrackReadinessAction::class)->handle($track);
+
+        if (! $readiness->ready) {
+            return ['state' => 'not_ready', 'price' => null];
+        }
+
+        $price = app(GlobalPricingResolver::class)->perSongPrice();
 
         return ['state' => 'buy', 'price' => (float) $price];
     }

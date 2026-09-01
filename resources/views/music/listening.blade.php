@@ -157,7 +157,7 @@
                                     <input type="hidden" name="slug" value="{{ $purchaseSlug }}">
                                     <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-brand-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-navy/90">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M3 4h2l1.6 9.6a2 2 0 0 0 2 1.7h8a2 2 0 0 0 2-1.7L20 8H6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="16.5" cy="19.5" r="1.3"/></svg>
-                                        {{ $purchaseIsForParent ? 'Buy the Album' : 'Buy' }} — ${{ number_format($purchase['price'], 2) }}
+                                        {{ $purchaseType === 'track' ? 'Purchase Track' : ($purchaseIsForParent ? 'Buy the Album' : 'Buy') }} — ${{ number_format($purchase['price'], 2) }}
                                     </button>
                                 </form>
                             @elseif ($purchase['state'] === 'owned')

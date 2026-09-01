@@ -27,7 +27,7 @@ class EntitlementsTable
                     ->description(fn (Entitlement $record): string => $record->isGuest() ? 'Guest' : 'Registered'),
                 TextColumn::make('album.title')
                     ->label('Item')
-                    ->getStateUsing(fn (Entitlement $record): string => $record->album?->title ?? $record->single?->title ?? '—'),
+                    ->getStateUsing(fn (Entitlement $record): string => $record->album?->title ?? $record->single?->title ?? $record->track?->title ?? '—'),
                 TextColumn::make('computed_status')
                     ->label('Status')
                     ->badge()

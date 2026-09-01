@@ -22,8 +22,14 @@
             <div class="mt-8 space-y-6">
                 @foreach ($order->items as $item)
                     @php
-                        $release = $item->album ?: $item->single;
-                        $tracks = $item->album ? $item->album->tracks : collect([$item->single->track])->filter();
+                        // A 'track' item purchase (an individually-bought
+                        // Album-owned track) exposes exactly that one track
+                        // here — never its parent Album's other tracks.
+                        $tracks = match (true) {
+                            $item->album_id !== null => $item->album->tracks,
+                            $item->single_id !== null => collect([$item->single->track])->filter(),
+                            default => collect([$item->track])->filter(),
+                        };
                         $entitlement = $item->entitlement;
                     @endphp
 

@@ -5,45 +5,52 @@ namespace App\Modules\Commerce\Actions\Order;
 use App\Models\User;
 use App\Modules\Commerce\Actions\PurchaseReadiness\CheckAlbumReadinessAction;
 use App\Modules\Commerce\Actions\PurchaseReadiness\CheckSingleReadinessAction;
+use App\Modules\Commerce\Actions\PurchaseReadiness\CheckTrackReadinessAction;
 use App\Modules\Commerce\Exceptions\PurchaseNotReadyException;
 use App\Modules\Commerce\Models\Order;
 use App\Modules\Commerce\Models\OrderItem;
 use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
+use App\Modules\Commerce\Support\PurchaseReadinessResult;
 use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Single;
+use App\Modules\Music\Models\Track;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Creates an Order + its one OrderItem for a Single or Album purchase, guest
- * or registered — the entry point every future checkout path (customer
- * frontend, a later "buy for a member" admin action, etc.) is meant to call
- * rather than building an Order by hand. Re-validates purchase readiness
- * server-side (§9/§15) even though nothing calls this from an unvalidated
- * frontend yet — the whole point of "never trust price/eligibility from the
- * request" is that this check has to live here, not only in whatever UI
- * calls it later. Price is always resolved from Global Pricing at this exact
- * moment and snapshotted — see GlobalPricingResolver's docblock.
+ * Creates an Order + its one OrderItem for a Single, Album, or individual
+ * Track purchase, guest or registered — the entry point every future
+ * checkout path (customer frontend, a later "buy for a member" admin action,
+ * etc.) is meant to call rather than building an Order by hand. Re-validates
+ * purchase readiness server-side (§9/§15) even though nothing calls this
+ * from an unvalidated frontend yet — the whole point of "never trust price/
+ * eligibility from the request" is that this check has to live here, not
+ * only in whatever UI calls it later. Price is always resolved from Global
+ * Pricing at this exact moment and snapshotted — see GlobalPricingResolver's
+ * docblock. A Track (even an Album-owned one) always prices at
+ * perSongPrice(), the exact same rate a Single uses — its parent Album's
+ * price never applies here.
  */
 class CreatePendingOrderAction
 {
     public function __construct(
         private readonly CheckAlbumReadinessAction $checkAlbum,
         private readonly CheckSingleReadinessAction $checkSingle,
+        private readonly CheckTrackReadinessAction $checkTrack,
         private readonly GlobalPricingResolver $pricing,
     ) {}
 
     /**
      * @throws PurchaseNotReadyException
      */
-    public function handle(Album|Single $item, ?User $user, string $purchaserEmail, ?string $purchaserName = null, ?string $purchaserPhone = null): Order
+    public function handle(Album|Single|Track $item, ?User $user, string $purchaserEmail, ?string $purchaserName = null, ?string $purchaserPhone = null): Order
     {
-        $readiness = $item instanceof Album ? $this->checkAlbum->handle($item) : $this->checkSingle->handle($item);
+        $readiness = $this->checkReadiness($item);
 
         if (! $readiness->ready) {
             throw PurchaseNotReadyException::forIssues($item->title, $readiness->issues);
         }
 
-        $price = $item instanceof Album ? $this->pricing->fullAlbumPrice() : $this->pricing->perSongPrice();
+        $price = $this->priceFor($item);
         $currency = 'usd';
 
         return DB::transaction(function () use ($item, $user, $purchaserEmail, $purchaserName, $purchaserPhone, $price, $currency): Order {
@@ -61,6 +68,7 @@ class CreatePendingOrderAction
             $item_->order_id = $order->getKey();
             $item_->album_id = $item instanceof Album ? $item->getKey() : null;
             $item_->single_id = $item instanceof Single ? $item->getKey() : null;
+            $item_->track_id = $item instanceof Track ? $item->getKey() : null;
             $item_->item_title = $item->title;
             $item_->quantity = 1;
             $item_->unit_price = $price;
@@ -71,5 +79,19 @@ class CreatePendingOrderAction
 
             return $order;
         });
+    }
+
+    private function checkReadiness(Album|Single|Track $item): PurchaseReadinessResult
+    {
+        return match (true) {
+            $item instanceof Album => $this->checkAlbum->handle($item),
+            $item instanceof Single => $this->checkSingle->handle($item),
+            default => $this->checkTrack->handle($item),
+        };
+    }
+
+    private function priceFor(Album|Single|Track $item): string
+    {
+        return $item instanceof Album ? $this->pricing->fullAlbumPrice() : $this->pricing->perSongPrice();
     }
 }

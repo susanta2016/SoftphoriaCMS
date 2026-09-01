@@ -13,6 +13,6 @@ class InvalidEntitlementPurchasableException extends RuntimeException
 {
     public static function mustReferenceExactlyOne(): self
     {
-        return new self('An entitlement must reference exactly one of an Album or a Single — never both, never neither.');
+        return new self('An entitlement must reference exactly one of an Album, a Single, or a Track — never more than one, never none.');
     }
 }

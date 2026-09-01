@@ -6,10 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Media;
 use App\Modules\Commerce\Actions\PurchaseReadiness\CheckAlbumReadinessAction;
 use App\Modules\Commerce\Actions\PurchaseReadiness\CheckSingleReadinessAction;
+use App\Modules\Commerce\Actions\PurchaseReadiness\CheckTrackReadinessAction;
 use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
+use App\Modules\Commerce\Support\PurchaseReadinessResult;
 use App\Modules\Music\Enums\ReleaseStatus;
+use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Single;
+use App\Modules\Music\Models\Track;
 use App\Modules\Music\Support\CartSession;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
@@ -23,20 +27,30 @@ use Illuminate\Support\Facades\Storage;
 /**
  * The Music cart — session-held, never a DB row until checkout (see
  * CartSession's docblock). Digital goods only: no quantity, adding the same
- * release twice is a no-op rather than incrementing anything.
+ * release twice is a no-op rather than incrementing anything. 'track' is an
+ * individually-purchased Track (almost always Album-owned — a Single-owned
+ * track is bought via the 'single' type instead, which already grants
+ * exactly that one track) — always priced via GlobalPricingResolver::
+ * perSongPrice(), never its parent Album's price.
  */
 class CartController extends Controller
 {
-    public function add(Request $request, CheckAlbumReadinessAction $checkAlbum, CheckSingleReadinessAction $checkSingle): RedirectResponse
-    {
+    public function add(
+        Request $request,
+        CheckAlbumReadinessAction $checkAlbum,
+        CheckSingleReadinessAction $checkSingle,
+        CheckTrackReadinessAction $checkTrack,
+    ): RedirectResponse {
         $data = $request->validate([
-            'type' => ['required', 'in:album,single'],
+            'type' => ['required', 'in:album,single,track'],
             'slug' => ['required', 'string'],
         ]);
 
-        $item = $data['type'] === 'album'
-            ? Album::query()->published()->where('slug', $data['slug'])->first()
-            : Single::query()->published()->where('slug', $data['slug'])->first();
+        $item = match ($data['type']) {
+            'album' => Album::query()->published()->where('slug', $data['slug'])->first(),
+            'single' => Single::query()->published()->where('slug', $data['slug'])->first(),
+            'track' => Track::query()->published()->where('slug', $data['slug'])->first(),
+        };
 
         if ($item === null) {
             return back()->with('cart_error', 'That item is no longer available.');
@@ -48,11 +62,13 @@ class CartController extends Controller
             return back()->with('cart_notice', "\"{$item->title}\" is already included with your Pro Membership — no purchase needed.");
         }
 
-        if ($user?->ownsRelease($item)) {
+        $alreadyOwned = $item instanceof Track ? $user?->ownsTrack($item) : $user?->ownsRelease($item);
+
+        if ($alreadyOwned) {
             return back()->with('cart_notice', "You already own \"{$item->title}\".");
         }
 
-        $readiness = $data['type'] === 'album' ? $checkAlbum->handle($item) : $checkSingle->handle($item);
+        $readiness = $this->checkReadiness($item, $checkAlbum, $checkSingle, $checkTrack);
 
         if (! $readiness->ready) {
             return back()->with('cart_error', "\"{$item->title}\" isn't available for purchase yet.");
@@ -63,10 +79,23 @@ class CartController extends Controller
         return back()->with('cart_added', "\"{$item->title}\" added to your cart.");
     }
 
+    private function checkReadiness(
+        Album|Single|Track $item,
+        CheckAlbumReadinessAction $checkAlbum,
+        CheckSingleReadinessAction $checkSingle,
+        CheckTrackReadinessAction $checkTrack,
+    ): PurchaseReadinessResult {
+        return match (true) {
+            $item instanceof Album => $checkAlbum->handle($item),
+            $item instanceof Single => $checkSingle->handle($item),
+            default => $checkTrack->handle($item),
+        };
+    }
+
     public function remove(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'type' => ['required', 'in:album,single'],
+            'type' => ['required', 'in:album,single,track'],
             'id' => ['required', 'integer'],
         ]);
 
@@ -98,7 +127,7 @@ class CartController extends Controller
     }
 
     /**
-     * @return Collection<int, array{type: string, model: Album|Single, title: string, coverUrl: ?string, price: float, showRoute: string}>
+     * @return Collection<int, array{type: string, model: Album|Single|Track, title: string, coverUrl: ?string, price: float, showRoute: string}>
      */
     public function hydratedCartLines(): Collection
     {
@@ -106,15 +135,25 @@ class CartController extends Controller
         $lines = collect();
 
         foreach (CartSession::items() as $entry) {
-            $model = $entry['type'] === 'album'
-                ? Album::query()->with('cover')->find($entry['id'])
-                : Single::query()->with('cover')->find($entry['id']);
+            $model = match ($entry['type']) {
+                'album' => Album::query()->with('cover')->find($entry['id']),
+                'single' => Single::query()->with('cover')->find($entry['id']),
+                'track' => Track::query()->with(['album.cover', 'single.cover'])->find($entry['id']),
+                default => null,
+            };
 
-            if ($model === null || $model->status !== ReleaseStatus::Published) {
+            $isPublished = $model instanceof Track
+                ? $model->status === TrackStatus::Published
+                : $model?->status === ReleaseStatus::Published;
+
+            if ($model === null || ! $isPublished) {
                 continue;
             }
 
-            $cover = $model->cover;
+            // A Track has no cover of its own — it displays whichever
+            // parent (Album or Single) actually owns it, purely cosmetic;
+            // the price/entitlement below never depend on that parent.
+            $cover = $model instanceof Track ? ($model->album?->cover ?? $model->single?->cover) : $model->cover;
 
             $lines->push([
                 'type' => $entry['type'],
@@ -122,9 +161,11 @@ class CartController extends Controller
                 'title' => $model->title,
                 'coverUrl' => $cover ? Storage::disk($cover->disk)->url($cover->path) : null,
                 'price' => (float) ($entry['type'] === 'album' ? $pricing->fullAlbumPrice() : $pricing->perSongPrice()),
-                'showRoute' => $entry['type'] === 'album'
-                    ? route('music.albums.show', $model)
-                    : route('music.singles.show', $model),
+                'showRoute' => match (true) {
+                    $entry['type'] === 'album' => route('music.albums.show', $model),
+                    $entry['type'] === 'single' => route('music.singles.show', $model),
+                    default => $model->single_id !== null ? route('music.singles.show', $model->single) : route('music.tracks.show', $model),
+                },
             ]);
         }
 

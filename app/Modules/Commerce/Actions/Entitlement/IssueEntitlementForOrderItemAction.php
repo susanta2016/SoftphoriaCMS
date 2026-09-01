@@ -40,6 +40,7 @@ class IssueEntitlementForOrderItemAction
         $entitlement->purchaser_email = $order->purchaser_email;
         $entitlement->album_id = $orderItem->album_id;
         $entitlement->single_id = $orderItem->single_id;
+        $entitlement->track_id = $orderItem->track_id;
         $entitlement->access_token_hash = $tokenHash;
         $entitlement->max_downloads = $policy->maxDownloads;
         $entitlement->downloads_used = 0;

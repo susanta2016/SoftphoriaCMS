@@ -120,7 +120,7 @@ class GuestDownloadController extends Controller
         return view('downloads.guest.items', [
             ...$chrome,
             'seo' => $seo,
-            'order' => $order->load('items.album.tracks', 'items.single.track', 'items.entitlement'),
+            'order' => $order->load('items.album.tracks', 'items.single.track', 'items.track', 'items.entitlement'),
         ]);
     }
 

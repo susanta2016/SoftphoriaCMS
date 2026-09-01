@@ -9,6 +9,7 @@ use App\Modules\Commerce\Models\Order;
 use App\Modules\Commerce\Models\Subscription;
 use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Single;
+use App\Modules\Music\Models\Track;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -117,6 +118,25 @@ class User extends Authenticatable implements FilamentUser
 
         return $this->entitlements()
             ->where($column, $release->getKey())
+            ->whereNull('revoked_at')
+            ->exists();
+    }
+
+    /**
+     * Does this user already own this specific Track outright — via a
+     * direct Track purchase, an Album purchase covering it, or a Single
+     * purchase covering it (whichever applies; see Entitlement::coversTrack()).
+     * Never true merely because the user owns some other track under the
+     * same Album — only used for the Track's own individual purchase button,
+     * which CartController never offers an Album-owner a second purchase of.
+     */
+    public function ownsTrack(Track $track): bool
+    {
+        return $this->entitlements()
+            ->where(fn ($query) => $query
+                ->where('track_id', $track->getKey())
+                ->when($track->album_id !== null, fn ($q) => $q->orWhere('album_id', $track->album_id))
+                ->when($track->single_id !== null, fn ($q) => $q->orWhere('single_id', $track->single_id)))
             ->whereNull('revoked_at')
             ->exists();
     }

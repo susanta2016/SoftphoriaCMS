@@ -113,7 +113,7 @@ class TrackReviewTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
             'rating' => 5,
-            'content' => str_repeat('a', 301),
+            'content' => str_repeat('a', config('reviews.max_length') + 1),
         ]);
 
         $response->assertSessionHasErrors('content');

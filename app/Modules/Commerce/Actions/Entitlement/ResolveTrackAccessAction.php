@@ -34,11 +34,10 @@ class ResolveTrackAccessAction
         $entitlement = Entitlement::query()
             ->where('user_id', $user->getKey())
             ->whereNull('revoked_at')
-            ->when(
-                $track->album_id !== null,
-                fn ($query) => $query->where('album_id', $track->album_id),
-                fn ($query) => $query->where('single_id', $track->single_id),
-            )
+            ->where(fn ($query) => $query
+                ->where('track_id', $track->getKey())
+                ->when($track->album_id !== null, fn ($q) => $q->orWhere('album_id', $track->album_id))
+                ->when($track->single_id !== null, fn ($q) => $q->orWhere('single_id', $track->single_id)))
             ->get()
             ->first(fn (Entitlement $entitlement) => $entitlement->coversTrack($track) && ! $entitlement->isRevoked() && ! $entitlement->isExpired());
 

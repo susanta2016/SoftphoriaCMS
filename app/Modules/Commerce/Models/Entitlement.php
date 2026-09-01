@@ -24,7 +24,7 @@ use Throwable;
  * deliberately not represented as rows here; see Subscription's docblock.
  */
 #[Fillable([
-    'order_item_id', 'user_id', 'purchaser_email', 'album_id', 'single_id',
+    'order_item_id', 'user_id', 'purchaser_email', 'album_id', 'single_id', 'track_id',
     'access_token_hash', 'max_downloads', 'downloads_used', 'expires_at',
 ])]
 class Entitlement extends Model
@@ -41,7 +41,7 @@ class Entitlement extends Model
 
     public function exactlyOneOfColumns(): array
     {
-        return ['album_id', 'single_id'];
+        return ['album_id', 'single_id', 'track_id'];
     }
 
     public function exactlyOneOfException(): Throwable
@@ -69,6 +69,11 @@ class Entitlement extends Model
         return $this->belongsTo(Single::class)->withTrashed();
     }
 
+    public function track(): BelongsTo
+    {
+        return $this->belongsTo(Track::class)->withTrashed();
+    }
+
     public function revokedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'revoked_by');
@@ -84,7 +89,9 @@ class Entitlement extends Model
      * every track under it (including trashed ones: a track pulled from sale
      * after purchase must not retroactively break an existing customer's
      * access to what they already paid for), a Single entitlement covers
-     * exactly its one track.
+     * exactly its one track, and a Track entitlement (an individually
+     * purchased Album-owned track) covers exactly that one track and no
+     * other track under its parent Album.
      *
      * @return Collection<int, Track>
      */
@@ -94,13 +101,18 @@ class Entitlement extends Model
             return Track::withTrashed()->where('album_id', $this->album_id)->get();
         }
 
-        return Track::withTrashed()->where('single_id', $this->single_id)->get();
+        if ($this->single_id !== null) {
+            return Track::withTrashed()->where('single_id', $this->single_id)->get();
+        }
+
+        return Track::withTrashed()->where('id', $this->track_id)->get();
     }
 
     public function coversTrack(Track $track): bool
     {
         return ($this->album_id !== null && $track->album_id === $this->album_id)
-            || ($this->single_id !== null && $track->single_id === $this->single_id);
+            || ($this->single_id !== null && $track->single_id === $this->single_id)
+            || ($this->track_id !== null && $track->getKey() === $this->track_id);
     }
 
     public function isRevoked(): bool

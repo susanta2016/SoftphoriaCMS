@@ -28,7 +28,16 @@ class EntitlementInfolist
                         TextEntry::make('user.name')->label('Account')->placeholder('Guest (no account)'),
                         TextEntry::make('item')
                             ->label('Item')
-                            ->getStateUsing(fn (Entitlement $record): string => ($record->album?->title ?? $record->single?->title ?? '—').' ('.($record->album_id !== null ? 'Album' : 'Single').')'),
+                            ->getStateUsing(function (Entitlement $record): string {
+                                $title = $record->album?->title ?? $record->single?->title ?? $record->track?->title ?? '—';
+                                $type = match (true) {
+                                    $record->album_id !== null => 'Album',
+                                    $record->single_id !== null => 'Single',
+                                    default => 'Track',
+                                };
+
+                                return "{$title} ({$type})";
+                            }),
                         TextEntry::make('expires_at')->dateTime()->placeholder('Never'),
                         TextEntry::make('downloads_used')->label('Downloads used'),
                         TextEntry::make('max_downloads')->label('Limit')->placeholder('Unlimited'),
