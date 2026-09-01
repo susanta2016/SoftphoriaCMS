@@ -120,6 +120,29 @@ class TrackReviewTest extends TestCase
         $this->assertSame(0, Review::query()->count());
     }
 
+    public function test_the_maximum_length_is_configurable(): void
+    {
+        config(['reviews.max_length' => 10]);
+        $track = $this->publishedSingleTrack();
+        $user = User::factory()->create();
+
+        $page = $this->actingAs($user)->get($track->reviewUrl());
+        $page->assertSee('maxlength="10"', false);
+
+        $tooLong = $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
+            'rating' => 5,
+            'content' => str_repeat('a', 11),
+        ]);
+        $tooLong->assertSessionHasErrors('content');
+
+        $withinLimit = $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
+            'rating' => 5,
+            'content' => str_repeat('a', 10),
+        ]);
+        $withinLimit->assertSessionDoesntHaveErrors('content');
+        $this->assertSame(1, Review::query()->count());
+    }
+
     public function test_a_review_is_pending_when_admin_approval_is_required(): void
     {
         config(['reviews.reviews_ratings_admin_approval' => true]);

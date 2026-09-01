@@ -36,14 +36,16 @@ class TrackReviewController extends Controller
         // blank review.
         $request->merge(['content' => trim((string) $request->input('content'))]);
 
+        $maxLength = config('reviews.max_length');
+
         $data = $request->validate([
             'rating' => ['required', 'integer', 'between:1,5'],
-            'content' => ['required', 'string', 'max:300'],
+            'content' => ['required', 'string', "max:{$maxLength}"],
         ], [
             'rating.required' => 'Please select a rating from 1 to 5 stars.',
             'rating.between' => 'Please select a rating from 1 to 5 stars.',
             'content.required' => 'Please write a few words before submitting your review.',
-            'content.max' => 'Reviews can be at most 300 characters.',
+            'content.max' => "Reviews can be at most {$maxLength} characters.",
         ]);
 
         /** @var User $user */

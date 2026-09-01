@@ -185,7 +185,7 @@
 
                                     <div>
                                         <label for="review-content" class="text-xs font-medium text-brand-navy/60">Your Review</label>
-                                        <textarea id="review-content" name="content" rows="3" maxlength="300" data-review-content-input class="mt-1.5 w-full rounded-md border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy placeholder:text-brand-navy/40 focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none" placeholder="Share your thoughts on this episode…">{{ old('content', $userReview?->content) }}</textarea>
+                                        <textarea id="review-content" name="content" rows="3" maxlength="{{ config('reviews.max_length') }}" data-review-content-input class="mt-1.5 w-full rounded-md border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy placeholder:text-brand-navy/40 focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none" placeholder="Share your thoughts on this episode…">{{ old('content', $userReview?->content) }}</textarea>
                                         <p data-review-content-error class="mt-1 hidden text-xs text-red-600">Please write a few words before submitting your review.</p>
                                         @error('content')
                                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>

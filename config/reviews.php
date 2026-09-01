@@ -20,4 +20,20 @@ return [
 
     'reviews_ratings_admin_approval' => env('REVIEWS_RATINGS_ADMIN_APPROVAL', true),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Review Content Max Length
+    |--------------------------------------------------------------------------
+    |
+    | Maximum character length of a review's written content, enforced both
+    | server-side (the `content` validation rule in every module's review
+    | submission controller — PodcastEpisodeReviewController, Music's
+    | TrackReviewController, etc.) and client-side (the review textarea's
+    | `maxlength` attribute). Shared by every module that adopts the generic
+    | App\Models\Review, never module-specific.
+    |
+    */
+
+    'max_length' => (int) env('REVIEWS_MAX_LENGTH', 300),
+
 ];
