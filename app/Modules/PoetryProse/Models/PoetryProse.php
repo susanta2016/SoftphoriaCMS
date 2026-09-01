@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * One editorial piece — Essay, Reflection, Hymn, Poem, or Article
@@ -60,9 +61,62 @@ class PoetryProse extends Model implements Sitemapable
         return $query->where('status', PoetryProseStatus::Published);
     }
 
+    /**
+     * Plain-text LIKE search across title and body, same convention as
+     * PodcastController::episodes()'s title/description search — no
+     * separate search index/service introduced for this module.
+     */
+    public function scopeSearch(Builder $query, string $term): Builder
+    {
+        return $query->where(fn (Builder $q) => $q
+            ->where('title', 'like', "%{$term}%")
+            ->orWhere('body', 'like', "%{$term}%"));
+    }
+
     public function featuredImage(): BelongsTo
     {
         return $this->belongsTo(Media::class, 'featured_image_id');
+    }
+
+    public function featuredImageUrl(): ?string
+    {
+        $media = $this->featuredImage;
+
+        return $media ? Storage::disk($media->disk)->url($media->path) : null;
+    }
+
+    /**
+     * Derived, never stored — same "computed from real content, not
+     * hardcoded in Blade" approach the SEO description already uses
+     * (see PoetryProseController). Kept here so index/show views share one
+     * implementation instead of duplicating the str()->stripTags() call.
+     */
+    public function excerpt(int $length = 160): string
+    {
+        return str($this->plainTextBody())->limit($length)->toString();
+    }
+
+    /**
+     * No stored reading-time field exists on this model — computed from the
+     * real body word count (200 wpm, same standard estimate used
+     * industry-wide) rather than inventing a static value per entry.
+     */
+    public function readingTimeMinutes(): int
+    {
+        $words = str($this->plainTextBody())->explode(' ')->filter()->count();
+
+        return max(1, (int) ceil($words / 200));
+    }
+
+    /**
+     * The RichEditor-authored body is HTML with entities (e.g. "&mdash;")
+     * — stripTags() alone leaves those entities showing up literally in
+     * plain-text contexts (excerpts, reading-time word counts), so they're
+     * decoded back to real characters here.
+     */
+    private function plainTextBody(): string
+    {
+        return html_entity_decode(str($this->body)->stripTags()->squish()->toString(), ENT_QUOTES | ENT_HTML5);
     }
 
     /**

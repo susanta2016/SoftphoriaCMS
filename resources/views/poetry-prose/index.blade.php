@@ -1,72 +1,57 @@
+@php
+    use Illuminate\Support\Facades\Storage;
+
+    $bannerUrl = $heroBanner ? Storage::disk($heroBanner->disk)->url($heroBanner->path) : null;
+@endphp
+
 <x-layouts.site :seo="$seo">
-    <x-site.header :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
+    {{--
+        Plain bg-cover/bg-center put the banner's lighthouse right behind
+        the fixed header on common viewport widths — same underlying cause
+        as the detail page's hero (see the comment there): the source
+        photo's lighthouse sits close enough to the top of the frame that
+        a full-bleed cover fit leaves too little sky margin above it once
+        the header is accounted for. Zooming in past cover (165% of the
+        container's own height, vs. ~107% for a plain cover fit at this
+        hero's typical height) pushes the visible lighthouse down far
+        enough to clear the header with real margin. Position-x is pinned
+        to the image's actual right edge (100%, not an in-between guess)
+        so the lighthouse keeps its full surrounding context — cottage,
+        cliff path, fence — matching the approved reference instead of
+        being cropped tight against the viewport edge; 100% also stays
+        correct across viewport widths since it's anchored to the image's
+        own edge rather than a width-dependent fraction. Verified
+        pixel-by-pixel in-browser, not just by eye.
+    --}}
+    <div
+        @class(['relative overflow-hidden bg-no-repeat', 'bg-brand-ivory' => ! $bannerUrl])
+        @style([$bannerUrl
+            ? "background-image: linear-gradient(to right, rgba(251,243,230,.97) 0%, rgba(251,243,230,.94) 30%, rgba(251,243,230,.55) 58%, rgba(251,243,230,.15) 78%), url('{$bannerUrl}'); background-size: auto 165%; background-position: 100% 0%;"
+            : ''])
+    >
+        <x-site.header :transparent="(bool) $bannerUrl" :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
 
-    <div class="bg-brand-ivory">
-        <main class="mx-auto max-w-6xl px-4 pt-32 pb-20 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <h1 class="font-serif text-3xl text-brand-navy sm:text-4xl">Poetry &amp; Prose</h1>
-                <div class="my-5 flex items-center justify-center gap-3" aria-hidden="true">
-                    <span class="h-px w-12 bg-brand-gold/70"></span>
+        <div class="relative mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 lg:px-8 lg:pt-40 lg:pb-32">
+            <div class="max-w-xl">
+                <span class="text-xs font-semibold tracking-[0.2em] text-brand-gold uppercase">{{ $heroEyebrow }}</span>
+                <h1 class="mt-3 font-serif text-4xl leading-tight text-brand-navy sm:text-5xl">{{ $heroHeading }}</h1>
+                <div class="my-6 flex items-center gap-3" aria-hidden="true">
+                    <span class="h-px w-16 bg-brand-gold/70"></span>
                     <span class="text-brand-gold">✦</span>
-                    <span class="h-px w-12 bg-brand-gold/70"></span>
                 </div>
-                <p class="mx-auto max-w-xl text-sm text-brand-navy/70">Essays, reflections, hymns, poetry, and articles.</p>
+                @if ($heroDescription)
+                    <p class="max-w-xl text-base leading-relaxed text-brand-navy/75">{{ $heroDescription }}</p>
+                @endif
             </div>
+        </div>
+    </div>
 
-            <form method="GET" action="{{ route('poetry-prose.index') }}" class="mt-10 flex flex-wrap items-center justify-center gap-3">
-                <select name="content_type" onchange="this.form.submit()" class="rounded-md border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none">
-                    <option value="">All Types</option>
-                    @foreach ($contentTypes as $value => $label)
-                        <option value="{{ $value }}" @selected(request('content_type') === $value)>{{ $label }}</option>
-                    @endforeach
-                </select>
-
-                @if ($collections->isNotEmpty())
-                    <select name="collection" onchange="this.form.submit()" class="rounded-md border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none">
-                        <option value="">All Collections</option>
-                        @foreach ($collections as $collection)
-                            <option value="{{ $collection->slug }}" @selected(request('collection') === $collection->slug)>{{ $collection->title }}</option>
-                        @endforeach
-                    </select>
-                @endif
-
-                @if (request('content_type') || request('collection'))
-                    <a href="{{ route('poetry-prose.index') }}" class="text-sm font-medium text-brand-navy/60 underline hover:text-brand-gold">Clear filters</a>
-                @endif
-            </form>
-
-            @if ($entries->isEmpty())
-                <p class="mt-16 text-center text-sm text-brand-navy/60">No entries to show yet.</p>
-            @else
-                <div class="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach ($entries as $entry)
-                        <a href="{{ route('poetry-prose.show', $entry) }}" class="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-brand-navy/5 transition hover:ring-brand-gold/40">
-                            @if ($entry->featuredImage)
-                                <img
-                                    src="{{ \Illuminate\Support\Facades\Storage::disk($entry->featuredImage->disk)->url($entry->featuredImage->path) }}"
-                                    alt="{{ $entry->title }}"
-                                    class="h-44 w-full object-cover"
-                                >
-                            @endif
-                            <div class="flex flex-1 flex-col p-5">
-                                <span class="text-xs font-semibold tracking-wide text-brand-gold uppercase">{{ $entry->content_type->getLabel() }}</span>
-                                <h2 class="mt-2 font-serif text-lg text-brand-navy transition group-hover:text-brand-gold">{{ $entry->title }}</h2>
-                                @if ($entry->author)
-                                    <p class="mt-2 text-xs text-brand-navy/60">By {{ $entry->author->name }}</p>
-                                @endif
-                                @if ($entry->publish_at)
-                                    <p class="mt-auto pt-4 text-xs text-brand-navy/50">{{ $entry->publish_at->format('M j, Y') }}</p>
-                                @endif
-                            </div>
-                        </a>
-                    @endforeach
-                </div>
-
-                <div class="mt-10">
-                    {{ $entries->onEachSide(1)->links() }}
-                </div>
-            @endif
-        </main>
+    <div class="bg-white py-12">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div data-poetry-prose-results-region>
+                @include('poetry-prose.partials.results')
+            </div>
+        </div>
     </div>
 
     <x-site.footer :site-name="$siteName" :tagline="$tagline"/>

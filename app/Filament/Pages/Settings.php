@@ -75,6 +75,8 @@ class Settings extends Page
                         ->schema($this->footerTabSchema()),
                     Tab::make('Podcast')
                         ->schema($this->podcastTabSchema()),
+                    Tab::make('Poetry/Prose')
+                        ->schema($this->poetryProseTabSchema()),
                     Tab::make('Email')
                         ->schema($this->emailTabSchema()),
                     Tab::make('Registration')
@@ -190,6 +192,40 @@ class Settings extends Page
     {
         return [
             MediaPicker::make('podcast.hero_banner_media_id', 'Podcast Hero Banner', MediaCategory::Image),
+        ];
+    }
+
+    /**
+     * The public Poetry/Prose landing page's hero banner + copy and the
+     * listing/detail sidebar's "About" block — same shape as podcastTabSchema()
+     * above, a single site-wide settings group rather than a new content
+     * model, since none of this belongs to any one PoetryProse entry.
+     *
+     * @return array<int, Component>
+     */
+    protected function poetryProseTabSchema(): array
+    {
+        return [
+            MediaPicker::make('poetry_prose.hero_banner_media_id', 'Poetry/Prose Hero Banner', MediaCategory::Image),
+            TextInput::make('poetry_prose.hero_eyebrow')
+                ->label('Hero Eyebrow')
+                ->maxLength(255),
+            TextInput::make('poetry_prose.hero_heading')
+                ->label('Hero Heading')
+                ->maxLength(255),
+            Textarea::make('poetry_prose.hero_description')
+                ->label('Hero Description')
+                ->rows(2)
+                ->maxLength(500),
+            Textarea::make('poetry_prose.about_body')
+                ->label('Sidebar "About Poetry/Prose" Text')
+                ->rows(4)
+                ->maxLength(1000)
+                ->helperText('Shown in the "About Poetry / Prose" sidebar block on the listing and detail pages. Separate paragraphs with a blank line.'),
+            TextInput::make('poetry_prose.submit_cta_label')
+                ->label('Sidebar Submit CTA Label')
+                ->maxLength(255)
+                ->helperText('Links to the existing Inspirational Resources submission page.'),
         ];
     }
 
@@ -370,6 +406,14 @@ class Settings extends Page
         $podcast = $state['podcast'];
         $settings->set('podcast', 'hero_banner_media_id', $podcast['hero_banner_media_id'], 'integer');
 
+        $poetryProse = $state['poetry_prose'];
+        $settings->set('poetry_prose', 'hero_banner_media_id', $poetryProse['hero_banner_media_id'], 'integer');
+        $settings->set('poetry_prose', 'hero_eyebrow', $poetryProse['hero_eyebrow']);
+        $settings->set('poetry_prose', 'hero_heading', $poetryProse['hero_heading']);
+        $settings->set('poetry_prose', 'hero_description', $poetryProse['hero_description']);
+        $settings->set('poetry_prose', 'about_body', $poetryProse['about_body']);
+        $settings->set('poetry_prose', 'submit_cta_label', $poetryProse['submit_cta_label']);
+
         $email = $state['email'];
         $settings->set('email', 'enabled', (bool) $email['enabled'], 'boolean');
         $settings->set('email', 'provider', $email['provider']);
@@ -398,6 +442,7 @@ class Settings extends Page
         $this->recordAudit('general', array_keys($general));
         $this->recordAudit('footer', array_keys($footer));
         $this->recordAudit('podcast', array_keys($podcast));
+        $this->recordAudit('poetry_prose', array_keys($poetryProse));
         // Never log the password value itself, even in metadata.
         $this->recordAudit('email', array_keys(array_diff_key($email, ['smtp_password' => true])));
         $this->recordAudit('registration', array_keys($registration));
@@ -452,6 +497,22 @@ class Settings extends Page
             ],
             'podcast' => [
                 'hero_banner_media_id' => $settings->get('podcast', 'hero_banner_media_id'),
+            ],
+            'poetry_prose' => [
+                'hero_banner_media_id' => $settings->get('poetry_prose', 'hero_banner_media_id'),
+                'hero_eyebrow' => $settings->get('poetry_prose', 'hero_eyebrow', 'Poetry / Prose'),
+                'hero_heading' => $settings->get('poetry_prose', 'hero_heading', 'Words that awaken and inspire.'),
+                'hero_description' => $settings->get(
+                    'poetry_prose',
+                    'hero_description',
+                    'Explore reflections, poems, and prose that hold space for thought, feeling, and the light within.',
+                ),
+                'about_body' => $settings->get(
+                    'poetry_prose',
+                    'about_body',
+                    "Here you'll find words to reflect on, return to, and carry with you.\n\nPoems, reflections, and essays that speak to the heart and awaken the soul.",
+                ),
+                'submit_cta_label' => $settings->get('poetry_prose', 'submit_cta_label', 'Submit Your Writing'),
             ],
             'email' => [
                 'enabled' => $settings->get('email', 'enabled', false),

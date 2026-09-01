@@ -91,43 +91,11 @@
             @endforeach
 
             <div id="newsletter-subscribe" class="col-span-2 sm:col-span-3 lg:col-span-1 scroll-mt-24">
-                <h3 class="text-xs font-semibold tracking-wider text-brand-navy uppercase">Join Our Newsletter</h3>
-                <p class="mt-4 text-sm text-brand-navy/75">Sign up for updates from {{ $siteName }}.</p>
-
-                @if (session('newsletter_status'))
-                    <p class="mt-3 rounded-md border border-brand-gold/30 bg-brand-gold/10 px-3 py-2.5 text-sm text-brand-navy">
-                        {{ session('newsletter_status') }}
-                    </p>
-                @else
-                    <form method="POST" action="{{ route('newsletter.subscribe') }}" class="mt-3">
-                        @csrf
-                        <div @class([
-                            'flex overflow-hidden rounded-md border bg-white',
-                            'border-red-400' => $errors->has('email'),
-                            'border-brand-navy/20' => ! $errors->has('email'),
-                        ])>
-                            <label for="footer-newsletter-email" class="sr-only">Email address</label>
-                            <input
-                                id="footer-newsletter-email"
-                                name="email"
-                                type="email"
-                                value="{{ old('email') }}"
-                                placeholder="Enter your email"
-                                required
-                                class="w-full min-w-0 border-0 px-3 py-2.5 text-sm text-brand-navy placeholder:text-brand-navy/40 focus:outline-none"
-                            >
-                            <button
-                                type="submit"
-                                class="shrink-0 bg-brand-gold px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-gold-light"
-                            >
-                                Subscribe
-                            </button>
-                        </div>
-                        @error('email')
-                            <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
-                        @enderror
-                    </form>
-                @endif
+                <x-site.newsletter-form
+                    heading="Join Our Newsletter"
+                    :description="'Sign up for updates from '.$siteName.'.'"
+                    id-prefix="footer"
+                />
                 <p class="mt-4 text-xs text-brand-navy/60">
                     {{ $footerCopyrightText }}
                     @if ($settings->get('cookies', 'enabled', true))

@@ -814,3 +814,71 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchAndSwap(window.location.href, { pushState: false });
     });
 });
+
+// The Poetry/Prose listing page's search/category/type/sort/list-grid
+// controls plus pagination, all fetched asynchronously — mirrors the
+// Podcast All Episodes block above, but simpler: the filter form, results,
+// and sidebar all live inside ONE region here (data-poetry-prose-results-
+// region), so every AJAX swap re-renders the whole toolbar+results+sidebar
+// grid together. That keeps the sidebar's active-category highlighting,
+// counts, and "Clear filters" link in sync with whatever filters are
+// currently applied, without a second region or extra state-syncing code.
+document.addEventListener('DOMContentLoaded', () => {
+    const region = document.querySelector('[data-poetry-prose-results-region]');
+    if (!region) return;
+
+    const fetchAndSwap = async (url, { pushState = true } = {}) => {
+        region.setAttribute('aria-busy', 'true');
+        region.classList.add('opacity-50', 'pointer-events-none', 'transition-opacity');
+
+        try {
+            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error(`Unexpected status ${response.status}`);
+
+            region.innerHTML = await response.text();
+            if (pushState) window.history.pushState({ poetryProseResults: true }, '', url);
+        } catch (error) {
+            // The async refresh failed — fall back to a real navigation so
+            // the user's search/filter/sort/page action still completes.
+            window.location.href = url;
+            return;
+        } finally {
+            region.removeAttribute('aria-busy');
+            region.classList.remove('opacity-50', 'pointer-events-none', 'transition-opacity');
+        }
+    };
+
+    // Document-scoped (not region-scoped) so a link outside the region that
+    // still points back at /poetry-prose (e.g. the header's own nav link)
+    // is left to navigate normally — only same-pathname links get
+    // intercepted, and every interactive control (pagination, view toggle,
+    // category links, "Clear filters") lives inside the region anyway.
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('a[href]');
+        if (!link) return;
+
+        const url = new URL(link.href, window.location.href);
+        if (url.pathname !== '/poetry-prose' || !region.contains(link)) return;
+
+        event.preventDefault();
+        fetchAndSwap(link.href);
+    });
+
+    document.addEventListener('submit', (event) => {
+        const form = event.target.closest('[data-poetry-prose-filters-form]');
+        if (!form) return;
+
+        event.preventDefault();
+        const params = new URLSearchParams(new FormData(form));
+        Array.from(params.keys()).forEach((key) => {
+            if (params.get(key) === '') params.delete(key);
+        });
+
+        fetchAndSwap(`${form.action}?${params.toString()}`);
+    });
+
+    window.addEventListener('popstate', () => {
+        if (window.location.pathname !== '/poetry-prose') return;
+        fetchAndSwap(window.location.href, { pushState: false });
+    });
+});
