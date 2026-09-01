@@ -40,7 +40,7 @@
                         <p class="mt-1 text-xs text-brand-navy/60">We'll email your download access here — no account required.</p>
 
                         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div class="sm:col-span-2">
+                            <div>
                                 <label for="checkout-name" class="mb-1 block text-xs font-semibold tracking-wide text-brand-navy/60 uppercase">Name</label>
                                 <input id="checkout-name" type="text" name="name" value="{{ old('name') }}" required class="w-full rounded-md border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none">
                                 @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
@@ -49,11 +49,6 @@
                                 <label for="checkout-email" class="mb-1 block text-xs font-semibold tracking-wide text-brand-navy/60 uppercase">Email</label>
                                 <input id="checkout-email" type="email" name="email" value="{{ old('email') }}" required class="w-full rounded-md border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none">
                                 @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                            </div>
-                            <div>
-                                <label for="checkout-phone" class="mb-1 block text-xs font-semibold tracking-wide text-brand-navy/60 uppercase">Contact Number</label>
-                                <input id="checkout-phone" type="tel" name="phone" value="{{ old('phone') }}" required class="w-full rounded-md border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none">
-                                @error('phone')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                             </div>
                         </div>
 

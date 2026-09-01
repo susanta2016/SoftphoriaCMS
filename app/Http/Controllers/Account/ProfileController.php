@@ -53,10 +53,7 @@ class ProfileController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->getKey())],
-            'phone_number' => ['nullable', 'string', 'max:30'],
             'bio' => ['nullable', 'string', 'max:65535'],
-            'address' => ['nullable', 'string', 'max:500'],
-            'zip_code' => ['nullable', 'string', 'max:20'],
         ]);
 
         if ($validator->fails()) {

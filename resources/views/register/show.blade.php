@@ -103,31 +103,6 @@
                 </div>
 
                 <p class="-mt-3 text-xs text-brand-navy/60 sm:col-span-2">At least 8 characters.</p>
-
-                <div>
-                    <label for="phone_number" class="block text-sm font-medium text-brand-navy">Phone Number *</label>
-                    <input
-                        type="tel" id="phone_number" name="phone_number" value="{{ old('phone_number') }}" required autocomplete="tel"
-                        class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
-                    >
-                </div>
-
-                <div>
-                    <label for="zip_code" class="block text-sm font-medium text-brand-navy">Zip Code *</label>
-                    <input
-                        type="text" id="zip_code" name="zip_code" value="{{ old('zip_code') }}" required autocomplete="postal-code"
-                        class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
-                    >
-                </div>
-
-                <div class="sm:col-span-2">
-                    <label for="address" class="block text-sm font-medium text-brand-navy">Address *</label>
-                    <textarea
-                        id="address" name="address" required rows="2"
-                        class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
-                    >{{ old('address') }}</textarea>
-                </div>
-
             </div>
 
             <div class="mt-8 border-t border-brand-navy/10 pt-6">

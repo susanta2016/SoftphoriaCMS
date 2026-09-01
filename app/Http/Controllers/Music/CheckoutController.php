@@ -26,7 +26,7 @@ use Throwable;
  * Commerce Order, because that's also the first point a purchaser's email is
  * actually known (their account email if registered, or the guest form
  * below). A registered user skips the guest fields entirely; a guest must
- * provide name/email/phone here, never earlier and never by being forced to
+ * provide name/email here, never earlier and never by being forced to
  * register.
  */
 class CheckoutController extends Controller
@@ -74,16 +74,13 @@ class CheckoutController extends Controller
         if ($user !== null) {
             $purchaserEmail = $user->email;
             $purchaserName = $user->name;
-            $purchaserPhone = null;
         } else {
             $data = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'email', 'max:255'],
-                'phone' => ['required', 'string', 'max:30'],
             ]);
             $purchaserEmail = $data['email'];
             $purchaserName = $data['name'];
-            $purchaserPhone = $data['phone'];
         }
 
         try {
@@ -91,7 +88,7 @@ class CheckoutController extends Controller
 
             foreach ($lines as $line) {
                 $order = $order === null
-                    ? $createOrder->handle($line['model'], $user, $purchaserEmail, $purchaserName, $purchaserPhone)
+                    ? $createOrder->handle($line['model'], $user, $purchaserEmail, $purchaserName)
                     : $addToCart->handle($order, $line['model']);
             }
         } catch (PurchaseNotReadyException $e) {

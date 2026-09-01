@@ -39,7 +39,6 @@ class ProRegistrationTest extends TestCase
             'email' => 'jane.pro@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            ...$this->requiredProfileFields(),
         ]);
 
         $response->assertOk();
@@ -65,28 +64,27 @@ class ProRegistrationTest extends TestCase
             'email' => 'jane.pro.noindex@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            ...$this->requiredProfileFields(),
         ]);
 
         $response->assertSee('<meta name="robots" content="noindex, nofollow">', false);
     }
 
-    public function test_registering_pro_with_profile_fields_saves_a_profile(): void
+    public function test_registering_pro_no_longer_collects_phone_number_address_or_zip_code(): void
     {
         $this->post(route('register.pro'), [
             'name' => 'Jane Pro',
             'email' => 'jane.pro.profile@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
+            // A client submitting these anyway (e.g. a stale cached form)
+            // must have them silently ignored, not saved to a profile.
             'phone_number' => '+44 7700 900001',
             'address' => '221B Baker Street',
             'zip_code' => 'NW1 6XE',
         ]);
 
         $user = User::query()->where('email', 'jane.pro.profile@example.com')->firstOrFail();
-        $this->assertSame('+44 7700 900001', $user->profile->phone_number);
-        $this->assertSame('221B Baker Street', $user->profile->address);
-        $this->assertSame('NW1 6XE', $user->profile->zip_code);
+        $this->assertNull($user->profile);
     }
 
     public function test_sharing_my_light_on_pro_registration_creates_a_public_light_post(): void
@@ -98,50 +96,12 @@ class ProRegistrationTest extends TestCase
             'password_confirmation' => 'password123',
             'light_post_action' => 'share',
             'light_message' => 'Sharing my light as a Pro member.',
-            ...$this->requiredProfileFields(),
         ]);
 
         $user = User::query()->where('email', 'jane.pro.light@example.com')->firstOrFail();
         $post = $user->lightPosts()->firstOrFail();
         $this->assertSame('Sharing my light as a Pro member.', $post->content);
         $this->assertTrue($post->is_public);
-    }
-
-    public function test_registering_pro_requires_phone_number_address_and_zip_code(): void
-    {
-        $response = $this->post(route('register.pro'), [
-            'name' => 'Jane Pro',
-            'email' => 'jane.pro.missing@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-        ]);
-
-        $response->assertSessionHasErrors(['phone_number', 'address', 'zip_code']);
-        $this->assertSame(0, User::query()->where('email', 'jane.pro.missing@example.com')->count());
-    }
-
-    public function test_resuming_an_abandoned_pro_registration_does_not_overwrite_the_original_profile(): void
-    {
-        $this->post(route('register.pro'), [
-            'name' => 'Retry Profile',
-            'email' => 'retry.profile@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-            ...$this->requiredProfileFields(),
-        ]);
-
-        $this->post(route('register.pro'), [
-            'name' => 'Retry Profile Again',
-            'email' => 'retry.profile@example.com',
-            'password' => 'a-different-password',
-            'password_confirmation' => 'a-different-password',
-            'phone_number' => '+44 7700 900001',
-            'address' => '221B Baker Street',
-            'zip_code' => 'DIFFERENT-ZIP',
-        ]);
-
-        $user = User::query()->where('email', 'retry.profile@example.com')->firstOrFail();
-        $this->assertSame('NW1 6XE', $user->profile->zip_code);
     }
 
     public function test_resuming_an_abandoned_pro_registration_does_not_create_a_second_light_post(): void
@@ -153,7 +113,6 @@ class ProRegistrationTest extends TestCase
             'password_confirmation' => 'password123',
             'light_post_action' => 'share',
             'light_message' => 'Original light post.',
-            ...$this->requiredProfileFields(),
         ]);
 
         $this->post(route('register.pro'), [
@@ -163,7 +122,6 @@ class ProRegistrationTest extends TestCase
             'password_confirmation' => 'a-different-password',
             'light_post_action' => 'share',
             'light_message' => 'A stranger-submitted light post.',
-            ...$this->requiredProfileFields(),
         ]);
 
         $user = User::query()->where('email', 'retry.light@example.com')->firstOrFail();
@@ -184,7 +142,6 @@ class ProRegistrationTest extends TestCase
             'password_confirmation' => 'password123',
             'price' => '0.01',
             'pro_member_monthly_price' => '0.01',
-            ...$this->requiredProfileFields(),
         ]);
 
         /** @var FakeStripeGateway $fake */
@@ -201,7 +158,6 @@ class ProRegistrationTest extends TestCase
             'email' => 'active@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            ...$this->requiredProfileFields(),
         ]);
 
         $response->assertRedirect(route('register.show'));
@@ -219,7 +175,6 @@ class ProRegistrationTest extends TestCase
             'email' => 'retry@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            ...$this->requiredProfileFields(),
         ]);
         $first->assertOk();
 
@@ -234,7 +189,6 @@ class ProRegistrationTest extends TestCase
             'email' => 'retry@example.com',
             'password' => 'a-different-password',
             'password_confirmation' => 'a-different-password',
-            ...$this->requiredProfileFields(),
         ]);
         $second->assertOk();
 
@@ -267,7 +221,6 @@ class ProRegistrationTest extends TestCase
             'email' => 'paid.pending@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            ...$this->requiredProfileFields(),
         ]);
 
         $response->assertRedirect(route('register.show'));
@@ -297,17 +250,5 @@ class ProRegistrationTest extends TestCase
         ]);
 
         $response->assertStatus(429);
-    }
-
-    /**
-     * @return array{phone_number: string, address: string, zip_code: string}
-     */
-    private function requiredProfileFields(): array
-    {
-        return [
-            'phone_number' => '+44 7700 900001',
-            'address' => '221B Baker Street',
-            'zip_code' => 'NW1 6XE',
-        ];
     }
 }

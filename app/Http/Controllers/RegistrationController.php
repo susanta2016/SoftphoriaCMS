@@ -64,7 +64,6 @@ class RegistrationController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            ...self::optionalProfileRules(),
             ...self::lightPostRules(),
         ]);
 
@@ -106,7 +105,6 @@ class RegistrationController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            ...self::optionalProfileRules(),
             ...self::lightPostRules(),
         ]);
 
@@ -185,28 +183,6 @@ class RegistrationController extends Controller
                 )
                 : null,
         ]);
-    }
-
-    /**
-     * Profile fields mirroring the admin User form's "Profile" section
-     * (UserForm) field for field — same labels, same max lengths — so a
-     * self-registered account can carry the same data an admin-created one
-     * can. Phone Number, Address and Zip Code are required on the
-     * registration form (unlike the admin form, where every one of these is
-     * optional). Biography is deliberately not collected here anymore
-     * (Phase 1: replaced by the "Leave a Little Light" prompt below — see
-     * lightPostRules()); it remains an admin-settable field on the User
-     * Profile. Shared by registerFree/registerPro rather than duplicated.
-     *
-     * @return array<string, array<int, string>>
-     */
-    private static function optionalProfileRules(): array
-    {
-        return [
-            'phone_number' => ['required', 'string', 'max:30'],
-            'address' => ['required', 'string', 'max:500'],
-            'zip_code' => ['required', 'string', 'max:20'],
-        ];
     }
 
     /**

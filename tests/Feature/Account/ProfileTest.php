@@ -35,8 +35,26 @@ class ProfileTest extends TestCase
         $response = $this->actingAs($user)->patch(route('account.profile.update'), [
             'name' => 'New Name',
             'email' => $user->email,
-            'phone_number' => '+44 7700 900002',
             'bio' => 'Updated bio.',
+        ]);
+
+        $response->assertRedirect(route('account.profile.edit'));
+
+        $user->refresh();
+        $this->assertSame('New Name', $user->name);
+        $this->assertSame('Updated bio.', $user->profile->bio);
+    }
+
+    public function test_the_profile_page_no_longer_collects_phone_number_address_or_zip_code(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->patch(route('account.profile.update'), [
+            'name' => $user->name,
+            'email' => $user->email,
+            // A client submitting these anyway (e.g. a stale cached form)
+            // must have them silently ignored, not saved to the profile.
+            'phone_number' => '+44 7700 900002',
             'address' => '10 Downing Street',
             'zip_code' => 'SW1A 2AA',
         ]);
@@ -44,9 +62,7 @@ class ProfileTest extends TestCase
         $response->assertRedirect(route('account.profile.edit'));
 
         $user->refresh();
-        $this->assertSame('New Name', $user->name);
-        $this->assertSame('+44 7700 900002', $user->profile->phone_number);
-        $this->assertSame('Updated bio.', $user->profile->bio);
+        $this->assertNull($user->profile);
     }
 
     public function test_email_uniqueness_ignores_the_current_user(): void

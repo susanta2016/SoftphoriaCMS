@@ -39,14 +39,14 @@ class CheckoutControllerTest extends TestCase
         $response->assertRedirect(route('cart.show'));
     }
 
-    public function test_a_guest_must_provide_name_email_and_phone_to_checkout(): void
+    public function test_a_guest_must_provide_name_and_email_to_checkout(): void
     {
         $album = $this->readyAlbum();
         CartSession::add('album', $album->getKey());
 
         $response = $this->post(route('checkout.process'), []);
 
-        $response->assertSessionHasErrors(['name', 'email', 'phone']);
+        $response->assertSessionHasErrors(['name', 'email']);
     }
 
     public function test_a_guest_checking_out_creates_a_pending_order_and_redirects_to_stripe(): void
@@ -58,14 +58,13 @@ class CheckoutControllerTest extends TestCase
         $response = $this->post(route('checkout.process'), [
             'name' => 'Guest Person',
             'email' => 'guest@example.com',
-            'phone' => '555-0100',
         ]);
 
         $order = Order::query()->latest('id')->first();
         $this->assertNotNull($order);
         $this->assertSame('guest@example.com', $order->purchaser_email);
         $this->assertSame('Guest Person', $order->purchaser_name);
-        $this->assertSame('555-0100', $order->purchaser_phone);
+        $this->assertNull($order->purchaser_phone);
         $this->assertSame(OrderStatus::Pending, $order->status);
         $this->assertSame(1, $order->items->count());
         $this->assertSame('9.99', (string) $order->total);

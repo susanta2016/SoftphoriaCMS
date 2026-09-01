@@ -18,6 +18,9 @@ use Throwable;
  * UserProfile fillable fields; never touches id/status/roles/membership
  * regardless of what the request contains, since $data here is already the
  * validated whitelist the controller built, not the raw request array.
+ * Phone Number, Address, and Zip Code are no longer collected on the
+ * account profile form (they remain admin-settable fields on the User
+ * Profile — see UserForm/UpdateUserAction) — only Biography reaches here.
  *
  * Changing the email re-uses the exact registration verification pipeline
  * (GeneratesVerificationTokens + the "email_verification" template) rather
@@ -26,7 +29,7 @@ use Throwable;
  * of everything else: a changed address is unverified until proven
  * otherwise, no matter how "trusted" the session changing it is.
  *
- * @param  array{name: string, email: string, phone_number?: ?string, bio?: ?string, address?: ?string, zip_code?: ?string}  $data
+ * @param  array{name: string, email: string, bio?: ?string}  $data
  */
 class UpdateAccountProfileAction
 {
@@ -51,9 +54,6 @@ class UpdateAccountProfileAction
 
             $profileData = array_filter([
                 'bio' => $data['bio'] ?? null,
-                'phone_number' => $data['phone_number'] ?? null,
-                'address' => $data['address'] ?? null,
-                'zip_code' => $data['zip_code'] ?? null,
             ], fn ($value) => filled($value));
 
             if ($profileData !== []) {
