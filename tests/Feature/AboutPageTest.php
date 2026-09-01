@@ -18,8 +18,9 @@ use Tests\TestCase;
  * App\Models\PageSection, same architecture as every other Page) must
  * carry three distinct rich_text sections — About All the Things Light,
  * About Cory Gold, About Jacob d'IAWARII — in that order, rendered through
- * the existing pages.show/PageContentRenderer pipeline. See
- * database/seeders/AboutPageSeeder.php for what actually seeds the real
+ * PageContentRenderer's About-template branch (pages/about.blade.php, see
+ * its own doc comment) rather than the generic pages.show view every other
+ * template still uses. See database/seeders/AboutPageSeeder.php for what actually seeds the real
  * "about" page; these tests build their own Page fixture so they don't
  * depend on that seeded content ever having run.
  */
@@ -74,7 +75,7 @@ class AboutPageTest extends TestCase
         $response->assertOk();
         $response->assertSee('About Cory Gold', false);
 
-        $coryBlock = $this->extractSectionHtml($response->getContent(), 'About Cory Gold');
+        $coryBlock = $this->extractSectionBodyHtml($response->getContent(), 'About Cory Gold');
         $this->assertSame('', trim(strip_tags($coryBlock)));
     }
 
@@ -86,8 +87,8 @@ class AboutPageTest extends TestCase
 
         $response->assertOk();
 
-        $jacobBlock = $this->extractSectionHtml($response->getContent(), 'About Jacob d&#039;IAWARII');
-        // Only the <video> markup should be present as content — no invented biography text.
+        $jacobBlock = $this->extractSectionBodyHtml($response->getContent(), "About Jacob d'IAWARII");
+        // The written-body wrapper excludes the <video> player itself — no invented biography text.
         $this->assertSame('', trim(strip_tags($jacobBlock)));
     }
 
@@ -128,17 +129,23 @@ class AboutPageTest extends TestCase
         $response->assertNotFound();
     }
 
-    private function extractSectionHtml(string $html, string $title): string
+    /**
+     * Extracts just the written-body markup of one About section (the
+     * section's own data-section-body wrapper — see pages/about.blade.php),
+     * deliberately excluding its heading/decorative ornament and any video
+     * player, so emptiness assertions are about written content only.
+     */
+    private function extractSectionBodyHtml(string $html, string $title): string
     {
-        $start = strpos($html, $title);
-        $this->assertNotFalse($start, "Section title \"{$title}\" not found in response.");
+        $sectionPattern = '/data-section="'.preg_quote(e($title), '/').'".*?<\/section>/s';
+        $this->assertMatchesRegularExpression($sectionPattern, $html, "Section \"{$title}\" not found in response.");
+        preg_match($sectionPattern, $html, $sectionMatch);
 
-        $afterHeading = strpos($html, '</h2>', $start) + strlen('</h2>');
-        $nextSection = strpos($html, '<section class="block">', $afterHeading);
-        $mainEnd = strpos($html, '</main>', $afterHeading);
-        $end = min(array_filter([$nextSection, $mainEnd, strlen($html)], fn ($value) => $value !== false));
+        $bodyPattern = '/data-section-body[^>]*>(.*?)<\/div>/s';
+        $this->assertMatchesRegularExpression($bodyPattern, $sectionMatch[0], "No body wrapper found for section \"{$title}\".");
+        preg_match($bodyPattern, $sectionMatch[0], $bodyMatch);
 
-        return substr($html, $afterHeading, $end - $afterHeading);
+        return $bodyMatch[1];
     }
 
     private function aboutPage(?string $bodyOverride = null, int|false|null $videoMediaId = false): Page
@@ -146,7 +153,7 @@ class AboutPageTest extends TestCase
         $page = Page::create([
             'title' => 'About',
             'slug' => 'about-test-'.uniqid(),
-            'template' => PageTemplate::Standard->value,
+            'template' => PageTemplate::About->value,
             'status' => PageStatus::Published->value,
         ]);
 

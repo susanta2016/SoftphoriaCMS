@@ -3,6 +3,7 @@
 namespace App\Shared\Support\Pages;
 
 use App\Enums\PageStatus;
+use App\Enums\PageTemplate;
 use App\Filament\Support\Seo\SeoFields;
 use App\Models\Media;
 use App\Models\Page;
@@ -23,6 +24,12 @@ use Illuminate\Contracts\View\View;
  * maintenance-mode 503 display via CheckMaintenanceMode) — its whole point
  * is to stand in when the rest of the site may be down, so it must never
  * link out to normal nav/footer chrome that could itself be broken.
+ *
+ * The About template is the one exception to the shared `pages.show`
+ * renderer: it gets its own `pages.about` view carrying its bespoke
+ * presentation (About page UI/UX refinement task), while every other
+ * template (Standard/Faq/Legal/Contact/Archive/Custom) keeps rendering
+ * through the generic `pages.show` block-by-block renderer unchanged.
  */
 class PageContentRenderer
 {
@@ -64,7 +71,9 @@ class PageContentRenderer
             $seo['title'] = 'Preview: '.$seo['title'];
         }
 
-        return view('pages.show', [
+        $view = $page->template === PageTemplate::About ? 'pages.about' : 'pages.show';
+
+        return view($view, [
             'page' => $page,
             'seo' => $seo,
             'siteName' => $siteName,
