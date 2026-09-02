@@ -13,6 +13,7 @@ use App\Modules\Music\Enums\ReleaseStatus;
 use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Exceptions\InvalidTrackReleaseException;
 use App\Shared\Support\Reviews\Reviewable;
+use App\Shared\Support\Search\SearchResultRepresentable;
 use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,6 +26,9 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
+use Laravel\Scout\Builder as ScoutBuilder;
+use Laravel\Scout\Searchable;
 
 /**
  * One song (Database Specification §19's `tracks` table) — belongs to
@@ -42,9 +46,9 @@ use Illuminate\Support\Collection;
     'album_id', 'single_id', 'title', 'slug', 'description', 'track_number', 'duration_seconds',
     'written_by', 'produced_by', 'isrc', 'video_embed_url', 'audio_media_id', 'video_media_id', 'status',
 ])]
-class Track extends Model implements Reviewable, Sitemapable
+class Track extends Model implements Reviewable, SearchResultRepresentable, Sitemapable
 {
-    use HasPublicId, SoftDeletes;
+    use HasPublicId, Searchable, SoftDeletes;
 
     protected static function booted(): void
     {
@@ -203,5 +207,73 @@ class Track extends Model implements Reviewable, Sitemapable
                 'lastmod' => $track->updated_at,
             ])
             ->values();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'title' => $this->title,
+            'description' => $this->description,
+        ];
+    }
+
+    /**
+     * The real enforcement point for Scout's "database" driver (see
+     * config('scout.driver')): DatabaseEngine::searchModels() queries this
+     * method's return value directly rather than a separate synced index,
+     * so shouldBeSearchable() below is never consulted for this driver (it
+     * only matters if a future engine swap introduces a real remote index —
+     * kept in sync so nothing else has to change if that happens).
+     *
+     * whereNotNull('album_id') is the canonical-URL rule confirmed against
+     * showTrack() above: a single-owned track 301-redirects to its Single's
+     * own page rather than publishing the same song at two URLs, so it must
+     * never surface as its own search result either — its content is
+     * already covered by indexing the Single. Mirrors sitemapEntries()'s
+     * own whereNotNull('album_id') constraint exactly, for the same reason.
+     */
+    public function newScoutQuery(ScoutBuilder $builder): Builder
+    {
+        return static::query()->published()->whereNotNull('album_id');
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->status === TrackStatus::Published && $this->album_id !== null;
+    }
+
+    public function searchResultType(): string
+    {
+        return 'Music';
+    }
+
+    public function searchResultTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function searchResultExcerpt(): string
+    {
+        return $this->description ? str($this->description)->stripTags()->limit(160)->toString() : '';
+    }
+
+    /**
+     * A Track has no cover of its own — it always shows its parent Album's
+     * (a single-owned track never reaches here at all, per newScoutQuery()
+     * above).
+     */
+    public function searchResultImageUrl(): ?string
+    {
+        $cover = $this->album?->cover;
+
+        return $cover ? Storage::disk($cover->disk)->url($cover->path) : null;
+    }
+
+    public function searchResultUrl(): string
+    {
+        return route('music.tracks.show', $this);
     }
 }

@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Modules\PoetryProse\Enums\PoetryProseContentType;
 use App\Modules\PoetryProse\Enums\PoetryProseStatus;
 use App\Shared\Support\Reviews\Reviewable;
+use App\Shared\Support\Search\SearchResultRepresentable;
 use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,6 +26,8 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Scout\Builder as ScoutBuilder;
+use Laravel\Scout\Searchable;
 
 /**
  * One editorial piece — Essay, Reflection, Hymn, Poem, or Article
@@ -38,9 +41,9 @@ use Illuminate\Support\Facades\Storage;
     'title', 'slug', 'body', 'content_type', 'collection_id', 'featured_image_id',
     'status', 'publish_at', 'author_id',
 ])]
-class PoetryProse extends Model implements Reviewable, Sitemapable
+class PoetryProse extends Model implements Reviewable, SearchResultRepresentable, Sitemapable
 {
-    use HasPublicId, SoftDeletes;
+    use HasPublicId, Searchable, SoftDeletes;
 
     /**
      * The migrated table (2026_08_10_100801_create_poetry_prose_table.php)
@@ -215,5 +218,55 @@ class PoetryProse extends Model implements Reviewable, Sitemapable
                 'lastmod' => $entry->updated_at,
             ])
             ->values();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'title' => $this->title,
+            'body' => $this->body,
+        ];
+    }
+
+    /**
+     * See Track::newScoutQuery()'s docblock — this is the real enforcement
+     * point for Scout's "database" driver, not shouldBeSearchable() below.
+     */
+    public function newScoutQuery(ScoutBuilder $builder): Builder
+    {
+        return static::query()->published();
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->status === PoetryProseStatus::Published;
+    }
+
+    public function searchResultType(): string
+    {
+        return 'Poetry / Prose';
+    }
+
+    public function searchResultTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function searchResultExcerpt(): string
+    {
+        return $this->excerpt();
+    }
+
+    public function searchResultImageUrl(): ?string
+    {
+        return $this->featuredImageUrl();
+    }
+
+    public function searchResultUrl(): string
+    {
+        return route('poetry-prose.show', $this);
     }
 }

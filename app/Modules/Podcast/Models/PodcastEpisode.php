@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
 use App\Modules\Podcast\Enums\PodcastStatus;
 use App\Shared\Support\Reviews\Reviewable;
+use App\Shared\Support\Search\SearchResultRepresentable;
 use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,6 +26,8 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Scout\Builder as ScoutBuilder;
+use Laravel\Scout\Searchable;
 
 /**
  * An episode of a Podcast (Database Specification §5's `podcast_episodes`
@@ -37,9 +40,9 @@ use Illuminate\Support\Facades\Storage;
     'publish_date', 'season', 'episode_number', 'embed_url', 'audio_media_id', 'video_media_id',
     'duration_seconds', 'status', 'publish_at',
 ])]
-class PodcastEpisode extends Model implements Reviewable, Sitemapable
+class PodcastEpisode extends Model implements Reviewable, SearchResultRepresentable, Sitemapable
 {
-    use HasPublicId, SoftDeletes;
+    use HasPublicId, Searchable, SoftDeletes;
 
     protected function casts(): array
     {
@@ -197,5 +200,61 @@ class PodcastEpisode extends Model implements Reviewable, Sitemapable
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'title' => $this->title,
+            'description' => $this->description,
+        ];
+    }
+
+    /**
+     * See Track::newScoutQuery()'s docblock — this is the real enforcement
+     * point for Scout's "database" driver, not shouldBeSearchable() below.
+     * Mirrors sitemapEntries()'s own whereHas('podcast', ...) constraint —
+     * an episode is only really public once its parent Podcast show is
+     * Published too.
+     */
+    public function newScoutQuery(ScoutBuilder $builder): Builder
+    {
+        return static::query()
+            ->published()
+            ->whereHas('podcast', fn (Builder $query) => $query->where('status', PodcastStatus::Published));
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->status === PodcastEpisodeStatus::Published
+            && $this->podcast?->status === PodcastStatus::Published;
+    }
+
+    public function searchResultType(): string
+    {
+        return 'Podcast';
+    }
+
+    public function searchResultTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function searchResultExcerpt(): string
+    {
+        return $this->description ? str($this->description)->stripTags()->limit(160)->toString() : '';
+    }
+
+    public function searchResultImageUrl(): ?string
+    {
+        return $this->thumbnailUrl();
+    }
+
+    public function searchResultUrl(): string
+    {
+        return route('podcast.episodes.show', $this);
     }
 }

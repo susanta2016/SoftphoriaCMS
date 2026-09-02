@@ -5,6 +5,7 @@ namespace App\Modules\InspirationalResources\Models;
 use App\Models\SeoMetadata;
 use App\Models\User;
 use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
+use App\Shared\Support\Search\SearchResultRepresentable;
 use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Support\Collection;
+use Laravel\Scout\Builder as ScoutBuilder;
+use Laravel\Scout\Searchable;
 
 /**
  * A submission from the public "Inspirational Resources" form
@@ -36,8 +39,10 @@ use Illuminate\Support\Collection;
     'user_id', 'name', 'email', 'subject', 'category', 'message',
     'reference_url', 'status', 'slug',
 ])]
-class ResourceSubmission extends Model implements Sitemapable
+class ResourceSubmission extends Model implements SearchResultRepresentable, Sitemapable
 {
+    use Searchable;
+
     protected function casts(): array
     {
         return [
@@ -106,5 +111,58 @@ class ResourceSubmission extends Model implements Sitemapable
                 'lastmod' => $submission->updated_at,
             ])
             ->values();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'subject' => $this->subject,
+            'message' => $this->message,
+        ];
+    }
+
+    /**
+     * See Track::newScoutQuery()'s docblock — this is the real enforcement
+     * point for Scout's "database" driver, not shouldBeSearchable() below.
+     */
+    public function newScoutQuery(ScoutBuilder $builder): Builder
+    {
+        return static::query()->approved();
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->status === ResourceSubmissionStatus::Approved;
+    }
+
+    public function searchResultType(): string
+    {
+        return 'Inspirational Resource';
+    }
+
+    public function searchResultTitle(): string
+    {
+        return $this->publicTitle();
+    }
+
+    public function searchResultExcerpt(): string
+    {
+        return $this->excerpt();
+    }
+
+    /**
+     * No Media relation exists on this model — a submission has no image.
+     */
+    public function searchResultImageUrl(): ?string
+    {
+        return null;
+    }
+
+    public function searchResultUrl(): string
+    {
+        return route('inspirational-resources.show', $this);
     }
 }

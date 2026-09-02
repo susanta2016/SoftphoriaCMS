@@ -986,3 +986,299 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchAndSwap(window.location.href, { pushState: false });
     });
 });
+
+// The full /search results page's own top-of-page search input + pagination,
+// fetched asynchronously — mirrors the [data-inspirational-resources-results-region]
+// block above exactly (data-search-region / data-search-page-form).
+document.addEventListener('DOMContentLoaded', () => {
+    const region = document.querySelector('[data-search-region]');
+    if (!region) return;
+
+    const fetchAndSwap = async (url, { pushState = true } = {}) => {
+        region.setAttribute('aria-busy', 'true');
+        region.classList.add('opacity-50', 'pointer-events-none', 'transition-opacity');
+
+        try {
+            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error(`Unexpected status ${response.status}`);
+
+            region.innerHTML = await response.text();
+            if (pushState) window.history.pushState({ searchResults: true }, '', url);
+        } catch (error) {
+            // The async refresh failed — fall back to a real navigation so
+            // the user's search/page action still completes.
+            window.location.href = url;
+            return;
+        } finally {
+            region.removeAttribute('aria-busy');
+            region.classList.remove('opacity-50', 'pointer-events-none', 'transition-opacity');
+        }
+    };
+
+    // Document-scoped: the page's own search input lives outside the
+    // region (data-search-page-form, above it), while pagination links live
+    // inside it — both point back at /search, only the query string differs.
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('a[href]');
+        if (!link) return;
+
+        const url = new URL(link.href, window.location.href);
+        if (url.pathname !== '/search' || !region.contains(link)) return;
+
+        event.preventDefault();
+        fetchAndSwap(link.href);
+    });
+
+    document.addEventListener('submit', (event) => {
+        const form = event.target.closest('[data-search-page-form]');
+        if (!form) return;
+
+        event.preventDefault();
+        const params = new URLSearchParams(new FormData(form));
+        Array.from(params.keys()).forEach((key) => {
+            if (params.get(key) === '') params.delete(key);
+        });
+
+        fetchAndSwap(`${form.action}?${params.toString()}`);
+    });
+
+    window.addEventListener('popstate', () => {
+        if (window.location.pathname !== '/search') return;
+        fetchAndSwap(window.location.href, { pushState: false });
+    });
+});
+
+// The global header search control (desktop icon-that-expands-in-place, and
+// its mobile-menu counterpart — see resources/views/components/site/
+// header.blade.php's two [data-search-control] instances) plus its attached
+// debounced autocomplete dropdown. Deliberately the first debounced-fetch
+// pattern in this file — every other async block above reacts to a click/
+// submit, not a keystroke, so this earns its own small AbortController-based
+// implementation rather than reusing fetchAndSwap.
+document.addEventListener('DOMContentLoaded', () => {
+    const MIN_LENGTH = 2; // mirrors App\Modules\Search\Services\SearchService::MIN_LENGTH
+    const DEBOUNCE_MS = 300;
+    const TYPE_ICONS = {
+        Music: '🎵',
+        'Poetry / Prose': '📖',
+        'Inspirational Resource': '✨',
+        Community: '💬',
+        Podcast: '🎧',
+    };
+
+    document.querySelectorAll('[data-search-control]').forEach((control) => {
+        const toggle = control.querySelector('[data-search-toggle]');
+        const panel = control.querySelector('[data-search-panel]');
+        const closeBtn = control.querySelector('[data-search-close]');
+        const input = control.querySelector('[data-search-input]');
+        const suggestions = control.querySelector('[data-search-suggestions]');
+        if (!toggle || !panel || !input || !suggestions) return;
+
+        const isDesktop = control.dataset.searchVariant === 'desktop';
+        let activeIndex = -1;
+        let abortController = null;
+        let debounceTimer = null;
+
+        const isOpen = () => !panel.hasAttribute('hidden');
+
+        const openPanel = () => {
+            if (isOpen()) return;
+
+            panel.removeAttribute('hidden');
+            toggle.setAttribute('aria-expanded', 'true');
+
+            if (isDesktop) {
+                // Two-step so the width transition actually animates: the
+                // element must render at its closed width (w-0) for at
+                // least one frame before swapping to the open width,
+                // otherwise the browser has nothing to transition from.
+                panel.classList.add('w-0');
+                requestAnimationFrame(() => {
+                    panel.classList.remove('w-0');
+                    panel.classList.add('w-64', 'sm:w-72');
+                });
+            }
+
+            input.focus();
+        };
+
+        const hideSuggestions = () => {
+            suggestions.hidden = true;
+            suggestions.innerHTML = '';
+            input.setAttribute('aria-expanded', 'false');
+            input.removeAttribute('aria-activedescendant');
+            activeIndex = -1;
+        };
+
+        const closePanel = () => {
+            if (!isOpen()) return;
+
+            hideSuggestions();
+            toggle.setAttribute('aria-expanded', 'false');
+
+            if (isDesktop) {
+                panel.classList.remove('w-64', 'sm:w-72');
+                panel.classList.add('w-0');
+                const onDone = (event) => {
+                    if (event.propertyName !== 'width') return;
+                    panel.setAttribute('hidden', '');
+                    panel.removeEventListener('transitionend', onDone);
+                };
+                panel.addEventListener('transitionend', onDone);
+            } else {
+                panel.setAttribute('hidden', '');
+            }
+        };
+
+        toggle.addEventListener('click', () => {
+            if (isOpen()) closePanel(); else openPanel();
+        });
+
+        closeBtn?.addEventListener('click', () => {
+            closePanel();
+            toggle.focus();
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!isOpen() || control.contains(event.target)) return;
+            closePanel();
+        });
+
+        control.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') return;
+
+            if (!suggestions.hidden) {
+                hideSuggestions();
+            } else {
+                closePanel();
+                toggle.focus();
+            }
+        });
+
+        const optionEls = () => Array.from(suggestions.querySelectorAll('[role="option"]'));
+
+        const setActive = (index) => {
+            const options = optionEls();
+            if (options.length === 0) return;
+
+            activeIndex = ((index % options.length) + options.length) % options.length;
+            options.forEach((el, i) => {
+                el.setAttribute('aria-selected', i === activeIndex ? 'true' : 'false');
+                el.classList.toggle('bg-brand-gold/10', i === activeIndex);
+            });
+            input.setAttribute('aria-activedescendant', options[activeIndex].id);
+            options[activeIndex].scrollIntoView({ block: 'nearest' });
+        };
+
+        const renderSuggestions = (data) => {
+            const items = data.suggestions || [];
+            suggestions.innerHTML = '';
+            activeIndex = -1;
+
+            if (items.length === 0) {
+                suggestions.hidden = true;
+                input.setAttribute('aria-expanded', 'false');
+                return;
+            }
+
+            const list = document.createElement('ul');
+            list.className = 'divide-y divide-brand-navy/10';
+
+            items.forEach((item, i) => {
+                const li = document.createElement('li');
+                li.id = `${input.id}-option-${i}`;
+                li.setAttribute('role', 'option');
+                li.setAttribute('aria-selected', 'false');
+                li.className = 'flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-brand-gold/10';
+
+                const icon = document.createElement('span');
+                icon.className = 'flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded bg-brand-ivory text-base';
+                icon.setAttribute('aria-hidden', 'true');
+                if (item.image) {
+                    const img = document.createElement('img');
+                    img.src = item.image;
+                    img.alt = '';
+                    img.className = 'h-full w-full object-cover';
+                    icon.appendChild(img);
+                } else {
+                    icon.textContent = TYPE_ICONS[item.type] || '•';
+                }
+
+                const text = document.createElement('span');
+                text.className = 'min-w-0 flex-1';
+                const typeEl = document.createElement('span');
+                typeEl.className = 'block text-[11px] font-semibold tracking-wide text-brand-gold uppercase';
+                typeEl.textContent = item.type;
+                const titleEl = document.createElement('span');
+                titleEl.className = 'block truncate text-sm text-brand-navy';
+                titleEl.textContent = item.title;
+                text.append(typeEl, titleEl);
+
+                li.append(icon, text);
+                li.addEventListener('click', () => { window.location.href = item.url; });
+                list.appendChild(li);
+            });
+
+            const viewAll = document.createElement('a');
+            viewAll.href = data.viewAllUrl;
+            viewAll.id = `${input.id}-option-${items.length}`;
+            viewAll.setAttribute('role', 'option');
+            viewAll.setAttribute('aria-selected', 'false');
+            viewAll.className = 'block border-t border-brand-navy/10 px-3 py-2 text-center text-sm font-semibold text-brand-gold hover:bg-brand-gold/10';
+            viewAll.textContent = 'View all results →';
+            list.appendChild(viewAll);
+
+            suggestions.appendChild(list);
+            suggestions.hidden = false;
+            input.setAttribute('aria-expanded', 'true');
+        };
+
+        const fetchSuggestions = (query) => {
+            abortController?.abort();
+            abortController = new AbortController();
+
+            fetch(`/search/suggest?q=${encodeURIComponent(query)}`, {
+                headers: { Accept: 'application/json' },
+                signal: abortController.signal,
+            })
+                .then((response) => (response.ok ? response.json() : null))
+                .then((data) => { if (data) renderSuggestions(data); })
+                .catch(() => {
+                    // Aborted (a newer keystroke superseded this request) or
+                    // a network error — either way, leave whatever
+                    // suggestions are currently showing alone.
+                });
+        };
+
+        input.addEventListener('input', () => {
+            const query = input.value.trim();
+            clearTimeout(debounceTimer);
+
+            if (query.length < MIN_LENGTH) {
+                abortController?.abort();
+                hideSuggestions();
+                return;
+            }
+
+            debounceTimer = setTimeout(() => fetchSuggestions(query), DEBOUNCE_MS);
+        });
+
+        input.addEventListener('keydown', (event) => {
+            if (suggestions.hidden) return;
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                setActive(activeIndex + 1);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                setActive(activeIndex - 1);
+            } else if (event.key === 'Enter' && activeIndex >= 0) {
+                event.preventDefault();
+                // Works for both a suggestion <li> (its own click listener
+                // navigates via item.url) and the "View all results" <a>
+                // (a real href, so .click() navigates it directly).
+                optionEls()[activeIndex]?.click();
+            }
+        });
+    });
+});

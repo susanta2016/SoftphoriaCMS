@@ -7,6 +7,7 @@ use App\Models\Media;
 use App\Models\SeoMetadata;
 use App\Models\User;
 use App\Modules\Music\Enums\ReleaseStatus;
+use App\Shared\Support\Search\SearchResultRepresentable;
 use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,6 +18,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
+use Laravel\Scout\Builder as ScoutBuilder;
+use Laravel\Scout\Searchable;
 
 /**
  * A one-song release (Database Specification §19's `singles` table). Unlike
@@ -29,9 +33,9 @@ use Illuminate\Support\Collection;
     'title', 'slug', 'release_date', 'description', 'cover_media_id',
     'status', 'publish_at', 'is_featured',
 ])]
-class Single extends Model implements Sitemapable
+class Single extends Model implements SearchResultRepresentable, Sitemapable
 {
-    use HasPublicId, SoftDeletes;
+    use HasPublicId, Searchable, SoftDeletes;
 
     protected function casts(): array
     {
@@ -98,5 +102,57 @@ class Single extends Model implements Sitemapable
                 'lastmod' => $single->updated_at,
             ])
             ->values();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'title' => $this->title,
+            'description' => $this->description,
+        ];
+    }
+
+    /**
+     * See Track::newScoutQuery()'s docblock — this is the real enforcement
+     * point for Scout's "database" driver, not shouldBeSearchable() below.
+     */
+    public function newScoutQuery(ScoutBuilder $builder): Builder
+    {
+        return static::query()->published();
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->status === ReleaseStatus::Published;
+    }
+
+    public function searchResultType(): string
+    {
+        return 'Music';
+    }
+
+    public function searchResultTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function searchResultExcerpt(): string
+    {
+        return $this->description ? str($this->description)->stripTags()->limit(160)->toString() : '';
+    }
+
+    public function searchResultImageUrl(): ?string
+    {
+        $cover = $this->cover;
+
+        return $cover ? Storage::disk($cover->disk)->url($cover->path) : null;
+    }
+
+    public function searchResultUrl(): string
+    {
+        return route('music.singles.show', $this);
     }
 }

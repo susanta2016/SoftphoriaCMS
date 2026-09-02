@@ -5,6 +5,7 @@ use App\Modules\InspirationalResources\Providers\InspirationalResourcesServicePr
 use App\Modules\Music\Providers\MusicServiceProvider;
 use App\Modules\Podcast\Providers\PodcastServiceProvider;
 use App\Modules\PoetryProse\Providers\PoetryProseServiceProvider;
+use App\Modules\Search\Providers\SearchServiceProvider;
 
 return [
 
@@ -36,6 +37,7 @@ return [
         CommerceServiceProvider::class,
         PoetryProseServiceProvider::class,
         InspirationalResourcesServiceProvider::class,
+        SearchServiceProvider::class,
     ],
 
 ];
