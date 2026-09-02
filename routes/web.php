@@ -23,6 +23,7 @@ use App\Http\Controllers\Music\GuestDownloadController;
 use App\Http\Controllers\Music\MusicController;
 use App\Http\Controllers\Music\TrackDownloadController;
 use App\Http\Controllers\Music\TrackListenController;
+use App\Http\Controllers\Music\TrackReactionController;
 use App\Http\Controllers\Music\TrackReviewController;
 use App\Http\Controllers\Music\TrackStreamController;
 use App\Http\Controllers\NewsletterController;
@@ -30,8 +31,10 @@ use App\Http\Controllers\Page\PageController;
 use App\Http\Controllers\Page\PreviewPageController;
 use App\Http\Controllers\Podcast\PodcastController;
 use App\Http\Controllers\Podcast\PodcastEpisodeDownloadController;
+use App\Http\Controllers\Podcast\PodcastEpisodeReactionController;
 use App\Http\Controllers\Podcast\PodcastEpisodeReviewController;
 use App\Http\Controllers\PoetryProse\PoetryProseController;
+use App\Http\Controllers\PoetryProse\PoetryProseReactionController;
 use App\Http\Controllers\PoetryProse\PoetryProseReviewController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RobotsController;
@@ -170,6 +173,12 @@ Route::get('/poetry-prose/{poetryProse:slug}', [PoetryProseController::class, 's
 Route::post('/poetry-prose/{poetryProse:slug}/reviews', [PoetryProseReviewController::class, 'store'])
     ->middleware(['auth', 'throttle:10,1'])
     ->name('poetry-prose.reviews.store');
+// The 🙌 reaction (client-confirmed, 2026-09-02) — independent of the
+// comment above: its own table/model (App\Models\Reaction), never a
+// repurposed Review.rating. Same auth/throttle gate as the comment route.
+Route::post('/poetry-prose/{poetryProse:slug}/reactions', [PoetryProseReactionController::class, 'toggle'])
+    ->middleware(['auth', 'throttle:10,1'])
+    ->name('poetry-prose.reactions.toggle');
 
 // Public Inspirational Resources — listing + detail for Approved
 // submissions (client-confirmed reversal, 2026-09-02: previously a single
@@ -201,6 +210,12 @@ Route::get('/podcast/episodes/{episode:slug}/download', PodcastEpisodeDownloadCo
 Route::post('/podcast/episodes/{episode:slug}/reviews', [PodcastEpisodeReviewController::class, 'store'])
     ->middleware(['auth', 'throttle:10,1'])
     ->name('podcast.episodes.reviews.store');
+// The 🙌 reaction (client-confirmed, 2026-09-02) — independent of the
+// comment above: its own table/model (App\Models\Reaction), never a
+// repurposed Review.rating. Same auth/throttle gate as the comment route.
+Route::post('/podcast/episodes/{episode:slug}/reactions', [PodcastEpisodeReactionController::class, 'toggle'])
+    ->middleware(['auth', 'throttle:10,1'])
+    ->name('podcast.episodes.reactions.toggle');
 
 // Public Music — landing/catalogue + Album/Single listening pages. Fully
 // public once Published, same shape as Poetry/Prose above. The download
@@ -216,6 +231,12 @@ Route::get('/music/tracks/{track:slug}/download', TrackDownloadController::class
 Route::post('/music/tracks/{track:slug}/reviews', [TrackReviewController::class, 'store'])
     ->middleware(['auth', 'throttle:10,1'])
     ->name('music.tracks.reviews.store');
+// The 🙌 reaction (client-confirmed, 2026-09-02) — independent of the
+// comment above: its own table/model (App\Models\Reaction), never a
+// repurposed Review.rating. Same auth/throttle gate as the comment route.
+Route::post('/music/tracks/{track:slug}/reactions', [TrackReactionController::class, 'toggle'])
+    ->middleware(['auth', 'throttle:10,1'])
+    ->name('music.tracks.reactions.toggle');
 
 // Native playback (see TrackStreamController's own docblock) — public, no
 // auth middleware, since guests must be able to reach it too; the guest

@@ -82,7 +82,11 @@ return [
     'review_published' => [
         'label' => 'Review Published',
         'recipients' => ['user'],
-        'variables' => ['user_name', 'title', 'rating', 'review_url', 'site_name'],
+        // 'rating' dropped 2026-09-02 — the public form no longer collects
+        // one (see App\Actions\Review\SubmitReviewAction's own docblock).
+        // Confirmed safe: no EmailTemplate row existed yet for this key in
+        // this environment, so no admin-customized copy referenced it.
+        'variables' => ['user_name', 'title', 'review_url', 'site_name'],
     ],
 
 ];

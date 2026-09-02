@@ -18,6 +18,11 @@ use Throwable;
  * submitter the same "review_published" TemplatedMailer email exactly once:
  * guarded by checking the status *before* this call, so re-saving an
  * already-approved review (an unrelated admin edit) never re-sends it.
+ *
+ * The `rating` variable was dropped from this email 2026-09-02 (the public
+ * form no longer collects one) — confirmed safe: no admin had customized
+ * the "review_published" template in this environment (no EmailTemplate
+ * row for it existed yet), so no admin-authored copy referenced {{rating}}.
  */
 class PublishReviewAction
 {
@@ -52,7 +57,6 @@ class PublishReviewAction
             $this->mailer->send('review_published', EmailRecipientType::User, $user->email, [
                 'user_name' => $user->name,
                 'title' => $reviewable->reviewTitle(),
-                'rating' => (string) $review->rating,
                 'review_url' => $reviewable->reviewUrl(),
             ]);
         } catch (Throwable $exception) {

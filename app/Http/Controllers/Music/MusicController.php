@@ -143,6 +143,7 @@ class MusicController extends Controller implements Sitemapable
             'related' => $this->relatedReleases($single->id, 'single'),
             'topBanner' => $this->topBannerMedia(),
             ...$this->reviewSummary($single->track),
+            ...$this->reactionSummary($single->track),
         ]);
     }
 
@@ -187,6 +188,7 @@ class MusicController extends Controller implements Sitemapable
             'related' => $this->relatedReleases($album->id, 'album'),
             'topBanner' => $this->topBannerMedia(),
             ...$this->reviewSummary($track),
+            ...$this->reactionSummary($track),
         ]);
     }
 
@@ -619,27 +621,48 @@ class MusicController extends Controller implements Sitemapable
     }
 
     /**
-     * Reviews/ratings belong to the individual Track — never the Album — so
-     * only showSingle()/showTrack() call this (a Single's "track" is its one
+     * Comments belong to the individual Track — never the Album — so only
+     * showSingle()/showTrack() call this (a Single's "track" is its one
      * underlying Track row; see Single::track()). Mirrors
      * PodcastController::show()'s inline computation exactly, reusing the
-     * same App\Models\Review::scopeApproved() so an unapproved review can
-     * never affect the public average/count.
+     * same App\Models\Review::scopeApproved() so an unapproved comment can
+     * never appear publicly. No more star rating/average — client-confirmed
+     * reversal, 2026-09-02 (see App\Actions\Review\SubmitReviewAction).
      *
-     * @return array{reviews: Collection<int, Review>, averageRating: float, reviewCount: int}
+     * @return array{reviews: Collection<int, Review>, reviewCount: int}
      */
     private function reviewSummary(?Track $track): array
     {
         if (! $track) {
-            return ['reviews' => collect(), 'averageRating' => 0.0, 'reviewCount' => 0];
+            return ['reviews' => collect(), 'reviewCount' => 0];
         }
 
         $reviews = $track->reviews()->approved()->with('user.profile.avatar')->latest()->get();
 
         return [
             'reviews' => $reviews,
-            'averageRating' => round((float) $reviews->avg('rating'), 1),
             'reviewCount' => $reviews->count(),
+        ];
+    }
+
+    /**
+     * The separate 🙌 reaction (client-confirmed, 2026-09-02) — never
+     * moderated, so unlike reviewSummary() this counts every row, not just
+     * an "approved" subset (App\Models\Reaction has no status column at
+     * all). `userReacted` drives the button's pressed/unpressed state for
+     * the current visitor; always false for a guest.
+     *
+     * @return array{reactionCount: int, userReacted: bool}
+     */
+    private function reactionSummary(?Track $track): array
+    {
+        if (! $track) {
+            return ['reactionCount' => 0, 'userReacted' => false];
+        }
+
+        return [
+            'reactionCount' => $track->reactions()->count(),
+            'userReacted' => Auth::check() && $track->reactions()->where('user_id', Auth::id())->exists(),
         ];
     }
 

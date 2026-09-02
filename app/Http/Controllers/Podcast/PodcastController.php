@@ -15,6 +15,7 @@ use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Public Podcast landing/all-episodes/episode pages — fully public once
@@ -180,8 +181,13 @@ class PodcastController extends Controller implements Sitemapable
             'latest' => $latest,
             'embedUrl' => $embedUrl,
             'reviews' => $reviews,
-            'averageRating' => round((float) $reviews->avg('rating'), 1),
             'reviewCount' => $reviews->count(),
+            // The separate 🙌 reaction (client-confirmed, 2026-09-02) —
+            // never moderated, so this counts every row, not just an
+            // "approved" subset (App\Models\Reaction has no status column
+            // at all). No more star rating/average.
+            'reactionCount' => $episode->reactions()->count(),
+            'userReacted' => Auth::check() && $episode->reactions()->where('user_id', Auth::id())->exists(),
             'heroBanner' => $this->heroBanner($settings),
         ]);
     }

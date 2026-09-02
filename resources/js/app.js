@@ -677,68 +677,105 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// The review/rating submission form's clickable star widget — pure
-// progressive enhancement: the hidden input already carries any previously
-// submitted rating (old('rating')/an existing review), so the form still
-// works with JavaScript disabled via the browser's native number entry.
-document.addEventListener('DOMContentLoaded', () => {
-    const widget = document.querySelector('[data-review-rating]');
-    if (!widget) return;
-
-    const input = widget.querySelector('[data-review-rating-input]');
-    const stars = Array.from(widget.querySelectorAll('[data-review-star]'));
-
-    const paint = (value) => {
-        stars.forEach((star) => {
-            star.classList.toggle('text-brand-gold', Number(star.dataset.value) <= value);
-            star.classList.toggle('text-brand-navy/20', Number(star.dataset.value) > value);
-        });
-    };
-
-    paint(Number(input?.value) || 0);
-
-    stars.forEach((star) => {
-        star.addEventListener('click', () => {
-            if (input) input.value = star.dataset.value;
-            paint(Number(star.dataset.value));
-        });
-        star.addEventListener('mouseenter', () => paint(Number(star.dataset.value)));
-    });
-
-    widget.addEventListener('mouseleave', () => paint(Number(input?.value) || 0));
-});
-
-// Client-side guard for the review/rating form — catches an obviously
-// incomplete submission (no star selected, or an empty/whitespace-only
-// review) before it round-trips to the server. This is only a UX nicety;
-// PodcastEpisodeReviewController::store() still re-validates authoritatively
-// (rating between 1-5, content required), so a JS-disabled browser is never
-// left unprotected.
+// Client-side guard for the comment form — catches an obviously empty/
+// whitespace-only submission before it round-trips to the server. This is
+// only a UX nicety; the review controllers (TrackReviewController etc.)
+// still re-validate authoritatively (content required), so a JS-disabled
+// browser is never left unprotected.
+//
+// Client-confirmed reversal (2026-09-02): the star-rating widget this used
+// to pair with (data-review-rating/data-review-star) was removed — the
+// public form no longer collects a rating at all, only a comment. See
+// App\Actions\Review\SubmitReviewAction's own docblock.
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.querySelector('[data-review-form]');
     if (!form) return;
 
-    const ratingInput = form.querySelector('[data-review-rating-input]');
-    const ratingError = form.querySelector('[data-review-rating-error]');
     const contentInput = form.querySelector('[data-review-content-input]');
     const contentError = form.querySelector('[data-review-content-error]');
 
-    form.querySelectorAll('[data-review-star]').forEach((star) => {
-        star.addEventListener('click', () => ratingError?.classList.add('hidden'));
-    });
     contentInput?.addEventListener('input', () => contentError?.classList.add('hidden'));
 
     form.addEventListener('submit', (event) => {
-        const rating = Number(ratingInput?.value);
-        const hasValidRating = Number.isInteger(rating) && rating >= 1 && rating <= 5;
         const hasContent = (contentInput?.value ?? '').trim().length > 0;
 
-        ratingError?.classList.toggle('hidden', hasValidRating);
         contentError?.classList.toggle('hidden', hasContent);
 
-        if (!hasValidRating || !hasContent) {
+        if (!hasContent) {
             event.preventDefault();
         }
+    });
+});
+
+// The 🙌 reaction toggle — async fetch, no full-page reload (client-
+// confirmed, 2026-09-02). Shared across Music/Podcast/Poetry-Prose via one
+// generic handler and the same data-reaction-* markup on all three pages'
+// detail views. Progressive enhancement: without JS (or if the fetch
+// throws) the real <form method="POST"> still works — *ReactionController::
+// toggle() returns a redirect-back when the request doesn't wantsJson(),
+// exactly like before this change, so the feature never breaks for a
+// JS-disabled visitor.
+//
+// A lapsed session (this button only ever renders for an authenticated
+// visitor — see @auth in the Blade view — so this can only mean the
+// session expired mid-visit) is handled by the same catch below, not a
+// dedicated status check: bootstrap/app.php's shouldRenderJsonWhen scopes
+// JSON exception rendering to `api/*` paths only, site-wide, so this
+// non-/api route always gets the normal HTML redirect-to-login on an
+// auth failure regardless of the Accept header sent here. fetch() follows
+// that redirect itself, response.json() then throws on the login page's
+// HTML, and the catch's form.submit() lands the visitor on the real login
+// page exactly as if JS had never run.
+document.addEventListener('DOMContentLoaded', () => {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    if (!csrfToken) return;
+
+    const reactedClasses = ['border-brand-gold', 'bg-brand-gold/10', 'text-brand-navy'];
+    const idleClasses = ['border-brand-navy/20', 'text-brand-navy/70', 'hover:border-brand-gold'];
+
+    document.querySelectorAll('[data-reaction-form]').forEach((form) => {
+        const button = form.querySelector('[data-reaction-button]');
+        const countEl = form.querySelector('[data-reaction-count]');
+        if (!button || !countEl) return;
+
+        const applyState = (reacted) => {
+            button.setAttribute('aria-pressed', reacted ? 'true' : 'false');
+            button.classList.remove(...(reacted ? idleClasses : reactedClasses));
+            button.classList.add(...(reacted ? reactedClasses : idleClasses));
+        };
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            // Prevent rapid repeated clicks/double submission while a
+            // request is already in flight — the button stays disabled
+            // for the full round trip, not just until the click handler
+            // returns.
+            if (button.disabled) return;
+            button.disabled = true;
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                });
+
+                if (!response.ok) throw new Error(`Unexpected status ${response.status}`);
+
+                const data = await response.json();
+                applyState(data.reacted);
+                countEl.textContent = data.count;
+            } catch (error) {
+                // Network/server error, or a non-JSON response (e.g. a
+                // followed redirect to the login page's HTML) — fall back
+                // to a real form submit so the tap still completes via the
+                // no-JS path instead of silently doing nothing.
+                form.submit();
+                return;
+            } finally {
+                button.disabled = false;
+            }
+        });
     });
 });
 

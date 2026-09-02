@@ -6,6 +6,7 @@ use App\Actions\Review\PublishReviewAction;
 use App\Actions\Review\RejectReviewAction;
 use App\Enums\ReviewStatus;
 use App\Filament\Resources\Reviews\Pages\ListReviews;
+use App\Filament\Resources\Reviews\Pages\ViewReview;
 use App\Models\Review;
 use App\Models\Role;
 use App\Models\User;
@@ -59,6 +60,39 @@ class ReviewResourceTest extends TestCase
         $response = $this->actingAs($this->admin())->get('/admin/reviews/create');
 
         $response->assertNotFound();
+    }
+
+    /**
+     * Client-confirmed reversal (2026-09-02): the admin-facing label reads
+     * "Light Posts & Comments" — the underlying resource/route/model stay
+     * named Review/ReviewResource/reviews internally (no large-scale
+     * rename), only what an admin actually sees changes.
+     */
+    public function test_the_admin_navigation_label_is_light_posts_and_comments(): void
+    {
+        $response = $this->actingAs($this->admin())->get('/admin/reviews');
+
+        $response->assertOk();
+        $response->assertSee('Light Posts &amp; Comments', false);
+    }
+
+    /**
+     * Client-confirmed reversal (2026-09-02): star ratings are no longer
+     * part of the active feature — the normal moderation list must not
+     * show a Rating column or any star glyphs at all. A handful of legacy
+     * rows still carry a real rating value, kept visible only on their own
+     * detail page's "Legacy Rating" section (see ReviewInfolist) — never
+     * in this list.
+     */
+    public function test_the_rating_column_does_not_appear_in_the_normal_list(): void
+    {
+        $this->createReview(['rating' => 4]);
+
+        $response = $this->actingAs($this->admin())->get('/admin/reviews');
+
+        $response->assertOk();
+        $response->assertDontSee('Rating');
+        $response->assertDontSee('★');
     }
 
     public function test_admin_can_approve_publish_a_pending_review(): void
@@ -131,6 +165,42 @@ class ReviewResourceTest extends TestCase
         $this->assertSame(ReviewStatus::Approved, $trackReview->refresh()->status);
     }
 
+    /**
+     * A new comment-only submission (rating = null, client-confirmed
+     * reversal 2026-09-02) must render without error in both the list and
+     * the view/infolist — ReviewsTable/ReviewInfolist's rating column is
+     * null-safe specifically for this case.
+     */
+    public function test_a_null_rating_comment_renders_without_error_in_the_admin_list_and_view(): void
+    {
+        $review = $this->createReview(['rating' => null, 'content' => 'A comment-only submission with no rating.']);
+
+        Livewire::actingAs($this->admin())
+            ->test(ListReviews::class)
+            ->assertCanSeeTableRecords([$review])
+            ->assertSuccessful();
+
+        Livewire::actingAs($this->admin())
+            ->test(ViewReview::class, ['record' => $review->getRouteKey()])
+            ->assertSuccessful()
+            ->assertSee('A comment-only submission with no rating.');
+    }
+
+    /**
+     * A pre-existing legacy row with a real rating must keep displaying it
+     * (as stars) rather than being coerced to the null-rating placeholder —
+     * confirms the two cases coexist in the same table/infolist.
+     */
+    public function test_a_legacy_rated_review_still_displays_its_rating_in_the_admin_view(): void
+    {
+        $review = $this->createReview(['rating' => 4]);
+
+        Livewire::actingAs($this->admin())
+            ->test(ViewReview::class, ['record' => $review->getRouteKey()])
+            ->assertSuccessful()
+            ->assertSee('★★★★☆');
+    }
+
     private function createTrackReview(): Review
     {
         $single = Single::query()->create([
@@ -156,7 +226,10 @@ class ReviewResourceTest extends TestCase
         ]);
     }
 
-    private function createReview(): Review
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function createReview(array $overrides = []): Review
     {
         $podcast = Podcast::query()->create([
             'title' => 'Admin Review Test Podcast '.uniqid(),
@@ -178,6 +251,7 @@ class ReviewResourceTest extends TestCase
             'rating' => 5,
             'content' => 'A review awaiting moderation.',
             'status' => ReviewStatus::Pending,
+            ...$overrides,
         ]);
     }
 

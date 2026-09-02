@@ -14,6 +14,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Public Poetry/Prose list + detail — fully public once Published
@@ -148,8 +149,13 @@ class PoetryProseController extends Controller
             'popular' => $this->popularEntries($poetryProse->id),
             'heroBanner' => $this->heroBanner($settings),
             'reviews' => $reviews,
-            'averageRating' => round((float) $reviews->avg('rating'), 1),
             'reviewCount' => $reviews->count(),
+            // The separate 🙌 reaction (client-confirmed, 2026-09-02) —
+            // never moderated, so this counts every row, not just an
+            // "approved" subset (App\Models\Reaction has no status column
+            // at all). No more star rating/average.
+            'reactionCount' => $poetryProse->reactions()->count(),
+            'userReacted' => Auth::check() && $poetryProse->reactions()->where('user_id', Auth::id())->exists(),
         ]);
     }
 

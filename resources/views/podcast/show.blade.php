@@ -6,7 +6,6 @@
     $bannerUrl = $heroBanner ? Storage::disk($heroBanner->disk)->url($heroBanner->path) : null;
     $durationLabel = $episode->duration_seconds ? intdiv($episode->duration_seconds, 60).' min' : null;
     $canDownload = $episode->audio !== null;
-    $userReview = auth()->check() ? $episode->reviews()->where('user_id', auth()->id())->first() : null;
 @endphp
 
 <x-layouts.site :seo="$seo">
@@ -46,8 +45,13 @@
                 @endif
                 @if ($reviewCount > 0)
                     <span class="inline-flex items-center gap-1.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4 text-brand-gold"><path d="m12 2 2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.8-6.3 3.8 1.7-7-5.4-4.7 7.1-.7Z"/></svg>
-                        {{ $averageRating }} ({{ $reviewCount }} {{ Str::plural('rating', $reviewCount) }})
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path d="M21 12a8 8 0 1 1-3.2-6.4" stroke-linecap="round"/><path d="M21 4v5h-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        {{ $reviewCount }} {{ Str::plural('comment', $reviewCount) }}
+                    </span>
+                @endif
+                @if ($reactionCount > 0)
+                    <span class="inline-flex items-center gap-1.5">
+                        <span aria-hidden="true">🙌</span> {{ $reactionCount }}
                     </span>
                 @endif
             </div>
@@ -127,12 +131,38 @@
                     <div class="mt-14 border-t border-brand-navy/10 pt-10">
                         <div class="flex flex-wrap items-center justify-between gap-3">
                             <h2 class="font-serif text-2xl text-brand-navy">What Listeners Are Saying</h2>
-                            @if ($reviewCount > 0)
-                                <span class="inline-flex items-center gap-1.5 text-sm text-brand-navy/60">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4 text-brand-gold"><path d="m12 2 2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.8-6.3 3.8 1.7-7-5.4-4.7 7.1-.7Z"/></svg>
-                                    {{ $averageRating }} average &bull; {{ $reviewCount }} {{ Str::plural('review', $reviewCount) }}
-                                </span>
-                            @endif
+                            <div class="flex items-center gap-3">
+                                @if ($reviewCount > 0)
+                                    <span class="text-sm text-brand-navy/60">{{ $reviewCount }} {{ Str::plural('comment', $reviewCount) }}</span>
+                                @endif
+
+                                {{-- The 🙌 reaction — independent of the comment below; a
+                                    member can react without commenting, comment without
+                                    reacting, both, or neither. Toggled asynchronously via
+                                    resources/js/app.js (data-reaction-*); the real POST
+                                    submit here is the no-JS fallback. --}}
+                                @auth
+                                    <form method="POST" action="{{ route('podcast.episodes.reactions.toggle', $episode) }}" data-reaction-form>
+                                        @csrf
+                                        <button
+                                            type="submit"
+                                            data-reaction-button
+                                            aria-pressed="{{ $userReacted ? 'true' : 'false' }}"
+                                            @class([
+                                                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition',
+                                                'border-brand-gold bg-brand-gold/10 text-brand-navy' => $userReacted,
+                                                'border-brand-navy/20 text-brand-navy/70 hover:border-brand-gold' => ! $userReacted,
+                                            ])
+                                        >
+                                            <span aria-hidden="true">🙌</span> <span data-reaction-count>{{ $reactionCount }}</span>
+                                        </button>
+                                    </form>
+                                @else
+                                    <a href="{{ route('login') }}" class="inline-flex items-center gap-1.5 rounded-full border border-brand-navy/20 px-3 py-1.5 text-sm font-medium text-brand-navy/70 transition hover:border-brand-gold" title="Log in to react">
+                                        <span aria-hidden="true">🙌</span> {{ $reactionCount }}
+                                    </a>
+                                @endauth
+                            </div>
                         </div>
 
                         @if ($reviews->isEmpty())
@@ -143,12 +173,7 @@
                                     <div class="flex gap-3 rounded-xl border border-brand-navy/10 p-4">
                                         <img src="{{ $review->reviewerAvatarUrl() }}" alt="" class="h-9 w-9 shrink-0 rounded-full object-cover">
                                         <div class="min-w-0 flex-1">
-                                            <div class="flex items-center gap-2">
-                                                @for ($i = 1; $i <= 5; $i++)
-                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" @class(['h-4 w-4', 'text-brand-gold' => $i <= $review->rating, 'text-brand-navy/15' => $i > $review->rating])><path d="m12 2 2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.8-6.3 3.8 1.7-7-5.4-4.7 7.1-.7Z"/></svg>
-                                                @endfor
-                                            </div>
-                                            <p class="mt-2 text-sm leading-relaxed text-brand-navy/75">{{ $review->content }}</p>
+                                            <p class="text-sm leading-relaxed text-brand-navy/75">{{ $review->content }}</p>
                                             <p class="mt-2 text-xs text-brand-navy/50">
                                                 {{ $review->user?->name ?? 'A Member' }} &middot; {{ $review->created_at->format('M j, Y') }}
                                             </p>
@@ -164,40 +189,37 @@
                                     <p class="mb-4 rounded-md border border-brand-gold/30 bg-white px-4 py-3 text-sm text-brand-navy">{{ session('review_status') }}</p>
                                 @endif
 
-                                <h3 class="font-serif text-lg text-brand-navy">{{ $userReview ? 'Update Your Review' : 'Leave a Review' }}</h3>
+                                <h3 class="font-serif text-lg text-brand-navy">Leave a Comment</h3>
                                 <form method="POST" action="{{ route('podcast.episodes.reviews.store', $episode) }}" class="mt-4 space-y-4" data-review-form novalidate>
                                     @csrf
-                                    <div>
-                                        <span class="text-xs font-medium text-brand-navy/60">Your Rating</span>
-                                        <div data-review-rating class="mt-1.5 flex items-center gap-1">
-                                            <input type="hidden" name="rating" data-review-rating-input value="{{ old('rating', $userReview?->rating ?? '') }}">
-                                            @for ($i = 1; $i <= 5; $i++)
-                                                <button type="button" data-review-star data-value="{{ $i }}" aria-label="{{ $i }} star" class="text-brand-navy/20 transition hover:text-brand-gold/70">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-7 w-7"><path d="m12 2 2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.8-6.3 3.8 1.7-7-5.4-4.7 7.1-.7Z"/></svg>
-                                                </button>
-                                            @endfor
-                                        </div>
-                                        <p data-review-rating-error class="mt-1 hidden text-xs text-red-600">Please select a rating from 1 to 5 stars.</p>
-                                        @error('rating')
-                                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                        @enderror
+
+                                    {{--
+                                        Honeypot spam trap — reuses ContactController::store()'s
+                                        exact pattern (same field name, same silent-discard
+                                        behavior on the server). Visually hidden off-screen
+                                        (never display:none/visibility:hidden, which some bots
+                                        detect and skip) and excluded from tab order.
+                                    --}}
+                                    <div class="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+                                        <label for="podcast-review-hp-website">Website</label>
+                                        <input type="text" id="podcast-review-hp-website" name="hp_website" tabindex="-1" autocomplete="off">
                                     </div>
 
                                     <div>
-                                        <label for="review-content" class="text-xs font-medium text-brand-navy/60">Your Review</label>
-                                        <textarea id="review-content" name="content" rows="3" maxlength="{{ config('reviews.max_length') }}" data-review-content-input class="mt-1.5 w-full rounded-md border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy placeholder:text-brand-navy/40 focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none" placeholder="Share your thoughts on this episode…">{{ old('content', $userReview?->content) }}</textarea>
-                                        <p data-review-content-error class="mt-1 hidden text-xs text-red-600">Please write a few words before submitting your review.</p>
+                                        <label for="review-content" class="text-xs font-medium text-brand-navy/60">Your Comment</label>
+                                        <textarea id="review-content" name="content" rows="3" maxlength="{{ config('reviews.max_length') }}" data-review-content-input class="mt-1.5 w-full rounded-md border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy placeholder:text-brand-navy/40 focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none" placeholder="Share your thoughts on this episode…">{{ old('content') }}</textarea>
+                                        <p data-review-content-error class="mt-1 hidden text-xs text-red-600">Please write a few words before submitting your comment.</p>
                                         @error('content')
                                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                                         @enderror
                                     </div>
 
                                     <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-brand-gold px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-gold-light">
-                                        Submit Review
+                                        Post Comment
                                     </button>
                                     <p class="text-xs text-brand-navy/50">
                                         @if (config('reviews.reviews_ratings_admin_approval'))
-                                            Your review will appear here once approved.
+                                            Your comment will appear here once approved.
                                         @endif
                                     </p>
                                 </form>
@@ -206,7 +228,7 @@
                                     <a href="{{ route('login') }}" class="font-semibold text-brand-gold hover:text-brand-navy">Log in</a>
                                     or
                                     <a href="{{ route('register.show') }}" class="font-semibold text-brand-gold hover:text-brand-navy">register</a>
-                                    to leave a rating and review.
+                                    to leave a comment.
                                 </p>
                             @endauth
                         </div>

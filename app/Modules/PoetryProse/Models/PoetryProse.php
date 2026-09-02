@@ -5,6 +5,7 @@ namespace App\Modules\PoetryProse\Models;
 use App\Models\Category;
 use App\Models\Concerns\HasPublicId;
 use App\Models\Media;
+use App\Models\Reaction;
 use App\Models\Review;
 use App\Models\SeoMetadata;
 use App\Models\Tag;
@@ -165,6 +166,11 @@ class PoetryProse extends Model implements Reviewable, Sitemapable
     public function reviews(): MorphMany
     {
         return $this->morphMany(Review::class, 'reviewable');
+    }
+
+    public function reactions(): MorphMany
+    {
+        return $this->morphMany(Reaction::class, 'reactable');
     }
 
     public function reviewTitle(): string

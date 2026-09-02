@@ -19,24 +19,28 @@ use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
- * Reviews/ratings on a Music Track (a Single's own song, or an Album-owned
- * track) — via the exact same shared App\Models\Review /
+ * Comments on a Music Track (a Single's own song, or an Album-owned track)
+ * — via the exact same shared App\Models\Review /
  * App\Actions\Review\SubmitReviewAction the Podcast module already uses
  * (see Tests\Feature\Podcast\ReviewSubmissionTest, the reference this test
  * mirrors). Reviews belong to the individual Track, never the Album as a
  * whole — a Single's "track" is its one underlying Track row (Single::
  * track()), so both entry points are exercised here.
+ *
+ * **Client-confirmed reversal (2026-09-02):** the public form no longer
+ * collects a star rating — a submission is now a plain text comment, and
+ * `rating` is always persisted as null for one. The separate 🙌 reaction
+ * is covered by Tests\Feature\Music\TrackReactionTest.
  */
 class TrackReviewTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_a_guest_cannot_submit_a_review_and_is_redirected_to_login(): void
+    public function test_a_guest_cannot_submit_a_comment_and_is_redirected_to_login(): void
     {
         $track = $this->publishedSingleTrack();
 
         $response = $this->post(route('music.tracks.reviews.store', $track), [
-            'rating' => 5,
             'content' => 'Guests should not be able to post this.',
         ]);
 
@@ -44,15 +48,14 @@ class TrackReviewTest extends TestCase
         $this->assertSame(0, Review::query()->count());
     }
 
-    public function test_a_registered_user_can_submit_a_rating_and_review(): void
+    public function test_a_registered_user_can_submit_a_comment_without_a_rating(): void
     {
         config(['reviews.reviews_ratings_admin_approval' => true]);
         $track = $this->publishedSingleTrack();
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
-            'rating' => 4,
-            'content' => 'A genuinely thoughtful review of this song.',
+            'content' => 'A genuinely thoughtful comment about this song.',
         ]);
 
         $response->assertRedirect();
@@ -61,21 +64,25 @@ class TrackReviewTest extends TestCase
         $this->assertSame($user->getKey(), $review->user_id);
         $this->assertSame($track->getKey(), $review->reviewable_id);
         $this->assertSame(Track::class, $review->reviewable_type);
-        $this->assertSame(4, $review->rating);
+        $this->assertNull($review->rating);
     }
 
-    public function test_rating_must_be_between_1_and_5(): void
+    public function test_a_rating_submitted_by_the_client_is_ignored(): void
     {
+        // The public form no longer renders a rating field at all, but even
+        // if a client (or a stale cached page) posts one, it must never be
+        // persisted — the comment-only contract is enforced server-side.
         $track = $this->publishedSingleTrack();
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
-            'rating' => 6,
-            'content' => 'Valid content but an invalid rating.',
+        $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
+            'rating' => 5,
+            'content' => 'A comment that also included a rating field.',
         ]);
 
-        $response->assertSessionHasErrors('rating');
-        $this->assertSame(0, Review::query()->count());
+        $review = Review::query()->first();
+        $this->assertNotNull($review);
+        $this->assertNull($review->rating);
     }
 
     public function test_review_content_is_required(): void
@@ -84,7 +91,6 @@ class TrackReviewTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
-            'rating' => 5,
             'content' => '',
         ]);
 
@@ -98,7 +104,6 @@ class TrackReviewTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
-            'rating' => 5,
             'content' => "   \n\t  ",
         ]);
 
@@ -112,7 +117,6 @@ class TrackReviewTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
-            'rating' => 5,
             'content' => str_repeat('a', config('reviews.max_length') + 1),
         ]);
 
@@ -130,13 +134,11 @@ class TrackReviewTest extends TestCase
         $page->assertSee('maxlength="10"', false);
 
         $tooLong = $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
-            'rating' => 5,
             'content' => str_repeat('a', 11),
         ]);
         $tooLong->assertSessionHasErrors('content');
 
         $withinLimit = $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
-            'rating' => 5,
             'content' => str_repeat('a', 10),
         ]);
         $withinLimit->assertSessionDoesntHaveErrors('content');
@@ -150,8 +152,7 @@ class TrackReviewTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
-            'rating' => 5,
-            'content' => 'Pending review content.',
+            'content' => 'Pending comment content.',
         ]);
 
         $this->assertSame(ReviewStatus::Pending, Review::query()->first()->status);
@@ -165,14 +166,14 @@ class TrackReviewTest extends TestCase
             'reviewable_type' => Track::class,
             'reviewable_id' => $track->id,
             'user_id' => User::factory()->create()->id,
-            'rating' => 5,
-            'content' => 'A distinctive pending review sentinel.',
+            'rating' => null,
+            'content' => 'A distinctive pending comment sentinel.',
             'status' => ReviewStatus::Pending,
         ]);
 
         $response = $this->get(route('music.singles.show', $single));
 
-        $response->assertDontSee('A distinctive pending review sentinel');
+        $response->assertDontSee('A distinctive pending comment sentinel');
         $response->assertSee('Be the first to share your thoughts');
     }
 
@@ -180,12 +181,12 @@ class TrackReviewTest extends TestCase
     {
         $single = $this->single(['status' => ReleaseStatus::Published]);
         $track = $this->track(null, $single, ['status' => TrackStatus::Published]);
-        $this->createApprovedReview($track, User::factory()->create(), 5, 'A wonderful, approved review.');
+        $this->createApprovedComment($track, User::factory()->create(), 'A wonderful, approved comment.');
 
         $response = $this->get(route('music.singles.show', $single));
 
         $response->assertOk();
-        $response->assertSee('A wonderful, approved review.');
+        $response->assertSee('A wonderful, approved comment.');
     }
 
     public function test_admin_approval_disabled_publishes_immediately_and_sends_the_email(): void
@@ -197,35 +198,89 @@ class TrackReviewTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
-            'rating' => 5,
-            'content' => 'An immediately published review.',
+            'content' => 'An immediately published comment.',
         ]);
 
         $this->assertSame(ReviewStatus::Approved, Review::query()->first()->status);
 
         $response = $this->get($track->reviewUrl());
-        $response->assertSee('An immediately published review.');
+        $response->assertSee('An immediately published comment.');
         Mail::assertSent(TemplatedNotificationMail::class, fn ($mail): bool => $mail->hasTo($user->email));
     }
 
-    public function test_resubmitting_updates_the_existing_review_rather_than_creating_a_duplicate(): void
+    /**
+     * Client-confirmed reversal (2026-09-02): the old one-review-per-user
+     * uniqueness made sense for a star rating, not for a comment feed — a
+     * member can now leave any number of comments on the same item over
+     * time. See database/migrations/2026_09_02_130000_drop_reviews_unique_constraint.php.
+     */
+    public function test_a_member_can_submit_multiple_comments_on_the_same_track(): void
     {
         $track = $this->publishedSingleTrack();
         $user = User::factory()->create();
 
         $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
-            'rating' => 3,
-            'content' => 'First submission.',
+            'content' => 'First comment.',
         ]);
         $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
-            'rating' => 5,
-            'content' => 'Updated submission.',
+            'content' => 'Second, later comment.',
         ]);
 
-        $this->assertSame(1, Review::query()->count());
-        $review = Review::query()->first();
-        $this->assertSame(5, $review->rating);
-        $this->assertSame('Updated submission.', $review->content);
+        $this->assertSame(2, Review::query()->count());
+        $this->assertSame(2, Review::query()->where('user_id', $user->id)->where('reviewable_id', $track->id)->count());
+    }
+
+    public function test_the_first_comment_remains_intact_after_a_second_is_submitted(): void
+    {
+        $track = $this->publishedSingleTrack();
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
+            'content' => 'First comment.',
+        ]);
+        $first = Review::query()->first();
+
+        $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
+            'content' => 'Second, later comment.',
+        ]);
+
+        $this->assertSame('First comment.', $first->refresh()->content);
+    }
+
+    public function test_each_comment_is_independently_moderated(): void
+    {
+        config(['reviews.reviews_ratings_admin_approval' => true]);
+        $track = $this->publishedSingleTrack();
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
+            'content' => 'This one will be approved.',
+        ]);
+        $firstComment = Review::query()->first();
+        $firstComment->update(['status' => ReviewStatus::Approved]);
+
+        $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
+            'content' => 'This one stays pending.',
+        ]);
+
+        $response = $this->get($track->reviewUrl());
+
+        $response->assertSee('This one will be approved.');
+        $response->assertDontSee('This one stays pending.');
+    }
+
+    /**
+     * A legacy row nobody has resubmitted yet keeps its real rating intact
+     * — the migration that made `rating` nullable never touches existing
+     * data (see database/migrations/2026_09_02_120000_make_reviews_rating_nullable.php).
+     */
+    public function test_an_untouched_legacy_rated_review_keeps_its_rating(): void
+    {
+        $track = $this->publishedSingleTrack();
+        $legacy = $this->createApprovedComment($track, User::factory()->create(), 'An old rated review nobody edited.');
+        $legacy->update(['rating' => 4]);
+
+        $this->assertSame(4, $legacy->refresh()->rating);
     }
 
     public function test_reviews_for_one_track_never_appear_on_another_tracks_page(): void
@@ -235,13 +290,13 @@ class TrackReviewTest extends TestCase
         $singleB = $this->single(['title' => 'Track B Single', 'slug' => 'track-b-single', 'status' => ReleaseStatus::Published]);
         $trackB = $this->track(null, $singleB, ['title' => 'Track B', 'slug' => 'track-b', 'status' => TrackStatus::Published]);
 
-        $this->createApprovedReview($trackA, User::factory()->create(), 5, 'A review that only belongs to Track A.');
+        $this->createApprovedComment($trackA, User::factory()->create(), 'A comment that only belongs to Track A.');
 
         $responseA = $this->get(route('music.singles.show', $singleA));
-        $responseA->assertSee('A review that only belongs to Track A.');
+        $responseA->assertSee('A comment that only belongs to Track A.');
 
         $responseB = $this->get(route('music.singles.show', $singleB));
-        $responseB->assertDontSee('A review that only belongs to Track A.');
+        $responseB->assertDontSee('A comment that only belongs to Track A.');
         $responseB->assertSee('Be the first to share your thoughts');
     }
 
@@ -251,36 +306,51 @@ class TrackReviewTest extends TestCase
         $trackOne = $this->track($album, null, ['title' => 'Track One', 'slug' => 'track-one', 'status' => TrackStatus::Published, 'track_number' => 1]);
         $trackTwo = $this->track($album, null, ['title' => 'Track Two', 'slug' => 'track-two', 'status' => TrackStatus::Published, 'track_number' => 2]);
 
-        $this->createApprovedReview($trackOne, User::factory()->create(), 4, 'Review for track one only.');
+        $this->createApprovedComment($trackOne, User::factory()->create(), 'Comment for track one only.');
 
         $responseOne = $this->get(route('music.tracks.show', $trackOne));
-        $responseOne->assertSee('Review for track one only.');
+        $responseOne->assertSee('Comment for track one only.');
 
         $responseTwo = $this->get(route('music.tracks.show', $trackTwo));
-        $responseTwo->assertDontSee('Review for track one only.');
+        $responseTwo->assertDontSee('Comment for track one only.');
     }
 
-    public function test_the_rating_average_and_count_use_only_approved_reviews(): void
+    public function test_the_comment_count_uses_only_approved_reviews(): void
     {
         $single = $this->single(['status' => ReleaseStatus::Published]);
         $track = $this->track(null, $single, ['status' => TrackStatus::Published]);
-        $this->createApprovedReview($track, User::factory()->create(), 5, 'Excellent song.');
-        $this->createApprovedReview($track, User::factory()->create(), 3, 'It was fine.');
+        $this->createApprovedComment($track, User::factory()->create(), 'Excellent song.');
+        $this->createApprovedComment($track, User::factory()->create(), 'It was fine.');
         Review::query()->create([
             'reviewable_type' => Track::class,
             'reviewable_id' => $track->id,
             'user_id' => User::factory()->create()->id,
-            'rating' => 1,
-            'content' => 'A pending review that must not skew the average.',
+            'rating' => null,
+            'content' => 'A pending comment that must not count yet.',
             'status' => ReviewStatus::Pending,
         ]);
 
         $response = $this->get(route('music.singles.show', $single));
 
         $response->assertOk();
-        $response->assertSee('4 average'); // (5+3)/2 rounded to one decimal renders as 4
-        $response->assertSee('2 reviews');
-        $response->assertDontSee('A pending review that must not skew the average.');
+        $response->assertSee('2 comments');
+        $response->assertDontSee('A pending comment that must not count yet.');
+    }
+
+    public function test_no_star_rating_language_or_widget_appears_on_the_page(): void
+    {
+        $single = $this->single(['status' => ReleaseStatus::Published]);
+        $track = $this->track(null, $single, ['status' => TrackStatus::Published]);
+        $this->createApprovedComment($track, User::factory()->create(), 'A comment.');
+
+        $response = $this->get(route('music.singles.show', $single));
+
+        $response->assertOk();
+        $response->assertDontSee('data-review-star', false);
+        $response->assertDontSee('data-review-rating', false);
+        $response->assertDontSee('Leave a Review');
+        $response->assertDontSee('Submit Review');
+        $response->assertDontSee('average', false);
     }
 
     public function test_the_reviews_section_appears_on_a_singles_listening_page(): void
@@ -333,14 +403,14 @@ class TrackReviewTest extends TestCase
         $response = $this->get($track->reviewUrl());
 
         $response->assertOk();
-        $response->assertSee('to leave a rating and review');
+        $response->assertSee('to leave a comment');
         $response->assertDontSee('data-review-form', false);
     }
 
     public function test_a_reviewer_with_no_avatar_shows_the_placeholder_image(): void
     {
         $track = $this->publishedSingleTrack();
-        $this->createApprovedReview($track, User::factory()->create(), 5, 'No avatar set for this reviewer.');
+        $this->createApprovedComment($track, User::factory()->create(), 'No avatar set for this reviewer.');
 
         $response = $this->get($track->reviewUrl());
 
@@ -364,7 +434,7 @@ class TrackReviewTest extends TestCase
         $user->profile()->create(['avatar_media_id' => $avatar->id]);
 
         $track = $this->publishedSingleTrack();
-        $this->createApprovedReview($track, $user, 5, 'This reviewer has a real avatar.');
+        $this->createApprovedComment($track, $user, 'This reviewer has a real avatar.');
 
         $response = $this->get($track->reviewUrl());
 
@@ -372,13 +442,46 @@ class TrackReviewTest extends TestCase
         $response->assertSee(Storage::disk('public')->url($avatar->path), false);
     }
 
-    private function createApprovedReview(Track $track, User $user, int $rating, string $content): Review
+    // --- Honeypot spam protection (reuses ContactController::store()'s exact pattern) ---
+
+    public function test_a_legitimate_comment_submission_succeeds(): void
+    {
+        $track = $this->publishedSingleTrack();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
+            'content' => 'A perfectly normal comment.',
+            'hp_website' => '',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertSame(1, Review::query()->count());
+    }
+
+    public function test_a_honeypot_triggering_submission_is_silently_discarded(): void
+    {
+        $track = $this->publishedSingleTrack();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
+            'content' => 'A bot filled the honeypot field.',
+            'hp_website' => 'https://spam.example.com',
+        ]);
+
+        // The bot gets the same success response a real visitor would — no
+        // signal it was caught.
+        $response->assertRedirect();
+        $response->assertSessionHas('review_status');
+        $this->assertSame(0, Review::query()->count());
+    }
+
+    private function createApprovedComment(Track $track, User $user, string $content): Review
     {
         return Review::query()->create([
             'reviewable_type' => Track::class,
             'reviewable_id' => $track->id,
             'user_id' => $user->id,
-            'rating' => $rating,
+            'rating' => null,
             'content' => $content,
             'status' => ReviewStatus::Approved,
         ]);

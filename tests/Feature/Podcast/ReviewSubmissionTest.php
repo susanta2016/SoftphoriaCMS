@@ -18,22 +18,26 @@ use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
- * Reviews/ratings on a Podcast Episode, via the shared, reusable
+ * Comments on a Podcast Episode, via the shared, reusable
  * App\Actions\Review\SubmitReviewAction and App\Models\Review (generic,
- * polymorphic — Music/Inspirational Resources are meant to reuse the exact
- * same classes later). Publication behavior is driven entirely by
+ * polymorphic — Music and Poetry/Prose reuse the exact same classes).
+ * Publication behavior is driven entirely by
  * config('reviews.reviews_ratings_admin_approval'), never hardcoded.
+ *
+ * **Client-confirmed reversal (2026-09-02):** the public form no longer
+ * collects a star rating — a submission is now a plain text comment, and
+ * `rating` is always persisted as null for one. The separate 🙌 reaction is
+ * covered by Tests\Feature\Podcast\ReactionSubmissionTest.
  */
 class ReviewSubmissionTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_a_guest_cannot_submit_a_review_and_is_redirected_to_login(): void
+    public function test_a_guest_cannot_submit_a_comment_and_is_redirected_to_login(): void
     {
         $episode = $this->episode();
 
         $response = $this->post(route('podcast.episodes.reviews.store', $episode), [
-            'rating' => 5,
             'content' => 'Guests should not be able to post this.',
         ]);
 
@@ -41,15 +45,14 @@ class ReviewSubmissionTest extends TestCase
         $this->assertSame(0, Review::query()->count());
     }
 
-    public function test_a_registered_user_can_submit_a_review(): void
+    public function test_a_registered_user_can_submit_a_comment_without_a_rating(): void
     {
         config(['reviews.reviews_ratings_admin_approval' => true]);
         $episode = $this->episode();
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
-            'rating' => 4,
-            'content' => 'A genuinely thoughtful review of this episode.',
+            'content' => 'A genuinely thoughtful comment about this episode.',
         ]);
 
         $response->assertRedirect();
@@ -58,21 +61,22 @@ class ReviewSubmissionTest extends TestCase
         $this->assertSame($user->getKey(), $review->user_id);
         $this->assertSame($episode->getKey(), $review->reviewable_id);
         $this->assertSame(PodcastEpisode::class, $review->reviewable_type);
-        $this->assertSame(4, $review->rating);
+        $this->assertNull($review->rating);
     }
 
-    public function test_rating_must_be_between_1_and_5(): void
+    public function test_a_rating_submitted_by_the_client_is_ignored(): void
     {
         $episode = $this->episode();
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
-            'rating' => 6,
-            'content' => 'Valid content but an invalid rating.',
+        $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
+            'rating' => 5,
+            'content' => 'A comment that also included a rating field.',
         ]);
 
-        $response->assertSessionHasErrors('rating');
-        $this->assertSame(0, Review::query()->count());
+        $review = Review::query()->first();
+        $this->assertNotNull($review);
+        $this->assertNull($review->rating);
     }
 
     public function test_review_content_is_required(): void
@@ -81,7 +85,6 @@ class ReviewSubmissionTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
-            'rating' => 5,
             'content' => '',
         ]);
 
@@ -95,24 +98,10 @@ class ReviewSubmissionTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
-            'rating' => 5,
             'content' => "   \n\t  ",
         ]);
 
         $response->assertSessionHasErrors('content');
-        $this->assertSame(0, Review::query()->count());
-    }
-
-    public function test_rating_is_required(): void
-    {
-        $episode = $this->episode();
-        $user = User::factory()->create();
-
-        $response = $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
-            'content' => 'Valid content but a missing rating.',
-        ]);
-
-        $response->assertSessionHasErrors('rating');
         $this->assertSame(0, Review::query()->count());
     }
 
@@ -122,7 +111,6 @@ class ReviewSubmissionTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
-            'rating' => 5,
             'content' => str_repeat('a', config('reviews.max_length') + 1),
         ]);
 
@@ -140,13 +128,11 @@ class ReviewSubmissionTest extends TestCase
         $page->assertSee('maxlength="10"', false);
 
         $tooLong = $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
-            'rating' => 5,
             'content' => str_repeat('a', 11),
         ]);
         $tooLong->assertSessionHasErrors('content');
 
         $withinLimit = $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
-            'rating' => 5,
             'content' => str_repeat('a', 10),
         ]);
         $withinLimit->assertSessionDoesntHaveErrors('content');
@@ -160,15 +146,14 @@ class ReviewSubmissionTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
-            'rating' => 5,
-            'content' => 'Pending review content.',
+            'content' => 'Pending comment content.',
         ]);
 
         $this->assertSame(ReviewStatus::Pending, Review::query()->first()->status);
     }
 
     /**
-     * The pending review is created directly (not via an authenticated HTTP
+     * The pending comment is created directly (not via an authenticated HTTP
      * submission first) so this assertion is checked from a genuine, freshly
      * unauthenticated guest request — the submitter's own edit form
      * pre-filling their own pending content when they view the page
@@ -181,14 +166,14 @@ class ReviewSubmissionTest extends TestCase
             'reviewable_type' => PodcastEpisode::class,
             'reviewable_id' => $episode->id,
             'user_id' => User::factory()->create()->id,
-            'rating' => 5,
-            'content' => 'A distinctive pending review sentinel.',
+            'rating' => null,
+            'content' => 'A distinctive pending comment sentinel.',
             'status' => ReviewStatus::Pending,
         ]);
 
         $response = $this->get(route('podcast.episodes.show', $episode));
 
-        $response->assertDontSee('A distinctive pending review sentinel');
+        $response->assertDontSee('A distinctive pending comment sentinel');
         $response->assertSee('Be the first to share your thoughts');
     }
 
@@ -201,51 +186,105 @@ class ReviewSubmissionTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
-            'rating' => 5,
-            'content' => 'An immediately published review.',
+            'content' => 'An immediately published comment.',
         ]);
 
         $this->assertSame(ReviewStatus::Approved, Review::query()->first()->status);
 
         $response = $this->get(route('podcast.episodes.show', $episode));
-        $response->assertSee('An immediately published review.');
+        $response->assertSee('An immediately published comment.');
 
         Mail::assertSent(TemplatedNotificationMail::class, fn ($mail): bool => $mail->hasTo($user->email));
     }
 
-    public function test_resubmitting_updates_the_existing_review_rather_than_creating_a_duplicate(): void
+    /**
+     * Client-confirmed reversal (2026-09-02): the old one-review-per-user
+     * uniqueness made sense for a star rating, not for a comment feed — a
+     * member can now leave any number of comments on the same item over
+     * time. See database/migrations/2026_09_02_130000_drop_reviews_unique_constraint.php.
+     */
+    public function test_a_member_can_submit_multiple_comments_on_the_same_episode(): void
     {
         $episode = $this->episode();
         $user = User::factory()->create();
 
         $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
-            'rating' => 3,
-            'content' => 'First submission.',
+            'content' => 'First comment.',
         ]);
         $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
-            'rating' => 5,
-            'content' => 'Updated submission.',
+            'content' => 'Second, later comment.',
         ]);
 
-        $this->assertSame(1, Review::query()->count());
-        $review = Review::query()->first();
-        $this->assertSame(5, $review->rating);
-        $this->assertSame('Updated submission.', $review->content);
+        $this->assertSame(2, Review::query()->count());
+        $this->assertSame(2, Review::query()->where('user_id', $user->id)->where('reviewable_id', $episode->id)->count());
     }
 
-    public function test_the_rating_summary_and_multiple_published_reviews_display_correctly(): void
+    public function test_the_first_comment_remains_intact_after_a_second_is_submitted(): void
     {
         $episode = $this->episode();
-        $this->createApprovedReview($episode, User::factory()->create(), 5, 'Excellent episode.');
-        $this->createApprovedReview($episode, User::factory()->create(), 3, 'It was fine.');
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
+            'content' => 'First comment.',
+        ]);
+        $first = Review::query()->first();
+
+        $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
+            'content' => 'Second, later comment.',
+        ]);
+
+        $this->assertSame('First comment.', $first->refresh()->content);
+    }
+
+    public function test_each_comment_is_independently_moderated(): void
+    {
+        config(['reviews.reviews_ratings_admin_approval' => true]);
+        $episode = $this->episode();
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
+            'content' => 'This one will be approved.',
+        ]);
+        $firstComment = Review::query()->first();
+        $firstComment->update(['status' => ReviewStatus::Approved]);
+
+        $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
+            'content' => 'This one stays pending.',
+        ]);
+
+        $response = $this->get(route('podcast.episodes.show', $episode));
+
+        $response->assertSee('This one will be approved.');
+        $response->assertDontSee('This one stays pending.');
+    }
+
+    public function test_the_comment_count_and_multiple_published_comments_display_correctly(): void
+    {
+        $episode = $this->episode();
+        $this->createApprovedComment($episode, User::factory()->create(), 'Excellent episode.');
+        $this->createApprovedComment($episode, User::factory()->create(), 'It was fine.');
 
         $response = $this->get(route('podcast.episodes.show', $episode));
 
         $response->assertOk();
         $response->assertSee('Excellent episode.');
         $response->assertSee('It was fine.');
-        $response->assertSee('4 average'); // (5+3)/2 rounded to one decimal renders as 4
-        $response->assertSee('2 reviews');
+        $response->assertSee('2 comments');
+    }
+
+    public function test_no_star_rating_language_or_widget_appears_on_the_page(): void
+    {
+        $episode = $this->episode();
+        $this->createApprovedComment($episode, User::factory()->create(), 'A comment.');
+
+        $response = $this->get(route('podcast.episodes.show', $episode));
+
+        $response->assertOk();
+        $response->assertDontSee('data-review-star', false);
+        $response->assertDontSee('data-review-rating', false);
+        $response->assertDontSee('Leave a Review');
+        $response->assertDontSee('Submit Review');
+        $response->assertDontSee('average', false);
     }
 
     public function test_the_empty_review_state_shows_no_fabricated_content(): void
@@ -261,7 +300,7 @@ class ReviewSubmissionTest extends TestCase
     public function test_a_reviewer_with_no_avatar_shows_the_placeholder_image(): void
     {
         $episode = $this->episode();
-        $this->createApprovedReview($episode, User::factory()->create(), 5, 'No avatar set for this reviewer.');
+        $this->createApprovedComment($episode, User::factory()->create(), 'No avatar set for this reviewer.');
 
         $response = $this->get(route('podcast.episodes.show', $episode));
 
@@ -285,7 +324,7 @@ class ReviewSubmissionTest extends TestCase
         $user->profile()->create(['avatar_media_id' => $avatar->id]);
 
         $episode = $this->episode();
-        $this->createApprovedReview($episode, $user, 5, 'This reviewer has a real avatar.');
+        $this->createApprovedComment($episode, $user, 'This reviewer has a real avatar.');
 
         $response = $this->get(route('podcast.episodes.show', $episode));
 
@@ -293,13 +332,44 @@ class ReviewSubmissionTest extends TestCase
         $response->assertSee(Storage::disk('public')->url($avatar->path), false);
     }
 
-    private function createApprovedReview(PodcastEpisode $episode, User $user, int $rating, string $content): Review
+    // --- Honeypot spam protection (reuses ContactController::store()'s exact pattern) ---
+
+    public function test_a_legitimate_comment_submission_succeeds(): void
+    {
+        $episode = $this->episode();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
+            'content' => 'A perfectly normal comment.',
+            'hp_website' => '',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertSame(1, Review::query()->count());
+    }
+
+    public function test_a_honeypot_triggering_submission_is_silently_discarded(): void
+    {
+        $episode = $this->episode();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('podcast.episodes.reviews.store', $episode), [
+            'content' => 'A bot filled the honeypot field.',
+            'hp_website' => 'https://spam.example.com',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('review_status');
+        $this->assertSame(0, Review::query()->count());
+    }
+
+    private function createApprovedComment(PodcastEpisode $episode, User $user, string $content): Review
     {
         return Review::query()->create([
             'reviewable_type' => PodcastEpisode::class,
             'reviewable_id' => $episode->id,
             'user_id' => $user->id,
-            'rating' => $rating,
+            'rating' => null,
             'content' => $content,
             'status' => ReviewStatus::Approved,
         ]);
