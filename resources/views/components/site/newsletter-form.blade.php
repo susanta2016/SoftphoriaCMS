@@ -17,6 +17,17 @@
     @else
         <form method="POST" action="{{ route('newsletter.subscribe') }}" class="mt-3">
             @csrf
+
+            {{-- Honeypot: visually hidden from real visitors (off-screen, never
+            display:none/visibility:hidden, which some bots detect and skip)
+            and excluded from tab order. A bot that fills every input trips
+            it; NewsletterController::subscribe() silently discards a
+            non-empty submission here rather than saving/emailing anything. --}}
+            <div class="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+                <label for="{{ $idPrefix }}-hp-website">Website</label>
+                <input type="text" id="{{ $idPrefix }}-hp-website" name="hp_website" tabindex="-1" autocomplete="off">
+            </div>
+
             <div @class([
                 'flex overflow-hidden rounded-md border bg-white',
                 'border-red-400' => $errors->has('email'),

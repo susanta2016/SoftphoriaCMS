@@ -295,6 +295,25 @@ class FreeRegistrationTest extends TestCase
         $response->assertSee('Thank you for your registration! Please verify your registered email from your mailbox.');
     }
 
+    public function test_a_filled_honeypot_field_silently_discards_the_submission(): void
+    {
+        Mail::fake();
+
+        $response = $this->post(route('register.free'), [
+            'name' => 'Spam Bot',
+            'email' => 'bot@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'hp_website' => 'https://spam.example.com',
+        ]);
+
+        // The bot gets the same redirect a genuine free registration
+        // would get — no signal it was caught.
+        $response->assertRedirect(route('register.free.thank-you'));
+        $this->assertSame(0, User::query()->where('email', 'bot@example.com')->count());
+        Mail::assertNothingSent();
+    }
+
     public function test_registration_free_is_rate_limited(): void
     {
         for ($i = 0; $i < 6; $i++) {

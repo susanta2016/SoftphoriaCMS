@@ -30,6 +30,11 @@ use Stripe\Exception\ExceptionInterface;
  * Registration/Checkout/"Thank you" confirmation pages) — these are
  * transactional pages, not content search should surface, and none of them
  * are ever candidates for the sitemap.
+ *
+ * Spam protection: the same honeypot pattern as ContactController::store()
+ * (`hp_website`, hidden from real visitors via CSS — see
+ * resources/views/register/show.blade.php). Project-wide rule: every new
+ * public-facing submission form gets this same honeypot.
  */
 class RegistrationController extends Controller
 {
@@ -60,6 +65,15 @@ class RegistrationController extends Controller
 
     public function registerFree(Request $request, RegisterFreeUserAction $action): RedirectResponse
     {
+        // A real visitor never sees or fills in this field. A bot that
+        // blindly fills every input trips it, and the request is discarded
+        // silently: same redirect a genuine submission would get, so the
+        // bot gets no signal that it was caught (same pattern as
+        // ContactController::store()).
+        if (filled($request->input('hp_website'))) {
+            return redirect()->route('register.free.thank-you');
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
@@ -101,6 +115,14 @@ class RegistrationController extends Controller
 
     public function registerPro(Request $request): View|RedirectResponse
     {
+        // Same honeypot as registerFree() above — discarded before any
+        // validation or Stripe call, with the same fake-success redirect a
+        // real visitor's free signup would get (no Stripe Checkout Session
+        // is ever created for a caught bot).
+        if (filled($request->input('hp_website'))) {
+            return redirect()->route('register.free.thank-you');
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],

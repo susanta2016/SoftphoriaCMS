@@ -69,6 +69,17 @@
         <form method="POST" action="{{ route('register.free') }}" class="mt-8 rounded-2xl bg-white p-6 shadow-xl ring-1 ring-brand-navy/5 sm:p-8">
             @csrf
 
+            {{-- Honeypot: visually hidden from real visitors (off-screen, never
+            display:none/visibility:hidden, which some bots detect and skip)
+            and excluded from tab order. A bot that fills every input trips
+            it; RegistrationController's registerFree()/registerPro() silently
+            discard a non-empty submission here rather than creating any
+            account or Stripe Checkout Session. --}}
+            <div class="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+                <label for="hp_website">Website</label>
+                <input type="text" id="hp_website" name="hp_website" tabindex="-1" autocomplete="off">
+            </div>
+
             <div class="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
                 <div>
                     <label for="name" class="block text-sm font-medium text-brand-navy">Full Name *</label>

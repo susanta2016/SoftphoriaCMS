@@ -231,6 +231,27 @@ class ProRegistrationTest extends TestCase
         $this->assertCount(0, $fake->subscriptionSessionsCreated);
     }
 
+    public function test_a_filled_honeypot_field_silently_discards_the_submission(): void
+    {
+        // The bot gets the same redirect a genuine free registration would
+        // get — no signal it was caught, and crucially no Stripe Checkout
+        // Session is ever created for it.
+        $response = $this->post(route('register.pro'), [
+            'name' => 'Spam Bot',
+            'email' => 'bot.pro@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'hp_website' => 'https://spam.example.com',
+        ]);
+
+        $response->assertRedirect(route('register.free.thank-you'));
+        $this->assertSame(0, User::query()->where('email', 'bot.pro@example.com')->count());
+
+        /** @var FakeStripeGateway $fake */
+        $fake = app(StripeGatewayContract::class);
+        $this->assertCount(0, $fake->subscriptionSessionsCreated);
+    }
+
     public function test_registration_pro_is_rate_limited(): void
     {
         for ($i = 0; $i < 6; $i++) {
