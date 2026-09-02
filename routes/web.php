@@ -10,6 +10,7 @@ use App\Http\Controllers\Account\TransactionController as AccountTransactionCont
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InspirationalResources\InspirationalResourceController;
@@ -48,6 +49,15 @@ Route::get('/robots.txt', RobotsController::class)->name('robots');
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
     ->middleware('web')
     ->name('newsletter.subscribe');
+
+// Public Contact Us — info (admin-configured email/address, Settings'
+// Contact tab) plus a submission form. Throttled the same as
+// inspirational-resources.submit; a honeypot field is the other spam
+// defense (see ContactController::store()'s own docblock).
+Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
+Route::post('/contact', [ContactController::class, 'store'])
+    ->middleware('throttle:6,1')
+    ->name('contact.submit');
 
 // ADMIN-005: admin-only audio/video playback for the Media Library. Auth is
 // enforced inside the controller (same canAccessPanel() gate as /admin),

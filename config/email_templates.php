@@ -70,7 +70,7 @@ return [
     'contact_form_submitted' => [
         'label' => 'Contact Form',
         'recipients' => ['user', 'admin'],
-        'variables' => ['name', 'email', 'subject', 'message', 'site_name'],
+        'variables' => ['name', 'email', 'phone', 'message', 'site_name'],
     ],
 
     'inspirational_resource_submitted' => [

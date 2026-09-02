@@ -77,6 +77,8 @@ class Settings extends Page
                         ->schema($this->podcastTabSchema()),
                     Tab::make('Poetry/Prose')
                         ->schema($this->poetryProseTabSchema()),
+                    Tab::make('Contact')
+                        ->schema($this->contactTabSchema()),
                     Tab::make('Email')
                         ->schema($this->emailTabSchema()),
                     Tab::make('Registration')
@@ -226,6 +228,31 @@ class Settings extends Page
                 ->label('Sidebar Submit CTA Label')
                 ->maxLength(255)
                 ->helperText('Links to the existing Inspirational Resources submission page.'),
+        ];
+    }
+
+    /**
+     * The public Contact Us page's info block (App\Http\Controllers\
+     * ContactController) — same shape as footerTabSchema()/podcastTabSchema()
+     * above, a single site-wide settings group rather than a new content
+     * model, since there's exactly one contact email/address for the whole
+     * site.
+     *
+     * @return array<int, Component>
+     */
+    protected function contactTabSchema(): array
+    {
+        return [
+            TextInput::make('contact.email')
+                ->label('Contact Email')
+                ->email()
+                ->maxLength(255)
+                ->helperText('Shown on the public Contact Us page.'),
+            Textarea::make('contact.address')
+                ->label('Contact Address')
+                ->rows(3)
+                ->maxLength(500)
+                ->helperText('Shown on the public Contact Us page. Each line break is preserved as its own line.'),
         ];
     }
 
@@ -414,6 +441,10 @@ class Settings extends Page
         $settings->set('poetry_prose', 'about_body', $poetryProse['about_body']);
         $settings->set('poetry_prose', 'submit_cta_label', $poetryProse['submit_cta_label']);
 
+        $contact = $state['contact'];
+        $settings->set('contact', 'email', $contact['email']);
+        $settings->set('contact', 'address', $contact['address']);
+
         $email = $state['email'];
         $settings->set('email', 'enabled', (bool) $email['enabled'], 'boolean');
         $settings->set('email', 'provider', $email['provider']);
@@ -443,6 +474,7 @@ class Settings extends Page
         $this->recordAudit('footer', array_keys($footer));
         $this->recordAudit('podcast', array_keys($podcast));
         $this->recordAudit('poetry_prose', array_keys($poetryProse));
+        $this->recordAudit('contact', array_keys($contact));
         // Never log the password value itself, even in metadata.
         $this->recordAudit('email', array_keys(array_diff_key($email, ['smtp_password' => true])));
         $this->recordAudit('registration', array_keys($registration));
@@ -513,6 +545,10 @@ class Settings extends Page
                     "Here you'll find words to reflect on, return to, and carry with you.\n\nPoems, reflections, and essays that speak to the heart and awaken the soul.",
                 ),
                 'submit_cta_label' => $settings->get('poetry_prose', 'submit_cta_label', 'Submit Your Writing'),
+            ],
+            'contact' => [
+                'email' => $settings->get('contact', 'email', 'jacobdiawarii@gmail.com'),
+                'address' => $settings->get('contact', 'address', "1372 Pheasant Chase Circle\nBeecher, IL 60401\nUS"),
             ],
             'email' => [
                 'enabled' => $settings->get('email', 'enabled', false),
