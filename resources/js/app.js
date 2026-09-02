@@ -1066,6 +1066,18 @@ document.addEventListener('DOMContentLoaded', () => {
         Podcast: '🎧',
     };
 
+    // At lg+ (where the primary nav and the desktop search icon are both
+    // visible), the expanded panel's width reaches into the same header
+    // row the nav's own links occupy — there's no free gap wide enough for
+    // a usable input between "Contact Us" and the action-group icons at
+    // typical desktop widths. Rather than let the opaque search panel
+    // silently paint over and mid-word-clip whichever nav links happen to
+    // be underneath it, fade the whole nav out while the desktop search is
+    // open so the panel's appearance reads as deliberate, not a rendering
+    // glitch. No layout shift: the nav keeps its space, it's just
+    // invisible/non-interactive for the moment search is open.
+    const primaryNav = document.querySelector('[data-primary-nav]');
+
     document.querySelectorAll('[data-search-control]').forEach((control) => {
         const toggle = control.querySelector('[data-search-toggle]');
         const panel = control.querySelector('[data-search-panel]');
@@ -1092,11 +1104,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 // element must render at its closed width (w-0) for at
                 // least one frame before swapping to the open width,
                 // otherwise the browser has nothing to transition from.
+                // A synchronous forced-reflow (reading offsetWidth) does
+                // that step instead of requestAnimationFrame — rAF is
+                // suspended entirely while a tab isn't the visible/focused
+                // one, which left the panel stuck at 0 width (present in
+                // the DOM, invisible) whenever that happened; reading a
+                // layout property has no such dependency.
                 panel.classList.add('w-0');
-                requestAnimationFrame(() => {
-                    panel.classList.remove('w-0');
-                    panel.classList.add('w-64', 'sm:w-72');
-                });
+                void panel.offsetWidth;
+                panel.classList.remove('w-0');
+                panel.classList.add('w-64', 'sm:w-72');
+                primaryNav?.classList.add('opacity-0', 'pointer-events-none');
             }
 
             input.focus();
@@ -1119,12 +1137,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isDesktop) {
                 panel.classList.remove('w-64', 'sm:w-72');
                 panel.classList.add('w-0');
-                const onDone = (event) => {
-                    if (event.propertyName !== 'width') return;
+                primaryNav?.classList.remove('opacity-0', 'pointer-events-none');
+
+                // transitionend (like requestAnimationFrame) doesn't fire
+                // while the tab isn't the visible/focused one, which would
+                // otherwise leave the panel's [hidden] attribute never
+                // restored — a 250ms fallback timer (matching the
+                // duration-200 transition) guarantees it happens either way;
+                // setAttribute is idempotent so firing both is harmless.
+                let done = false;
+                const finish = () => {
+                    if (done) return;
+                    done = true;
                     panel.setAttribute('hidden', '');
                     panel.removeEventListener('transitionend', onDone);
                 };
+                const onDone = (event) => {
+                    if (event.propertyName === 'width') finish();
+                };
                 panel.addEventListener('transitionend', onDone);
+                setTimeout(finish, 250);
             } else {
                 panel.setAttribute('hidden', '');
             }

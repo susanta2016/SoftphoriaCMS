@@ -47,7 +47,7 @@
             (bg-transparent lets that hero image show through at the very
             top of Home), which is an unrelated, still-correct effect.
         --}}
-        <nav aria-label="Primary" class="hidden lg:flex lg:items-center lg:gap-7">
+        <nav aria-label="Primary" data-primary-nav class="hidden transition-opacity duration-200 lg:flex lg:items-center lg:gap-7">
             @foreach ($navItems as $item)
                 <a
                     href="{{ $item->resolvedUrl() ?? '#' }}"
