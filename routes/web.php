@@ -30,6 +30,7 @@ use App\Http\Controllers\Podcast\PodcastController;
 use App\Http\Controllers\Podcast\PodcastEpisodeDownloadController;
 use App\Http\Controllers\Podcast\PodcastEpisodeReviewController;
 use App\Http\Controllers\PoetryProse\PoetryProseController;
+use App\Http\Controllers\PoetryProse\PoetryProseReviewController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SitemapController;
@@ -155,6 +156,9 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
 // membership/entitlement gate on viewing in this module).
 Route::get('/poetry-prose', [PoetryProseController::class, 'index'])->name('poetry-prose.index');
 Route::get('/poetry-prose/{poetryProse:slug}', [PoetryProseController::class, 'show'])->name('poetry-prose.show');
+Route::post('/poetry-prose/{poetryProse:slug}/reviews', [PoetryProseReviewController::class, 'store'])
+    ->middleware(['auth', 'throttle:10,1'])
+    ->name('poetry-prose.reviews.store');
 
 // Public Inspirational Resources — a single introductory/submission page
 // only (client-confirmed, final). No public listing, no per-submission

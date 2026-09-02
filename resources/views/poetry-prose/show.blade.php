@@ -1,9 +1,11 @@
 @php
     use Illuminate\Support\Facades\Storage;
+    use Illuminate\Support\Str;
 
     $bannerUrl = $heroBanner ? Storage::disk($heroBanner->disk)->url($heroBanner->path) : null;
     $imageUrl = $entry->featuredImageUrl();
     $shareUrl = route('poetry-prose.show', $entry);
+    $userReview = auth()->check() ? $entry->reviews()->where('user_id', auth()->id())->first() : null;
 @endphp
 
 <x-layouts.site :seo="$seo">
@@ -65,6 +67,12 @@
                                     {{ $entry->categories->first()->name }}
                                 </span>
                             @endif
+                            @if ($reviewCount > 0)
+                                <span class="inline-flex items-center gap-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4 text-brand-gold"><path d="m12 2 2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.8-6.3 3.8 1.7-7-5.4-4.7 7.1-.7Z"/></svg>
+                                    {{ $averageRating }} ({{ $reviewCount }} {{ Str::plural('rating', $reviewCount) }})
+                                </span>
+                            @endif
                         </div>
 
                         <div class="inline-flex items-center gap-2">
@@ -98,6 +106,94 @@
                             </a>
                         </div>
                     @endif
+
+                    <div class="mt-14 border-t border-brand-navy/10 pt-10">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <h2 class="font-serif text-2xl text-brand-navy">What Readers Are Saying</h2>
+                            @if ($reviewCount > 0)
+                                <span class="inline-flex items-center gap-1.5 text-sm text-brand-navy/60">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4 text-brand-gold"><path d="m12 2 2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.8-6.3 3.8 1.7-7-5.4-4.7 7.1-.7Z"/></svg>
+                                    {{ $averageRating }} average &bull; {{ $reviewCount }} {{ Str::plural('review', $reviewCount) }}
+                                </span>
+                            @endif
+                        </div>
+
+                        @if ($reviews->isEmpty())
+                            <p class="mt-6 text-sm text-brand-navy/60">Be the first to share your thoughts.</p>
+                        @else
+                            <div class="mt-6 space-y-4">
+                                @foreach ($reviews as $review)
+                                    <div class="flex gap-3 rounded-xl border border-brand-navy/10 p-4">
+                                        <img src="{{ $review->reviewerAvatarUrl() }}" alt="" class="h-9 w-9 shrink-0 rounded-full object-cover">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-2">
+                                                @for ($i = 1; $i <= 5; $i++)
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" @class(['h-4 w-4', 'text-brand-gold' => $i <= $review->rating, 'text-brand-navy/15' => $i > $review->rating])><path d="m12 2 2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.8-6.3 3.8 1.7-7-5.4-4.7 7.1-.7Z"/></svg>
+                                                @endfor
+                                            </div>
+                                            <p class="mt-2 text-sm leading-relaxed text-brand-navy/75">{{ $review->content }}</p>
+                                            <p class="mt-2 text-xs text-brand-navy/50">
+                                                {{ $review->user?->name ?? 'A Member' }} &middot; {{ $review->created_at->format('M j, Y') }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <div class="mt-8 rounded-xl bg-brand-ivory p-5">
+                            @auth
+                                @if (session('review_status'))
+                                    <p class="mb-4 rounded-md border border-brand-gold/30 bg-white px-4 py-3 text-sm text-brand-navy">{{ session('review_status') }}</p>
+                                @endif
+
+                                <h3 class="font-serif text-lg text-brand-navy">{{ $userReview ? 'Update Your Review' : 'Leave a Review' }}</h3>
+                                <form method="POST" action="{{ route('poetry-prose.reviews.store', $entry) }}" class="mt-4 space-y-4" data-review-form novalidate>
+                                    @csrf
+                                    <div>
+                                        <span class="text-xs font-medium text-brand-navy/60">Your Rating</span>
+                                        <div data-review-rating class="mt-1.5 flex items-center gap-1">
+                                            <input type="hidden" name="rating" data-review-rating-input value="{{ old('rating', $userReview?->rating ?? '') }}">
+                                            @for ($i = 1; $i <= 5; $i++)
+                                                <button type="button" data-review-star data-value="{{ $i }}" aria-label="{{ $i }} star" class="text-brand-navy/20 transition hover:text-brand-gold/70">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-7 w-7"><path d="m12 2 2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.8-6.3 3.8 1.7-7-5.4-4.7 7.1-.7Z"/></svg>
+                                                </button>
+                                            @endfor
+                                        </div>
+                                        <p data-review-rating-error class="mt-1 hidden text-xs text-red-600">Please select a rating from 1 to 5 stars.</p>
+                                        @error('rating')
+                                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <div>
+                                        <label for="review-content" class="text-xs font-medium text-brand-navy/60">Your Review</label>
+                                        <textarea id="review-content" name="content" rows="3" maxlength="{{ config('reviews.max_length') }}" data-review-content-input class="mt-1.5 w-full rounded-md border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy placeholder:text-brand-navy/40 focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none" placeholder="Share your thoughts on this piece…">{{ old('content', $userReview?->content) }}</textarea>
+                                        <p data-review-content-error class="mt-1 hidden text-xs text-red-600">Please write a few words before submitting your review.</p>
+                                        @error('content')
+                                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-brand-gold px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-gold-light">
+                                        Submit Review
+                                    </button>
+                                    <p class="text-xs text-brand-navy/50">
+                                        @if (config('reviews.reviews_ratings_admin_approval'))
+                                            Your review will appear here once approved.
+                                        @endif
+                                    </p>
+                                </form>
+                            @else
+                                <p class="text-sm text-brand-navy/70">
+                                    <a href="{{ route('login') }}" class="font-semibold text-brand-gold hover:text-brand-navy">Log in</a>
+                                    or
+                                    <a href="{{ route('register.show') }}" class="font-semibold text-brand-gold hover:text-brand-navy">register</a>
+                                    to leave a rating and review.
+                                </p>
+                            @endauth
+                        </div>
+                    </div>
 
                     @if ($previous || $next)
                         <div class="mt-12 grid grid-cols-1 gap-4 border-t border-brand-navy/10 pt-8 sm:grid-cols-2">

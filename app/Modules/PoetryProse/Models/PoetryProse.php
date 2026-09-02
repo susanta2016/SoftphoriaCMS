@@ -5,12 +5,14 @@ namespace App\Modules\PoetryProse\Models;
 use App\Models\Category;
 use App\Models\Concerns\HasPublicId;
 use App\Models\Media;
+use App\Models\Review;
 use App\Models\SeoMetadata;
 use App\Models\Tag;
 use App\Models\User;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use App\Modules\PoetryProse\Enums\PoetryProseContentType;
 use App\Modules\PoetryProse\Enums\PoetryProseStatus;
+use App\Shared\Support\Reviews\Reviewable;
 use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
@@ -36,7 +39,7 @@ use Illuminate\Support\Facades\Storage;
     'title', 'slug', 'body', 'content_type', 'collection_id', 'featured_image_id',
     'status', 'publish_at', 'author_id',
 ])]
-class PoetryProse extends Model implements Sitemapable
+class PoetryProse extends Model implements Reviewable, Sitemapable
 {
     use HasPublicId, SoftDeletes;
 
@@ -159,6 +162,21 @@ class PoetryProse extends Model implements Sitemapable
     public function seo(): MorphOne
     {
         return $this->morphOne(SeoMetadata::class, 'seoable');
+    }
+
+    public function reviews(): MorphMany
+    {
+        return $this->morphMany(Review::class, 'reviewable');
+    }
+
+    public function reviewTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function reviewUrl(): string
+    {
+        return route('poetry-prose.show', $this);
     }
 
     /**

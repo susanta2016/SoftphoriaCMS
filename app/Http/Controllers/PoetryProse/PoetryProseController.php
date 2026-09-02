@@ -105,6 +105,8 @@ class PoetryProseController extends Controller
         $copy = $this->landingCopy($settings);
         $poetryProse->load(['featuredImage', 'author', 'categories', 'tags', 'collection']);
 
+        $reviews = $poetryProse->reviews()->approved()->with('user.profile.avatar')->latest()->get();
+
         $previous = PoetryProse::query()
             ->published()
             ->where(fn (Builder $q) => $q
@@ -145,6 +147,9 @@ class PoetryProseController extends Controller
             'totalPublished' => PoetryProse::query()->published()->count(),
             'popular' => $this->popularEntries($poetryProse->id),
             'heroBanner' => $this->heroBanner($settings),
+            'reviews' => $reviews,
+            'averageRating' => round((float) $reviews->avg('rating'), 1),
+            'reviewCount' => $reviews->count(),
         ]);
     }
 
