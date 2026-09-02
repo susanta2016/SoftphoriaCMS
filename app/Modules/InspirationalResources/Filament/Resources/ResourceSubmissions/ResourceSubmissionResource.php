@@ -5,7 +5,6 @@ namespace App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissi
 use App\Models\User;
 use App\Modules\InspirationalResources\Actions\ApproveResourceSubmissionAction;
 use App\Modules\InspirationalResources\Actions\ArchiveResourceSubmissionAction;
-use App\Modules\InspirationalResources\Actions\CreatePoetryProseFromSubmissionAction;
 use App\Modules\InspirationalResources\Actions\MarkResourceSubmissionInReviewAction;
 use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
 use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Pages\ListResourceSubmissions;
@@ -13,7 +12,6 @@ use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Pa
 use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Schemas\ResourceSubmissionInfolist;
 use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Tables\ResourceSubmissionsTable;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
-use App\Modules\PoetryProse\Filament\Resources\PoetryProses\PoetryProseResource;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -29,9 +27,9 @@ use UnitEnum;
  * CreateResourceSubmissionAction from the public form, never hand-built in
  * the admin panel (mirrors OrderResource's exact reasoning). Client-
  * confirmed final workflow: Submitted → In Review → Approved → Archived,
- * with the only editorial conversion from Approved being "Create
- * Poetry/Prose Draft" — there is no separate "publish as its own public
- * resource" step and no public InspirationalResource model.
+ * a pure review queue with no editorial conversion or relation to any other
+ * module (the earlier "Create Poetry/Prose Draft" action was removed
+ * 2026-09-02) and no public InspirationalResource model.
  */
 class ResourceSubmissionResource extends Resource
 {
@@ -110,31 +108,18 @@ class ResourceSubmissionResource extends Resource
     }
 
     /**
-     * The one editorial conversion path (client-confirmed, final) — visible
-     * only once Approved and only until used once. Deliberately given its
-     * own distinct color/icon/placement (see ViewResourceSubmission's
-     * header action grouping) so an admin never confuses it with a normal
-     * review-queue action: this starts a brand-new, independent editorial
-     * Draft, never publishes anything, and never changes this submission's
-     * own Approved status.
+     * Only meaningful once Approved — that's the only status with a live
+     * public URL (see ResourceSubmission's docblock).
      */
-    public static function createPoetryProseAction(): Action
+    public static function viewPublicPageAction(): Action
     {
-        return Action::make('createPoetryProse')
-            ->label('Create Poetry/Prose Draft')
-            ->icon(Heroicon::OutlinedSparkles)
-            ->color('primary')
-            ->visible(fn (ResourceSubmission $record): bool => $record->status === ResourceSubmissionStatus::Approved && $record->poetry_prose_id === null)
-            ->requiresConfirmation()
-            ->modalHeading('Create a Poetry/Prose Draft')
-            ->modalDescription('This starts a brand-new, independent Poetry/Prose entry pre-filled from this submission. It stays an unpublished Draft until an admin edits and publishes it — this action never publishes anything itself, and never changes this submission\'s Approved status.')
-            ->action(function (ResourceSubmission $record): void {
-                $entry = app(CreatePoetryProseFromSubmissionAction::class)->handle($record, self::actor());
-
-                Notification::make()->title('Draft Poetry/Prose entry created')->success()->send();
-
-                redirect(PoetryProseResource::getUrl('edit', ['record' => $entry]));
-            });
+        return Action::make('viewPublicPage')
+            ->label('View Public Page')
+            ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
+            ->color('gray')
+            ->visible(fn (ResourceSubmission $record): bool => $record->status === ResourceSubmissionStatus::Approved)
+            ->url(fn (ResourceSubmission $record): string => route('inspirational-resources.show', $record))
+            ->openUrlInNewTab();
     }
 
     private static function actor(): User

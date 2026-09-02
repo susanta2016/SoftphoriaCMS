@@ -8,12 +8,12 @@ use Filament\Support\Contracts\HasLabel;
 /**
  * A review-queue status, never a publication status — approving a
  * submission does not make it public. There is no separate "publish this
- * submission" step and no public InspirationalResource editorial model
- * (client-confirmed, final); the only editorial conversion is
- * CreatePoetryProseFromSubmissionAction, available once Approved.
- * `Submitted`'s stored value is literally `'new'` to match
- * resource_submissions.status's existing default (2026_08_10_100903) — no
- * migration change needed to introduce this enum.
+ * submission" step, no public InspirationalResource editorial model, and no
+ * editorial conversion into any other module (client-confirmed, final: this
+ * module never relates to Poetry/Prose or anything else). `Submitted`'s
+ * stored value is literally `'new'` to match resource_submissions.status's
+ * existing default (2026_08_10_100903) — no migration change needed to
+ * introduce this enum.
  */
 enum ResourceSubmissionStatus: string implements HasColor, HasLabel
 {

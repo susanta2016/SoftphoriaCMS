@@ -882,3 +882,70 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchAndSwap(window.location.href, { pushState: false });
     });
 });
+
+// The Inspirational Resources listing page's search/category/sort/list-grid
+// controls plus pagination, all fetched asynchronously — mirrors the
+// Poetry/Prose block above exactly (one region covering the whole
+// toolbar+results+sidebar grid, so the sidebar's active-category
+// highlighting, counts, and "Clear filters" link all stay in sync).
+document.addEventListener('DOMContentLoaded', () => {
+    const region = document.querySelector('[data-inspirational-resources-results-region]');
+    if (!region) return;
+
+    const fetchAndSwap = async (url, { pushState = true } = {}) => {
+        region.setAttribute('aria-busy', 'true');
+        region.classList.add('opacity-50', 'pointer-events-none', 'transition-opacity');
+
+        try {
+            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error(`Unexpected status ${response.status}`);
+
+            region.innerHTML = await response.text();
+            if (pushState) window.history.pushState({ inspirationalResourcesResults: true }, '', url);
+        } catch (error) {
+            // The async refresh failed — fall back to a real navigation so
+            // the user's search/filter/sort/page action still completes.
+            window.location.href = url;
+            return;
+        } finally {
+            region.removeAttribute('aria-busy');
+            region.classList.remove('opacity-50', 'pointer-events-none', 'transition-opacity');
+        }
+    };
+
+    // Document-scoped (not region-scoped) so a link outside the region that
+    // still points back at /inspirational-resources (e.g. the header's own
+    // nav link) is left to navigate normally — only same-pathname links get
+    // intercepted, and every interactive control (pagination, view toggle,
+    // category links, "Clear filters") lives inside the region anyway. A
+    // "Read More"/recent-story link goes to /inspirational-resources/{slug},
+    // a different pathname, so it's never intercepted here.
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('a[href]');
+        if (!link) return;
+
+        const url = new URL(link.href, window.location.href);
+        if (url.pathname !== '/inspirational-resources' || !region.contains(link)) return;
+
+        event.preventDefault();
+        fetchAndSwap(link.href);
+    });
+
+    document.addEventListener('submit', (event) => {
+        const form = event.target.closest('[data-inspirational-resources-filters-form]');
+        if (!form) return;
+
+        event.preventDefault();
+        const params = new URLSearchParams(new FormData(form));
+        Array.from(params.keys()).forEach((key) => {
+            if (params.get(key) === '') params.delete(key);
+        });
+
+        fetchAndSwap(`${form.action}?${params.toString()}`);
+    });
+
+    window.addEventListener('popstate', () => {
+        if (window.location.pathname !== '/inspirational-resources') return;
+        fetchAndSwap(window.location.href, { pushState: false });
+    });
+});

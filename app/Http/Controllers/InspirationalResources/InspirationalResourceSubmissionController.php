@@ -5,8 +5,6 @@ namespace App\Http\Controllers\InspirationalResources;
 use App\Http\Controllers\Controller;
 use App\Models\Media;
 use App\Modules\InspirationalResources\Actions\CreateResourceSubmissionAction;
-use App\Modules\Music\Models\Album;
-use App\Modules\Music\Models\Track;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use Illuminate\Contracts\View\View;
@@ -16,54 +14,65 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 /**
- * A single public destination: an introductory/informational section plus
- * the submission form (client-confirmed, final). Submissions are always
- * private administrative records — there is no public listing/library of
- * submitted resources, no per-submission public detail page, and no
- * separate public "Inspirational Resource" editorial model. The page
- * itself is a normal, indexable public page; individual submissions never
- * are.
+ * The "Submit Your Writing" form page (client-confirmed 2026-09-02: a
+ * dedicated page, reached from the Inspirational Resources listing and
+ * from Poetry/Prose's sidebar — see InspirationalResourceController for the
+ * public listing/detail pages this is separate from). A submission is a
+ * private administrative record until an admin approves it; approving it
+ * is what makes it appear on the public listing/detail pages.
  */
 class InspirationalResourceSubmissionController extends Controller
 {
-    public function index(SettingsRepository $settings): View
+    public function create(SettingsRepository $settings): View
     {
         $chrome = $this->siteChrome($settings);
 
         $seo = SeoTagBuilder::build(null, [
-            'title' => "Inspirational Resources — {$chrome['siteName']}",
+            'title' => "Submit Your Writing — {$chrome['siteName']}",
             'description' => 'Share your story with us.',
-            'canonical' => route('inspirational-resources.index'),
+            'canonical' => route('inspirational-resources.create'),
             'type' => 'website',
         ], $chrome['general']);
 
-        return view('inspirational-resources.index', [
+        return view('inspirational-resources.create', [
             ...$chrome,
             'seo' => $seo,
-            'albums' => Album::query()->published()->orderBy('title')->get(['id', 'title']),
-            'tracks' => Track::query()->published()->orderBy('title')->get(['id', 'title', 'album_id', 'single_id']),
         ]);
     }
 
     public function store(Request $request, CreateResourceSubmissionAction $action): RedirectResponse
     {
+        $user = Auth::user();
+
+        // A logged-in user never sees or fills in name/email on the form
+        // (see inspirational-resources/create.blade.php's @guest block), so
+        // these aren't required from the request for them.
         $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255'],
+            'name' => [$user ? 'sometimes' : 'required', 'string', 'max:255'],
+            'email' => [$user ? 'sometimes' : 'required', 'string', 'email', 'max:255'],
             'subject' => ['nullable', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:255'],
             'message' => ['required', 'string', 'max:5000'],
-            'related_album_id' => ['nullable', 'integer', 'exists:albums,id'],
-            'related_track_id' => ['nullable', 'integer', 'exists:tracks,id'],
+            'reference_url' => ['nullable', 'url', 'max:2048'],
         ]);
 
         if ($validator->fails()) {
-            return redirect()->route('inspirational-resources.index')->withErrors($validator)->withInput();
+            return redirect()->route('inspirational-resources.create')->withErrors($validator)->withInput();
         }
 
-        $action->handle($validator->validated(), Auth::user());
+        $data = $validator->validated();
 
-        return redirect()->route('inspirational-resources.index')
+        // Sourced from the authenticated account, never trusted from the
+        // request — a logged-in user's name/email are fetched internally
+        // rather than taking whatever the client happened to submit.
+        if ($user) {
+            $data['name'] = $user->name;
+            $data['email'] = $user->email;
+        }
+
+        $action->handle($data, $user);
+
+        return redirect()->route('inspirational-resources.create')
             ->with('status', 'Thank you — your submission has been received.');
     }
 

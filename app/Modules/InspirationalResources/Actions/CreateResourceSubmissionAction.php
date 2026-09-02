@@ -8,13 +8,17 @@ use App\Models\User;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use App\Shared\Services\Notifications\TemplatedMailer;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
  * The public "Inspirational Resources" form handler. Guest-friendly
  * (`user_id` is nullable — same as Order's guest-checkout precedent);
- * never redirects anywhere but back to the same page with a generic
- * thank-you message, matching this codebase's other public forms.
+ * redirects back to the submission form with a generic thank-you message,
+ * matching this codebase's other public forms — the new submission isn't
+ * publicly visible yet regardless (see ResourceSubmission's Approved-only
+ * public listing/detail pages), so there's nothing to send the submitter
+ * on to.
  *
  * No existing "who is the admin" resolution exists anywhere in this
  * codebase (no admin-notification-email setting, no prior Admin-recipient
@@ -34,11 +38,37 @@ class CreateResourceSubmissionAction
         $submission = new ResourceSubmission;
         $submission->fill($data);
         $submission->user_id = $submitter?->getKey();
+        // Generated once here, never user-supplied — this is what an
+        // Approved submission's public detail page URL uses (see
+        // ResourceSubmission::sitemapEntries() / routes/web.php's
+        // inspirational-resources.show).
+        $submission->slug = $this->uniqueSlug($submission->subject ?: $submission->name);
         $submission->save();
 
         $this->notifyAdmins($submission);
 
         return $submission;
+    }
+
+    /**
+     * Mirrors CreatePoetryProseFromSubmissionAction's own uniqueSlug()
+     * helper. "submit" is reserved — it's the literal path segment the
+     * submission-form page lives at (routes/web.php registers it before
+     * the {resourceSubmission:slug} wildcard route), so a submission can
+     * never end up parked there.
+     */
+    private function uniqueSlug(string $title): string
+    {
+        $base = Str::slug($title) ?: 'resource-submission';
+        $slug = $base;
+        $suffix = 1;
+
+        while ($slug === 'submit' || ResourceSubmission::query()->where('slug', $slug)->exists()) {
+            $slug = "{$base}-{$suffix}";
+            $suffix++;
+        }
+
+        return $slug;
     }
 
     private function notifyAdmins(ResourceSubmission $submission): void

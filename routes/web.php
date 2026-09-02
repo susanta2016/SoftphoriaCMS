@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\InspirationalResources\InspirationalResourceController;
 use App\Http\Controllers\InspirationalResources\InspirationalResourceSubmissionController;
 use App\Http\Controllers\Media\PublicHeroVideoStreamController;
 use App\Http\Controllers\Media\StreamMediaController;
@@ -160,15 +161,21 @@ Route::post('/poetry-prose/{poetryProse:slug}/reviews', [PoetryProseReviewContro
     ->middleware(['auth', 'throttle:10,1'])
     ->name('poetry-prose.reviews.store');
 
-// Public Inspirational Resources — a single introductory/submission page
-// only (client-confirmed, final). No public listing, no per-submission
-// detail page, no separate public editorial model — a submission is always
-// a private administrative record, never rendered at a public URL. The
+// Public Inspirational Resources — listing + detail for Approved
+// submissions (client-confirmed reversal, 2026-09-02: previously a single
+// introductory/submission page only, with no public listing/detail — see
+// ResourceSubmission's own docblock). Mirrors Poetry/Prose's public pages,
+// minus a hero banner. The literal /submit routes (the "Submit Your
+// Writing" form, reached the same way Poetry/Prose's sidebar reaches it)
+// are registered before the {resourceSubmission:slug} wildcard so an exact
+// "/inspirational-resources/submit" request always matches them first. The
 // submit endpoint is throttled the same as register.free/newsletter.subscribe.
-Route::get('/inspirational-resources', [InspirationalResourceSubmissionController::class, 'index'])->name('inspirational-resources.index');
+Route::get('/inspirational-resources', [InspirationalResourceController::class, 'index'])->name('inspirational-resources.index');
+Route::get('/inspirational-resources/submit', [InspirationalResourceSubmissionController::class, 'create'])->name('inspirational-resources.create');
 Route::post('/inspirational-resources/submit', [InspirationalResourceSubmissionController::class, 'store'])
     ->middleware('throttle:6,1')
     ->name('inspirational-resources.submit');
+Route::get('/inspirational-resources/{resourceSubmission:slug}', [InspirationalResourceController::class, 'show'])->name('inspirational-resources.show');
 
 // Public Podcast — landing/all-episodes/episode pages, fully public once
 // Published, same shape as Poetry/Prose/Music. An episode's YouTube video

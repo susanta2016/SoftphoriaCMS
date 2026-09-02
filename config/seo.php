@@ -4,6 +4,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Music\MusicController;
 use App\Http\Controllers\Podcast\PodcastController;
 use App\Models\Page;
+use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Single;
 use App\Modules\Music\Models\Track;
@@ -32,10 +33,12 @@ return [
     | a URL. See Sitemapable's docblock for the full public-vs-private rule
     | this list depends on.
     |
-    | Inspirational Resources has no entry here (client-confirmed, final):
-    | ResourceSubmission is always a private administrative record, never
-    | Sitemapable, and there is no separate public InspirationalResource
-    | editorial model to register.
+    | Inspirational Resources (REVERSED 2026-09-02): an Approved
+    | ResourceSubmission is now genuinely public — its own listing/detail
+    | page, mirroring Poetry/Prose — so it's registered below like any
+    | other public content type. Everything before Approved (Submitted/
+    | InReview) and Archived stays a private administrative record and is
+    | excluded by ResourceSubmission::sitemapEntries()'s own approved scope.
     |
     */
 
@@ -43,6 +46,7 @@ return [
         HomeController::class,
         Page::class,
         PoetryProse::class,
+        ResourceSubmission::class,
         MusicController::class,
         Album::class,
         Single::class,

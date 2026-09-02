@@ -3,7 +3,6 @@
 namespace App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Schemas;
 
 use App\Models\AuditLog;
-use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -12,9 +11,10 @@ use Filament\Schemas\Schema;
 
 /**
  * Read-only — everything Admin needs to see about one submission. The
- * mutations available from here (Review/Approve/Archive/Create
- * Poetry-Prose) are all header actions on ViewResourceSubmission, never a
- * form on this record.
+ * mutations available from here (Review/Approve/Archive) are all header
+ * actions on ViewResourceSubmission, never a form on this record. A pure
+ * review queue with no editorial conversion or relation to any other
+ * module.
  */
 class ResourceSubmissionInfolist
 {
@@ -39,21 +39,11 @@ class ResourceSubmissionInfolist
                         TextEntry::make('message')->hiddenLabel()->columnSpanFull(),
                     ]),
 
-                Section::make('Related item')
-                    ->columns(2)
+                Section::make('Reference')
                     ->schema([
-                        TextEntry::make('relatedAlbum.title')->label('Album')->placeholder('—'),
-                        TextEntry::make('relatedTrack.title')->label('Track')->placeholder('—'),
+                        TextEntry::make('reference_url')->label('Website URL')->url(fn (ResourceSubmission $record): ?string => $record->reference_url)->openUrlInNewTab(),
                     ])
-                    ->visible(fn (ResourceSubmission $record): bool => $record->related_album_id !== null || $record->related_track_id !== null),
-
-                Section::make('Editorial outcome')
-                    ->schema([
-                        TextEntry::make('poetryProse.title')
-                            ->label('Drafted as Poetry/Prose')
-                            ->placeholder('Not drafted yet'),
-                    ])
-                    ->visible(fn (ResourceSubmission $record): bool => $record->status === ResourceSubmissionStatus::Approved || $record->poetry_prose_id !== null),
+                    ->visible(fn (ResourceSubmission $record): bool => $record->reference_url !== null),
 
                 // Reviewer/timestamp info reuses the existing platform-wide
                 // audit_logs table (AuditLogService) rather than adding new

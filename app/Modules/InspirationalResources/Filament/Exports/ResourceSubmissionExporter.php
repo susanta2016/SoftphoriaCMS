@@ -27,8 +27,7 @@ class ResourceSubmissionExporter extends Exporter
             ExportColumn::make('category'),
             ExportColumn::make('message')->formatStateUsing(fn (?string $state): string => self::sanitize($state)),
             ExportColumn::make('status')->formatStateUsing(fn ($state): string => $state?->getLabel() ?? ''),
-            ExportColumn::make('related_album_id')->label('Related Album ID'),
-            ExportColumn::make('related_track_id')->label('Related Track ID'),
+            ExportColumn::make('reference_url')->label('Reference URL'),
             ExportColumn::make('created_at')->label('Submitted At'),
         ];
     }

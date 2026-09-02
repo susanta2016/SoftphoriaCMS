@@ -16,10 +16,10 @@ use App\Shared\Support\Modules\ModuleServiceProvider;
  * LEGACY/UNUSED SCHEMA: inspirational_resources and resource_tags (also
  * part of the 2026-08-10 migration batch) are never wired to any
  * application code. Client-confirmed, final: there is no separate public
- * "Inspirational Resource" editorial model — ResourceSubmission alone,
- * with CreatePoetryProseFromSubmissionAction as its only editorial
- * conversion path. Left untouched pending a separate database cleanup
- * decision — do not drop them without explicit instruction.
+ * "Inspirational Resource" editorial model, and no editorial conversion
+ * into any other module — ResourceSubmission is a pure review queue.
+ * Left untouched pending a separate database cleanup decision — do not
+ * drop them without explicit instruction.
  */
 class InspirationalResourcesServiceProvider extends ModuleServiceProvider
 {

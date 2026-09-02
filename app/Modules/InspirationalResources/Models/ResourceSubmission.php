@@ -2,32 +2,41 @@
 
 namespace App\Modules\InspirationalResources\Models;
 
+use App\Models\SeoMetadata;
 use App\Models\User;
 use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
-use App\Modules\Music\Models\Album;
-use App\Modules\Music\Models\Track;
-use App\Modules\PoetryProse\Models\PoetryProse;
+use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Support\Collection;
 
 /**
- * A raw, private submission from the public "Inspirational Resources" form
- * (database/migrations/2026_08_10_100903_create_resource_submissions_table.php)
- * — always an administrative record, never rendered at a public URL, never
- * Sitemapable. `status` is a review-queue state only. Client-confirmed
- * final workflow: the only outcome of an Approved submission is optionally
- * drafting it into Poetry/Prose (see CreatePoetryProseFromSubmissionAction)
- * — there is no separate "publish this submission as its own public
- * resource" step. `inspirational_resource_id` stays a real column on this
- * table (part of the pre-existing migrated schema) but is never read or
- * written by any application code.
+ * A submission from the public "Inspirational Resources" form
+ * (database/migrations/2026_08_10_100903_create_resource_submissions_table.php).
+ * `status` is a review-queue state only: Submitted → In Review → Approved →
+ * Archived, with no editorial conversion or relation to any other module
+ * (the earlier "Create Poetry/Prose Draft" conversion path was removed
+ * 2026-09-02; client-confirmed this module never relates to Poetry/Prose).
+ * `inspirational_resource_id` stays a real column on this table (part of
+ * the pre-existing migrated schema) but is never read or written by any
+ * application code. `reference_url` (2026-09-02) replaced the old
+ * related_album_id/related_track_id pickers — a submitter can point to any
+ * outside source, not just an in-catalogue Album/Track.
+ *
+ * **REVERSED 2026-09-02:** an Approved submission is now genuinely public —
+ * it gets its own listing entry and detail page (`slug`, added the same
+ * day), mirroring Poetry/Prose's public pages. Everything before Approved
+ * (Submitted/InReview) and Archived stays a private administrative record,
+ * same as before.
  */
 #[Fillable([
     'user_id', 'name', 'email', 'subject', 'category', 'message',
-    'related_album_id', 'related_track_id', 'status',
+    'reference_url', 'status', 'slug',
 ])]
-class ResourceSubmission extends Model
+class ResourceSubmission extends Model implements Sitemapable
 {
     protected function casts(): array
     {
@@ -41,22 +50,61 @@ class ResourceSubmission extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function relatedAlbum(): BelongsTo
+    public function seo(): MorphOne
     {
-        return $this->belongsTo(Album::class, 'related_album_id');
+        return $this->morphOne(SeoMetadata::class, 'seoable');
     }
 
-    public function relatedTrack(): BelongsTo
+    public function scopeApproved(Builder $query): Builder
     {
-        return $this->belongsTo(Track::class, 'related_track_id');
+        return $query->where('status', ResourceSubmissionStatus::Approved);
     }
 
     /**
-     * What this submission was drafted into, if an admin ran
-     * CreatePoetryProseFromSubmissionAction.
+     * Plain-text LIKE search across subject and message, same convention as
+     * PoetryProse::scopeSearch().
      */
-    public function poetryProse(): BelongsTo
+    public function scopeSearch(Builder $query, string $term): Builder
     {
-        return $this->belongsTo(PoetryProse::class);
+        return $query->where(fn (Builder $q) => $q
+            ->where('subject', 'like', "%{$term}%")
+            ->orWhere('message', 'like', "%{$term}%"));
+    }
+
+    /**
+     * Not every submission has a Subject — falls back to attributing it to
+     * the submitter's name so the public listing/detail page never shows a
+     * blank title.
+     */
+    public function publicTitle(): string
+    {
+        return $this->subject ?: "A Story from {$this->name}";
+    }
+
+    public function excerpt(int $length = 160): string
+    {
+        return str($this->message)->limit($length)->toString();
+    }
+
+    /**
+     * Mirrors PoetryProse::sitemapEntries() exactly — approved scope, then
+     * reject noindex/canonical-elsewhere, then map to loc/lastmod.
+     *
+     * @return Collection<int, array{loc: string, lastmod: mixed}>
+     */
+    public static function sitemapEntries(): Collection
+    {
+        return static::query()
+            ->approved()
+            ->with('seo')
+            ->orderBy('slug')
+            ->get()
+            ->reject(fn (self $submission): bool => ($submission->seo?->isNoindex() ?? false)
+                || ($submission->seo?->canonicalPointsElsewhere(route('inspirational-resources.show', $submission)) ?? false))
+            ->map(fn (self $submission): array => [
+                'loc' => route('inspirational-resources.show', $submission),
+                'lastmod' => $submission->updated_at,
+            ])
+            ->values();
     }
 }

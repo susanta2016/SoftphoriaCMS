@@ -9,9 +9,8 @@ use App\Shared\Services\AuditLogService;
 
 /**
  * Approving a submission is a review-queue transition only — it never
- * creates or publishes anything. See CreatePoetryProseFromSubmissionAction
- * for the separate, optional, explicit step that turns an Approved
- * submission into editorial content.
+ * creates or publishes anything, and never relates the submission to any
+ * other module's content.
  */
 class ApproveResourceSubmissionAction
 {

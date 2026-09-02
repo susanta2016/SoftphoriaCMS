@@ -9,7 +9,6 @@ use App\Models\Review;
 use App\Models\SeoMetadata;
 use App\Models\Tag;
 use App\Models\User;
-use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use App\Modules\PoetryProse\Enums\PoetryProseContentType;
 use App\Modules\PoetryProse\Enums\PoetryProseStatus;
 use App\Shared\Support\Reviews\Reviewable;
@@ -20,7 +19,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -177,17 +175,6 @@ class PoetryProse extends Model implements Reviewable, Sitemapable
     public function reviewUrl(): string
     {
         return route('poetry-prose.show', $this);
-    }
-
-    /**
-     * The submission this entry was drafted from, if any — the FK
-     * (resource_submissions.poetry_prose_id) lives on the submission side,
-     * set only by CreatePoetryProseFromSubmissionAction and never written
-     * back to afterward.
-     */
-    public function sourceSubmission(): HasOne
-    {
-        return $this->hasOne(ResourceSubmission::class, 'poetry_prose_id');
     }
 
     public function createdBy(): BelongsTo
