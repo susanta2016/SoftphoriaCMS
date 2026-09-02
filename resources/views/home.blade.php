@@ -91,7 +91,7 @@
                             <h2 class="text-xs font-semibold tracking-wider text-brand-navy uppercase">Join Our Community</h2>
                         </div>
                         <p class="mt-3 text-sm text-brand-navy/70">A growing space of hearts and minds united.</p>
-                        <a href="#" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-gold transition hover:text-brand-navy">
+                        <a href="{{ route('register.show') }}" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-gold transition hover:text-brand-navy">
                             Join Now <span aria-hidden="true">→</span>
                         </a>
                     </div>
