@@ -30,8 +30,12 @@ use Illuminate\Support\Facades\Auth;
  * ADMIN-003: Users & Roles Management — "Users: Manage" scope, plus basic
  * single-role assignment (wiring the existing roles/user_roles tables into
  * the Create/Edit form). Full role/permission administration — creating and
- * editing roles and their permission matrices — remains ADMIN-004 (see
- * docs/ARCHITECTURE.md §12 and App\Models\User::canAccessPanel()).
+ * editing roles and their permission matrices — is ADMIN-004
+ * (App\Filament\Resources\Roles\RoleResource /
+ * App\Filament\Resources\Permissions\PermissionResource; see
+ * docs/ARCHITECTURE.md §12 and App\Models\User::canAccessPanel()). This
+ * resource still only supports single-role assignment per user, which
+ * ADMIN-004 preserves rather than redesigning.
  */
 class UserResource extends Resource
 {

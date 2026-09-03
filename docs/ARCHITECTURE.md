@@ -285,7 +285,11 @@ first admin-manageable content built on it, and its UI conventions — see
   reserved slug `admin`. This is deliberately minimal — it reuses the
   DB-002/003 `roles`/`user_roles` tables as-is rather than introducing a new
   concept, and does not add any UI to manage roles. Full role/permission
-  administration is ADMIN-004.
+  administration was built by ADMIN-004 — see §12a below. `canAccessPanel()`
+  itself is unchanged by ADMIN-004: it still gates on the reserved
+  `Role::ADMIN_SLUG` role existing, not on individual permissions, since no
+  part of the application checks specific permissions at runtime yet (see
+  §12a).
 - **Component discovery (module registration point):** the panel calls
   `discoverResources()`/`discoverPages()`/`discoverWidgets()` against both
   `app/Filament/*` (core-wide, non-module Filament assets — see
@@ -322,6 +326,54 @@ first admin-manageable content built on it, and its UI conventions — see
   concrete list/form/action shape a Resource should follow is §13's — Users
   (ADMIN-003) is the first Resource built and is the reference
   implementation, not a one-off.
+
+## 12a. Role/Permission Management (ADMIN-004)
+
+**Status:** Complete. `app/Filament/Resources/Roles/RoleResource` and
+`app/Filament/Resources/Permissions/PermissionResource`, both under a new
+"Access Control" navigation group (registered in `AdminPanelProvider`
+alongside "Website Setup"). No new tables/migrations — this is a UI layer
+over the existing DB-002/003 `roles`/`permissions`/`role_permissions`/
+`user_roles` schema.
+
+- **User↔Role stays single-role.** ADMIN-004 does not touch
+  `UserResource`/`UserForm`'s existing single `role_id` Select or
+  `CreateUserAction`/`UpdateUserAction`'s `roles()->sync([$id])` — the
+  project's roles/permissions schema is many-to-many at the database level,
+  but ADMIN-003 deliberately exposes only single-role assignment in the UI,
+  and nothing in the approved specs requires multi-role users, so ADMIN-004
+  preserves that rather than redesigning it.
+- **Permissions are assigned from the Role side only.** `RoleForm` has a
+  `CheckboxList` against the `role_permissions` pivot; there is no reciprocal
+  "assign to roles" control on `PermissionResource`. Both `CreateRoleAction`
+  and `UpdateRoleAction` sync permissions explicitly (`$role->permissions()->sync(...)`)
+  rather than using Filament's automatic `->relationship()` field binding —
+  same reasoning as `MenuForm`'s items `Repeater` (§13-adjacent precedent):
+  an explicit Action keeps the audit-trail write guaranteed on every save.
+- **The reserved admin role is protected at the domain layer, not just the
+  UI.** `Role::ADMIN_SLUG` (`'admin'`) is the exact slug
+  `User::canAccessPanel()` checks. `UpdateRoleAction` throws
+  `App\Exceptions\Role\ReservedRoleException` if that role's slug is changed
+  away from `'admin'`, and `DeleteRoleAction` throws the same exception on
+  any attempt to delete it — `RoleForm` disables the slug field and
+  `RoleResource::deleteAction()` hides the delete action for this role as
+  the UI-level mirror of that guard, but the enforcement is the Action
+  class, consistent with §13's self-protection convention.
+- **In-use guards mirror Media/Pages.** `DeleteRoleAction` blocks deleting a
+  role still assigned to any user (`App\Exceptions\Role\RoleInUseException`);
+  `DeletePermissionAction` blocks deleting a permission still assigned to
+  any role (`App\Exceptions\Permission\PermissionInUseException`) — the
+  same "in use" domain-layer pattern as `DeleteMediaAction`/`DeletePageAction`
+  (§14), since neither table has a `status` column to soft-delete through.
+  `role_permissions`/`user_roles` rows themselves are cleaned up by their
+  existing `cascadeOnDelete()` FKs once a role/permission is actually
+  deleted — no manual pivot cleanup needed.
+- **No runtime permission-authorization layer was added.** Nothing in the
+  codebase checks individual permission slugs yet (no `Gate`/`Policy`
+  consumes `Permission` at all) — ADMIN-004 is the admin CRUD/assignment UI
+  over the existing schema only, not a new authorization-enforcement
+  mechanism. A future ticket that needs to actually gate behavior by
+  permission should build on this data, not introduce a parallel one.
 
 ## 13. Resource UI conventions, established by Users (ADMIN-003)
 

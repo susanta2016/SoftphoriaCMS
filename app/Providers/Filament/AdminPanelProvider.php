@@ -53,6 +53,8 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 NavigationGroup::make('Website Setup')
                     ->icon(Heroicon::OutlinedCog6Tooth),
+                NavigationGroup::make('Access Control')
+                    ->icon(Heroicon::OutlinedShieldCheck),
             ])
             ->renderHook(
                 PanelsRenderHook::TOPBAR_START,
