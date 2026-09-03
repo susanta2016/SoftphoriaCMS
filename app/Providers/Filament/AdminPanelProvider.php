@@ -57,6 +57,8 @@ class AdminPanelProvider extends PanelProvider
                     ->icon(Heroicon::OutlinedShieldCheck),
                 NavigationGroup::make('Submissions')
                     ->icon(Heroicon::OutlinedInbox),
+                NavigationGroup::make('Operations')
+                    ->icon(Heroicon::OutlinedClipboardDocumentList),
             ])
             ->renderHook(
                 PanelsRenderHook::TOPBAR_START,
