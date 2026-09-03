@@ -59,8 +59,10 @@ class User extends Authenticatable implements FilamentUser
      * ADMIN-001 authorization integration point: gates access to the
      * Filament admin panel using the existing roles schema (DB-002/003)
      * rather than a new concept. A user needs an active status and the
-     * reserved "admin" role slug. Full role/permission management UI is
-     * built in ADMIN-004; this only wires the existing tables to Filament.
+     * reserved Role::ADMIN_SLUG role. ADMIN-004 (App\Filament\Resources\Roles)
+     * built the role/permission management UI on top of this same check —
+     * it deliberately still gates on role slug, not on individual
+     * permissions, so this method is unchanged by that work.
      */
     public function canAccessPanel(Panel $panel): bool
     {
