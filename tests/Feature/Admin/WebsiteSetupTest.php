@@ -61,6 +61,32 @@ class WebsiteSetupTest extends TestCase
         $this->assertSame('https://softphoria.test', $settings->get('general', 'site_url'));
     }
 
+    /**
+     * ADMIN-010 — the Contact tab this ticket adds, reusing the same
+     * centralized Settings infrastructure as General/Footer/Email.
+     */
+    public function test_admin_can_save_contact_settings(): void
+    {
+        Livewire::actingAs($this->admin())
+            ->test(Settings::class)
+            ->fillForm([
+                'general' => [
+                    'site_name' => 'Softphoria',
+                    'site_url' => 'https://softphoria.test',
+                ],
+                'contact' => [
+                    'email' => 'hello@softphoria.test',
+                    'address' => "123 Main St\nAnytown, US",
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $settings = app(SettingsRepository::class);
+        $this->assertSame('hello@softphoria.test', $settings->get('contact', 'email'));
+        $this->assertSame("123 Main St\nAnytown, US", $settings->get('contact', 'address'));
+    }
+
     public function test_maintenance_page_is_required_when_maintenance_mode_is_enabled(): void
     {
         Livewire::actingAs($this->admin())

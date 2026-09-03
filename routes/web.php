@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Media\PublicHeroVideoStreamController;
 use App\Http\Controllers\Media\StreamMediaController;
@@ -20,6 +21,14 @@ Route::get('/robots.txt', RobotsController::class)->name('robots');
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
     ->middleware('web')
     ->name('newsletter.subscribe');
+
+// ADMIN-010: public Contact Us page + submission. Spam protection is a
+// honeypot field (silently discarded in the controller) plus rate limiting
+// on the POST route — see ContactController's own docblock.
+Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
+Route::post('/contact', [ContactController::class, 'store'])
+    ->middleware('throttle:6,1')
+    ->name('contact.submit');
 
 // ADMIN-005: admin-only audio/video playback for the Media Library. Auth is
 // enforced inside the controller (same canAccessPanel() gate as /admin),

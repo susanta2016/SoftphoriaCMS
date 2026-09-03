@@ -12,6 +12,7 @@ use App\Shared\Services\Settings\SettingsRepository;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -72,6 +73,8 @@ class Settings extends Page
                         ->schema($this->seoTabSchema()),
                     Tab::make('Footer')
                         ->schema($this->footerTabSchema()),
+                    Tab::make('Contact')
+                        ->schema($this->contactTabSchema()),
                     Tab::make('Email')
                         ->schema($this->emailTabSchema()),
                 ]),
@@ -170,6 +173,31 @@ class Settings extends Page
                 ->label('Copyright Text')
                 ->maxLength(255)
                 ->helperText('Shown at the bottom of the footer. Use {year} anywhere in the text and it will always be replaced with the current year, e.g. "© {year} All The Things Light. All rights reserved."'),
+        ];
+    }
+
+    /**
+     * ADMIN-010 — the public Contact Us page's info block
+     * (App\Http\Controllers\ContactController). Same shape as
+     * footerTabSchema() above: a single site-wide settings group rather
+     * than a new content model, since there's exactly one contact
+     * email/address for the whole site.
+     *
+     * @return array<int, Component>
+     */
+    protected function contactTabSchema(): array
+    {
+        return [
+            TextInput::make('contact.email')
+                ->label('Contact Email')
+                ->email()
+                ->maxLength(255)
+                ->helperText('Shown on the public Contact Us page.'),
+            Textarea::make('contact.address')
+                ->label('Contact Address')
+                ->rows(3)
+                ->maxLength(500)
+                ->helperText('Shown on the public Contact Us page. Each line break is preserved as its own line.'),
         ];
     }
 
@@ -323,6 +351,10 @@ class Settings extends Page
         $settings->set('footer', 'background_media_id', $footer['background_media_id'], 'integer');
         $settings->set('footer', 'copyright_text', $footer['copyright_text']);
 
+        $contact = $state['contact'];
+        $settings->set('contact', 'email', $contact['email']);
+        $settings->set('contact', 'address', $contact['address']);
+
         $email = $state['email'];
         $settings->set('email', 'enabled', (bool) $email['enabled'], 'boolean');
         $settings->set('email', 'provider', $email['provider']);
@@ -346,6 +378,7 @@ class Settings extends Page
 
         $this->recordAudit('general', array_keys($general));
         $this->recordAudit('footer', array_keys($footer));
+        $this->recordAudit('contact', array_keys($contact));
         // Never log the password value itself, even in metadata.
         $this->recordAudit('email', array_keys(array_diff_key($email, ['smtp_password' => true])));
 
@@ -396,6 +429,10 @@ class Settings extends Page
                 'subheading' => $settings->get('footer', 'subheading'),
                 'background_media_id' => $settings->get('footer', 'background_media_id'),
                 'copyright_text' => $settings->get('footer', 'copyright_text'),
+            ],
+            'contact' => [
+                'email' => $settings->get('contact', 'email'),
+                'address' => $settings->get('contact', 'address'),
             ],
             'email' => [
                 'enabled' => $settings->get('email', 'enabled', false),

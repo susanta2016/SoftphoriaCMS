@@ -55,6 +55,8 @@ class AdminPanelProvider extends PanelProvider
                     ->icon(Heroicon::OutlinedCog6Tooth),
                 NavigationGroup::make('Access Control')
                     ->icon(Heroicon::OutlinedShieldCheck),
+                NavigationGroup::make('Submissions')
+                    ->icon(Heroicon::OutlinedInbox),
             ])
             ->renderHook(
                 PanelsRenderHook::TOPBAR_START,
