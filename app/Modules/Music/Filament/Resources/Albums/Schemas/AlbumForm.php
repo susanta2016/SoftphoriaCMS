@@ -10,6 +10,8 @@ use App\Modules\Commerce\Actions\PurchaseReadiness\CheckAlbumReadinessAction;
 use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
 use App\Modules\Music\Enums\ReleaseStatus;
 use App\Modules\Music\Models\Album;
+use App\Shared\Support\Media\YoutubeUrl;
+use Closure;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
@@ -33,6 +35,14 @@ use Illuminate\Support\Str;
  * longer meaningful to collect here. The underlying music_streaming_links
  * table/MusicStreamingLink model/MusicLinkProvider enum are left in place
  * (unused, not deleted) — client-approved UI removal only.
+ *
+ * embed_video_url restored to the form (client-confirmed, 2026-09-05) —
+ * previously hidden here entirely (see the field's own prior helperText/
+ * ->hidden() history) while the column and Album::$fillable/frontend
+ * $embedUrl parser (resources/views/music/listening.blade.php) stayed in
+ * place unused. Deliberately YouTube-only now, unlike the field's original
+ * "YouTube/Vimeo" copy — the client's restored requirement is narrower: one
+ * URL field, YouTube only, no uploaded video, no other provider.
  */
 class AlbumForm
 {
@@ -71,9 +81,13 @@ class AlbumForm
                                         ->label('Embedded Music Video URL')
                                         ->url()
                                         ->maxLength(255)
-                                        ->helperText('An official album video (YouTube/Vimeo) — separate from any individual track\'s own video.')
-                                        ->columnSpanFull()
-                                        ->hidden(),
+                                        ->rule(fn (): Closure => function (string $attribute, ?string $value, Closure $fail): void {
+                                            if (filled($value) && ! YoutubeUrl::isValid($value)) {
+                                                $fail('The Embedded Music Video URL must be a YouTube video link (e.g. youtube.com/watch?v=... or youtu.be/...).');
+                                            }
+                                        })
+                                        ->helperText('An official album video — YouTube only, one URL, no other provider. Separate from any individual track\'s own video. Leave blank for no video.')
+                                        ->columnSpanFull(),
                                 ]),
 
                             Section::make('About This Album')

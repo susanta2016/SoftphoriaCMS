@@ -437,11 +437,12 @@ class MusicController extends Controller implements Sitemapable
             'description' => $album->description,
             'release_date' => $album->release_date,
             'cover' => $album->cover,
-            // The Album video field is hidden in the admin form (client
-            // decision — see AlbumForm.php) so it can't be maintained going
-            // forward; the frontend never shows a Video section for Albums,
-            // even if a legacy value happens to still be stored.
-            'embed_video_url' => null,
+            // Restored to the admin form (client-confirmed, 2026-09-05, see
+            // AlbumForm.php) — YouTube-only. Rendered on this listening page
+            // directly after the Share buttons (see the embed_video_url
+            // block below the header actions), reusing the same generic
+            // $embedUrl parser this file already computes for Track/Single.
+            'embed_video_url' => $album->embed_video_url,
             'streaming_links' => $album->streamingLinks,
             'tracks' => $album->tracks,
             'total_duration_seconds' => $album->tracks->sum('duration_seconds'),

@@ -224,7 +224,15 @@ class MusicControllerTest extends TestCase
         $response->assertSee('Here I Am');
     }
 
-    public function test_the_album_page_never_shows_a_video_section_even_with_a_legacy_embed_url(): void
+    /**
+     * The Album video field was restored to the admin form (client-
+     * confirmed, 2026-09-05) — see AlbumForm.php and AlbumYoutubeVideoTest
+     * for the admin/frontend coverage. It still never shows the Track/
+     * Single-only "Watch video" modal-toggle icon (data-video-modal-toggle
+     * lives beside the Song Story heading, which an Album page has none of)
+     * — that remains exclusively Track/Single behavior.
+     */
+    public function test_the_album_page_never_shows_the_track_only_video_modal_toggle(): void
     {
         $album = $this->album(['status' => ReleaseStatus::Published, 'embed_video_url' => 'https://www.youtube.com/watch?v=abc123']);
 
@@ -232,6 +240,7 @@ class MusicControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertDontSee('data-video-modal-toggle', false);
+        $response->assertSee('data-album-video', false);
     }
 
     public function test_a_single_pages_hero_never_shows_external_streaming_links(): void
@@ -566,7 +575,7 @@ class MusicControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertDontSee('data-music-track-src', false);
-        $response->assertSee("You've reached your 5 listens for today", false);
+        $response->assertSee("You've reached your 5 listens for today. Please buy and download the music.", false);
     }
 
     private function audioMedia(): Media

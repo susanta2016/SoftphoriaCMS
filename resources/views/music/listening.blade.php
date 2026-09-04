@@ -145,6 +145,28 @@
                         </div>
                     </div>
 
+                    {{--
+                        Album-level YouTube video (client-confirmed,
+                        2026-09-05) — restored admin field (AlbumForm.php),
+                        YouTube only. Reuses the $embedUrl already parsed
+                        generically above from $release['embed_video_url'];
+                        scoped to type === 'album' only so Track/Single pages
+                        (whose own video stays exclusively in the Song
+                        Story modal below) are never affected.
+                    --}}
+                    @if ($release['type'] === 'album' && $embedUrl)
+                        <div data-album-video class="mt-6 aspect-video overflow-hidden rounded-2xl bg-brand-navy shadow-xl ring-1 ring-brand-navy/5">
+                            <iframe
+                                src="{{ $embedUrl }}"
+                                class="h-full w-full"
+                                title="{{ $release['title'] }}"
+                                allow="autoplay; fullscreen; picture-in-picture"
+                                allowfullscreen
+                                frameborder="0"
+                            ></iframe>
+                        </div>
+                    @endif
+
                     @if ($purchase && $purchase['state'] !== 'not_ready')
                         <div class="mt-3 flex flex-wrap items-center gap-3">
                             @if ($purchase['state'] === 'buy')
@@ -342,7 +364,7 @@
                         You've reached the {{ $release['listening']['guest_limit_seconds'] }}-second preview limit. <a href="{{ route('register.show') }}" class="font-semibold text-brand-gold hover:text-brand-navy">Register</a> or <a href="{{ route('login') }}" class="font-semibold text-brand-gold hover:text-brand-navy">log in</a> to keep listening.
                     </p>
                     <p data-music-player-limit-reached class="mt-4 hidden rounded-md border border-brand-gold/30 bg-brand-gold/10 px-4 py-3 text-sm text-brand-navy">
-                        You've reached your {{ $release['listening']['daily_limit'] }} {{ \Illuminate\Support\Str::plural('listen', $release['listening']['daily_limit']) }} for today. Please come back tomorrow.
+                        You've reached your {{ $release['listening']['daily_limit'] }} {{ \Illuminate\Support\Str::plural('listen', $release['listening']['daily_limit']) }} for today. Please buy and download the music.
                     </p>
                 </div>
             @endif
