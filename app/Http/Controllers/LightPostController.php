@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\LightPostSource;
 use App\Models\LightPost;
 use App\Models\Media;
 use App\Shared\Services\Settings\SettingsRepository;
@@ -25,12 +26,17 @@ use Illuminate\Contracts\View\View;
  * for organic indexing merely because it now has a database row and a URL.
  * Still fully public/reachable — indexing and reachability are different
  * questions, and only the former is "no" here.
+ *
+ * Gratitude Journal entries (source = journal) are explicitly rejected here
+ * (404) even when public — a Journal entry's only public surface is the
+ * homepage feed, per the Gratitude Journal audit §5; it must never gain a
+ * standalone canonical URL the way a registration post has.
  */
 class LightPostController extends Controller
 {
     public function show(LightPost $lightPost, SettingsRepository $settings): View
     {
-        abort_unless($lightPost->is_public, 404);
+        abort_unless($lightPost->is_public && $lightPost->source === LightPostSource::Registration, 404);
 
         $lightPost->load('user');
         $chrome = $this->siteChrome($settings);

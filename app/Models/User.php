@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\GratitudeReminderFrequency;
 use App\Modules\Commerce\Models\DownloadLog;
 use App\Modules\Commerce\Models\Entitlement;
 use App\Modules\Commerce\Models\Order;
@@ -90,6 +91,20 @@ class User extends Authenticatable implements FilamentUser
     public function lightPosts(): HasMany
     {
         return $this->hasMany(LightPost::class);
+    }
+
+    /**
+     * Reads `gratitude_reminder_frequency` out of the existing
+     * UserPreference.preferences JSON blob (Gratitude Journal audit §7 —
+     * no dedicated column/table). Defaults to Daily, per the client's
+     * confirmed default, for a member who has never set a preference (i.e.
+     * no UserPreference row at all yet).
+     */
+    public function gratitudeReminderFrequency(): GratitudeReminderFrequency
+    {
+        $value = $this->preferences?->preferences['gratitude_reminder_frequency'] ?? null;
+
+        return GratitudeReminderFrequency::tryFrom((string) $value) ?? GratitudeReminderFrequency::Daily;
     }
 
     public function downloads(): HasMany

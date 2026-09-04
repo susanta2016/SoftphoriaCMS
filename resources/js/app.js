@@ -14,6 +14,74 @@ document.addEventListener('DOMContentLoaded', () => {
     update();
 });
 
+// The account-area Gratitude Journal page (resources/views/account/
+// gratitude-journal.blade.php) — one create form plus one hidden edit form
+// per existing entry can all be on the page at once, unlike the single
+// registration-page textarea/counter pair above, hence querySelectorAll
+// scoped per [data-gratitude-entry-form] rather than a single querySelector
+// pair.
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-gratitude-entry-form]').forEach((form) => {
+        const textarea = form.querySelector('[data-gratitude-textarea]');
+        const counter = form.querySelector('[data-gratitude-counter]');
+        if (!textarea || !counter) return;
+
+        const maxLength = Number(textarea.getAttribute('maxlength')) || 0;
+        const update = () => { counter.textContent = `${textarea.value.length} / ${maxLength}`; };
+
+        textarea.addEventListener('input', update);
+        update();
+    });
+
+    document.querySelectorAll('[data-gratitude-entry]').forEach((entry) => {
+        const toggle = entry.querySelector('[data-gratitude-edit-toggle]');
+        const cancel = entry.querySelector('[data-gratitude-edit-cancel]');
+        const editForm = entry.querySelector('[data-gratitude-edit-form]');
+        const display = entry.querySelector('[data-gratitude-entry-display]');
+        if (!toggle || !editForm) return;
+
+        toggle.addEventListener('click', () => {
+            editForm.classList.toggle('hidden');
+            display?.classList.toggle('hidden');
+        });
+
+        cancel?.addEventListener('click', () => {
+            editForm.classList.add('hidden');
+            display?.classList.remove('hidden');
+        });
+    });
+
+    // "Your Entries" / "Reminder Preference" tabs on the same page — the
+    // server picks the initially active tab (see $reminderTabActive in the
+    // Blade view, used when the reminder form redirects back with a
+    // validation error), this just handles switching after that.
+    document.querySelectorAll('[data-gratitude-tabs]').forEach((tabs) => {
+        const triggers = Array.from(tabs.querySelectorAll('[data-gratitude-tab-trigger]'));
+        const panels = Array.from(tabs.querySelectorAll('[data-gratitude-tab-panel]'));
+
+        triggers.forEach((trigger) => {
+            trigger.addEventListener('click', () => {
+                const key = trigger.dataset.gratitudeTabTrigger;
+
+                triggers.forEach((t) => {
+                    const active = t === trigger;
+                    t.setAttribute('aria-selected', active ? 'true' : 'false');
+                    t.classList.toggle('border-brand-gold', active);
+                    t.classList.toggle('font-semibold', active);
+                    t.classList.toggle('text-brand-navy', active);
+                    t.classList.toggle('border-transparent', !active);
+                    t.classList.toggle('font-medium', !active);
+                    t.classList.toggle('text-brand-navy/60', !active);
+                });
+
+                panels.forEach((panel) => {
+                    panel.classList.toggle('hidden', panel.dataset.gratitudeTabPanel !== key);
+                });
+            });
+        });
+    });
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const toggle = document.querySelector('[data-mobile-menu-toggle]');
     const menu = document.querySelector('[data-mobile-menu]');

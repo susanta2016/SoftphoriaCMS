@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Account\DashboardController;
 use App\Http\Controllers\Account\DownloadController as AccountDownloadController;
+use App\Http\Controllers\Account\GratitudeJournalController;
 use App\Http\Controllers\Account\OrderController as AccountOrderController;
 use App\Http\Controllers\Account\PasswordController as AccountPasswordController;
 use App\Http\Controllers\Account\ProfileController as AccountProfileController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\InspirationalResources\GratitudeJournalFeedController;
 use App\Http\Controllers\InspirationalResources\InspirationalResourceController;
 use App\Http\Controllers\InspirationalResources\InspirationalResourceSubmissionController;
 use App\Http\Controllers\LightPostController;
@@ -166,6 +168,20 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
     // Membership downloads alike) — see DownloadController's own docblock
     // for why this is distinct from /account/orders.
     Route::get('/downloads', AccountDownloadController::class)->name('downloads');
+
+    // The registered member's own Gratitude Journal (Gratitude Journal
+    // audit §3) — see GratitudeJournalController's own docblock. Entry
+    // mutation routes live under their own /entries segment (rather than
+    // e.g. PUT /gratitude-journal/{lightPost}) so they never collide with
+    // the sibling /gratitude-journal/reminder route below. {lightPost} binds
+    // on public_id, the same convention as the public light-posts.show
+    // route — GratitudeJournalController itself is what actually enforces
+    // ownership + source = journal on every bound entry.
+    Route::get('/gratitude-journal', [GratitudeJournalController::class, 'index'])->name('gratitude-journal.index');
+    Route::post('/gratitude-journal/entries', [GratitudeJournalController::class, 'store'])->name('gratitude-journal.store');
+    Route::put('/gratitude-journal/entries/{lightPost:public_id}', [GratitudeJournalController::class, 'update'])->name('gratitude-journal.update');
+    Route::delete('/gratitude-journal/entries/{lightPost:public_id}', [GratitudeJournalController::class, 'destroy'])->name('gratitude-journal.destroy');
+    Route::put('/gratitude-journal/reminder', [GratitudeJournalController::class, 'updateReminderFrequency'])->name('gratitude-journal.reminder');
 });
 
 // Public Poetry/Prose — fully public once Published (client-confirmed: no
@@ -196,6 +212,25 @@ Route::get('/inspirational-resources/submit', [InspirationalResourceSubmissionCo
 Route::post('/inspirational-resources/submit', [InspirationalResourceSubmissionController::class, 'store'])
     ->middleware('throttle:6,1')
     ->name('inspirational-resources.submit');
+
+// The Gratitude Journal shared member feed — a READ-ONLY subpage of
+// Inspirational Resources (client suggestion: "maybe as a subpage to the
+// 'Inspirations' landing page"), deliberately separate from the member's
+// own management area at /account/gratitude-journal
+// (App\Http\Controllers\Account\GratitudeJournalController), which remains
+// the only place a member creates/edits/deletes their own
+// entries or changes visibility/reminder preference. This page has no
+// create/edit/delete controls at all, even for a viewer's own entries — see
+// GratitudeJournalFeedController's own docblock. Registered before the
+// {resourceSubmission:slug} wildcard below for the same reason /submit is:
+// an exact "/inspirational-resources/gratitude-journal" request must always
+// match here first, never fall through to a slug lookup. Still behind
+// auth + EnsureAccountIsUsable (guests, and any blocked-status member, are
+// denied).
+Route::get('/inspirational-resources/gratitude-journal', [GratitudeJournalFeedController::class, 'index'])
+    ->middleware(['auth', EnsureAccountIsUsable::class])
+    ->name('inspirational-resources.gratitude-journal');
+
 Route::get('/inspirational-resources/{resourceSubmission:slug}', [InspirationalResourceController::class, 'show'])->name('inspirational-resources.show');
 
 // Public Podcast — landing/all-episodes/episode pages, fully public once

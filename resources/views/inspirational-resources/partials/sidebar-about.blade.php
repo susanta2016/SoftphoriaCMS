@@ -6,4 +6,7 @@
     <a href="{{ route('inspirational-resources.create') }}" class="mt-4 inline-flex items-center gap-1.5 rounded-md border border-brand-gold/40 px-4 py-2 text-sm font-semibold text-brand-gold transition hover:bg-brand-gold hover:text-white">
         Submit Your Writing <span aria-hidden="true">→</span>
     </a>
+    <a href="{{ route('inspirational-resources.gratitude-journal') }}" class="mt-3 inline-flex items-center gap-1.5 rounded-md border border-brand-gold/40 px-4 py-2 text-sm font-semibold text-brand-gold transition hover:bg-brand-gold hover:text-white">
+        Gratitude Journal <span aria-hidden="true">→</span>
+    </a>
 </div>

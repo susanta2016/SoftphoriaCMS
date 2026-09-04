@@ -89,4 +89,15 @@ return [
         'variables' => ['user_name', 'title', 'review_url', 'site_name'],
     ],
 
+    'gratitude_journal_reminder' => [
+        'label' => 'Gratitude Journal Reminder',
+        'recipients' => ['user'],
+        // Sent by SendGratitudeJournalRemindersCommand on the Daily/Weekly
+        // cadence a member chose in their Gratitude Journal preferences
+        // (never to a member who chose None) — see that command's own
+        // docblock and App\Actions\GratitudeJournal\
+        // UpdateGratitudeReminderFrequencyAction.
+        'variables' => ['user_name', 'journal_url', 'frequency_label', 'site_name'],
+    ],
+
 ];

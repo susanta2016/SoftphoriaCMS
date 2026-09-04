@@ -18,6 +18,11 @@
             'label' => 'Change Password',
             'icon' => '<rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke-linecap="round"/>',
         ],
+        [
+            'route' => 'account.gratitude-journal.index',
+            'label' => 'Gratitude Journal',
+            'icon' => '<path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9Z" stroke-linejoin="round" stroke-linecap="round"/>',
+        ],
         // Phase 1: no paid membership — this nav item is left out of the
         // list entirely when disabled (UI only, see config/features.php);
         // /account/subscription itself stays reachable directly so an

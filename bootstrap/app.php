@@ -1,6 +1,8 @@
 <?php
 
+use App\Console\Commands\DeleteExpiredGratitudeJournalEntriesCommand;
 use App\Console\Commands\PublishDuePagesCommand;
+use App\Console\Commands\SendGratitudeJournalRemindersCommand;
 use App\Http\Middleware\CheckMaintenanceMode;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -36,5 +38,15 @@ return Application::configure(basePath: dirname(__DIR__))
     // ADMIN-006: flips Scheduled pages to Published once publish_at passes.
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command(PublishDuePagesCommand::class)->everyFiveMinutes();
+
+        // Gratitude Journal reminder — fixed 08:00 server time, application
+        // timezone for every member alike (see the command's own docblock).
+        $schedule->command(SendGratitudeJournalRemindersCommand::class)->dailyAt('08:00');
+
+        // Gratitude Journal retention — daily cleanup of expired journal
+        // entries only (source = journal); registration Light Posts are
+        // never touched (see the command's own docblock). Scheduled well
+        // clear of the 08:00 reminder run above.
+        $schedule->command(DeleteExpiredGratitudeJournalEntriesCommand::class)->dailyAt('03:00');
     })
     ->create();

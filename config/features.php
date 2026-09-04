@@ -67,4 +67,38 @@ return [
 
     'light_post_max_length' => (int) env('LIGHT_POST_MAX_LENGTH', 500),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Gratitude Journal Character Limit
+    |--------------------------------------------------------------------------
+    |
+    | Maximum length of a Gratitude Journal entry (App\Actions\GratitudeJournal,
+    | App\Http\Controllers\Account\GratitudeJournalController) — a
+    | light_posts row with source = journal. Deliberately independent of
+    | light_post_max_length above: the client requires this configurable
+    | ONLY through this env var, with no Filament/admin setting and no
+    | per-entry database column, and it must never change the registration
+    | flow's own already-shipped 500-character limit.
+    |
+    */
+
+    'gratitude_journal_max_length' => (int) env('GRATITUDE_JOURNAL_MAX_LENGTH', 100),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Gratitude Journal Retention (calendar months)
+    |--------------------------------------------------------------------------
+    |
+    | How long a Gratitude Journal entry (light_posts, source = journal —
+    | Public or Private alike) is kept before DeleteExpiredGratitudeJournalEntriesCommand
+    | removes it, on a daily schedule (bootstrap/app.php). ENV-only, per the
+    | client's requirement: no Filament/admin setting, no database setting,
+    | no per-user setting. Registration-time Light Posts (source =
+    | registration) are never touched by this — see that command's own
+    | docblock and its journal()-scoped query.
+    |
+    */
+
+    'gratitude_journal_retention_months' => (int) env('GRATITUDE_JOURNAL_RETENTION_MONTHS', 6),
+
 ];
