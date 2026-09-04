@@ -20,9 +20,9 @@ use Illuminate\Contracts\View\View;
  * light_posts row.
  *
  * Private journal entries only (client-confirmed, 2026-09-04) — a Public
- * journal entry's exposure is the homepage feed instead
- * (HomeController::latestLightPosts(), untouched by this controller); it
- * does not also appear here. This is the one and only place a Private
+ * journal entry's exposure is the homepage carousel instead
+ * (HomeController::latestGratitudeEntries(), untouched by this controller);
+ * it does not also appear here. This is the one and only place a Private
  * entry is ever shown to anyone besides its author — the public
  * LightPostController::show() detail route still rejects every
  * journal-sourced row (public or private) regardless. The route itself

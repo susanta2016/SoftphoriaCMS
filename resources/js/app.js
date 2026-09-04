@@ -82,6 +82,166 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// The homepage "Latest Gratitude" carousel (resources/views/home.blade.php)
+// — a seamless/infinite loop via a tripled, cloned track (client-confirmed,
+// 2026-09-04: the previous modulo-index version left a visible blank gap
+// approaching the last card, then a long jump-cut back to the first).
+//
+// How it works: the real server-rendered cards are cloned (cloneNode, so
+// every clone is pixel-identical to the approved design — nothing about
+// markup/classes is reconstructed here) into three back-to-back copies —
+// [before][middle][after] — and navigation starts in the middle copy. Real
+// cards always exist immediately adjacent in both directions, so a normal
+// animated step never runs out of content to slide in, which is what
+// removes the blank gap.
+//
+// Rapid-click safety (client-confirmed, 2026-09-04): an earlier version of
+// this recentred via a delayed timer *after* a step's transition finished,
+// which left a real gap — during a rapid click burst that never leaves the
+// timer's own delay free, the index could keep climbing between clicks
+// with no correction running at all, and once it drifted far enough to
+// exceed the actual number of cloned cards, that render was the blank-space
+// bug itself, regardless of what a later correction would have fixed.
+// step() below closes that gap structurally rather than timing-wise: every
+// single call re-validates its OWN starting position first — if it's
+// already sitting at the edge of the safe middle third, it silently
+// (transition:none) snaps to the equivalent position in the middle copy
+// *before* applying this call's own one-card move. That bounds drift to at
+// most one card beyond the safe window after any individual call, for any
+// number of calls in any order (Next, Previous, autoplay, all funnel
+// through the same step()) — there is no accumulation to correct for,
+// because nothing is ever allowed to accumulate in the first place. No
+// timer, no while-loop, no dependency on how much time has passed.
+//
+// Fewer real cards than the widest breakpoint shows at once (lg: 4 visible)
+// would otherwise leave empty slots even inside one copy — each copy is
+// therefore built from enough repeats of the real set to reach at least 4
+// cards before being tripled, so a full row is always occupied at every
+// breakpoint regardless of how few Public Gratitude entries exist. A single
+// entry is left as one static card — nothing to usefully loop.
+//
+// A single intervalId per carousel instance is always cleared before a new
+// one is set (stopAutoplay() is idempotent), so manual navigation restarts
+// the timer without ever accumulating a second interval. Autoplay pauses on
+// hover/focus-within and resumes on mouseleave/blur.
+document.addEventListener('DOMContentLoaded', () => {
+    const AUTOPLAY_MS = 6000;
+    const MAX_VISIBLE = 4; // the most cards any breakpoint shows at once (lg:w-[calc(25%-0.75rem)])
+
+    document.querySelectorAll('[data-gratitude-carousel]').forEach((carousel) => {
+        const track = carousel.querySelector('[data-gratitude-carousel-track]');
+        const originalItems = Array.from(carousel.querySelectorAll('[data-gratitude-carousel-item]'));
+        const prevButton = carousel.querySelector('[data-gratitude-carousel-prev]');
+        const nextButton = carousel.querySelector('[data-gratitude-carousel-next]');
+        if (!track || originalItems.length === 0) return;
+
+        // A single real card has nothing to loop through — leave it as a
+        // plain static card rather than building a pointless clone buffer.
+        if (originalItems.length <= 1) return;
+
+        const repeats = Math.max(1, Math.ceil(MAX_VISIBLE / originalItems.length));
+        const segmentSize = originalItems.length * repeats;
+
+        const buildSegment = (hidden) => {
+            const nodes = [];
+            for (let r = 0; r < repeats; r++) {
+                originalItems.forEach((item) => {
+                    const clone = item.cloneNode(true);
+                    if (hidden) clone.setAttribute('aria-hidden', 'true');
+                    nodes.push(clone);
+                });
+            }
+            return nodes;
+        };
+
+        track.innerHTML = '';
+        [...buildSegment(true), ...buildSegment(false), ...buildSegment(true)].forEach((node) => track.appendChild(node));
+        const items = Array.from(track.children);
+
+        let index = segmentSize; // start at the first card of the middle copy
+        let intervalId = null;
+
+        // Measured live (not a fixed breakpoint width) so every step —
+        // manual or autoplay — moves by exactly one card's actual rendered
+        // width, including its share of the row's gap, at whatever
+        // breakpoint is currently active.
+        const stepWidth = () => {
+            const gap = parseFloat(window.getComputedStyle(track).columnGap || '0');
+            return items[0].getBoundingClientRect().width + gap;
+        };
+
+        const render = (animate) => {
+            track.style.transition = animate ? '' : 'none';
+            track.style.transform = `translateX(-${index * stepWidth()}px)`;
+
+            if (!animate) {
+                // Force layout so the transition-less jump actually applies
+                // now, rather than being coalesced into the next animated
+                // frame — which would turn this silent recenter back into
+                // a visible jump.
+                void track.offsetWidth;
+                track.style.transition = '';
+            }
+        };
+
+        // If the current position is already sitting at (or somehow past)
+        // the edge of the safe middle third, snap it — instantly, no
+        // transition, invisible since the clone content is identical — to
+        // the equivalent position inside the middle copy before this call
+        // moves any further. Plain modulo arithmetic (not a loop): whatever
+        // multiple of segmentSize the drift amounts to collapses in one
+        // step, so this is O(1) regardless of how far index had drifted,
+        // and it runs synchronously before every single move, not on a
+        // delay — so drift is corrected before it can compound, rather
+        // than being allowed to accumulate and cleaned up afterwards.
+        const recenterIfNeeded = () => {
+            if (index < segmentSize || index >= segmentSize * 2) {
+                index = segmentSize + (((index - segmentSize) % segmentSize) + segmentSize) % segmentSize;
+                render(false);
+            }
+        };
+
+        const step = (delta) => {
+            recenterIfNeeded();
+            index += delta;
+            render(true);
+        };
+
+        const stopAutoplay = () => {
+            if (intervalId === null) return;
+            window.clearInterval(intervalId);
+            intervalId = null;
+        };
+
+        const startAutoplay = () => {
+            stopAutoplay();
+            intervalId = window.setInterval(() => step(1), AUTOPLAY_MS);
+        };
+
+        prevButton?.addEventListener('click', () => {
+            step(-1);
+            startAutoplay();
+        });
+
+        nextButton?.addEventListener('click', () => {
+            step(1);
+            startAutoplay();
+        });
+
+        carousel.addEventListener('mouseenter', stopAutoplay);
+        carousel.addEventListener('mouseleave', startAutoplay);
+        carousel.addEventListener('focusin', stopAutoplay);
+        carousel.addEventListener('focusout', (event) => {
+            if (!carousel.contains(event.relatedTarget)) startAutoplay();
+        });
+
+        window.addEventListener('resize', () => render(false));
+
+        render(false);
+        startAutoplay();
+    });
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const toggle = document.querySelector('[data-mobile-menu-toggle]');
     const menu = document.querySelector('[data-mobile-menu]');

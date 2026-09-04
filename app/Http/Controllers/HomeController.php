@@ -28,7 +28,7 @@ class HomeController extends Controller implements Sitemapable
     {
         $hero = null;
         $seo = null;
-        $lightPosts = collect();
+        $gratitude = collect();
 
         // A freshly deployed/not-yet-migrated environment has neither table
         // yet — same "fail open onto the approved defaults" reasoning as
@@ -60,7 +60,7 @@ class HomeController extends Controller implements Sitemapable
             $logo = $logoMediaId ? Media::find($logoMediaId) : null;
 
             $hero = $this->heroContent($page);
-            $lightPosts = $this->latestLightPosts();
+            $gratitude = $this->latestGratitudeEntries();
 
             $seo = SeoTagBuilder::build($page?->seo, [
                 'title' => $page?->title ?: $siteName,
@@ -113,7 +113,7 @@ class HomeController extends Controller implements Sitemapable
         return view('home', [
             'hero' => $hero,
             'community' => $this->communityContent($page),
-            'lightPosts' => $lightPosts,
+            'gratitude' => $gratitude,
             'siteName' => $siteName,
             'tagline' => $tagline,
             'logo' => $logo,
@@ -195,17 +195,27 @@ class HomeController extends Controller implements Sitemapable
     }
 
     /**
-     * The "Latest Community Comments" strip's real content — reuses that
-     * existing display slot rather than a parallel mechanism (it was
-     * previously hardcoded fake quotes, unconditionally shown). Only
-     * explicitly public Light Posts (registration's "Share My Light",
-     * is_public = true) ever surface here.
+     * The "Latest Gratitude" homepage carousel's real content — reuses this
+     * existing display slot rather than a parallel mechanism. Client-confirmed
+     * (2026-09-04): this section now shows Public Gratitude Journal entries
+     * only (source = journal, is_public = true) — registration-time Light
+     * Posts are deliberately excluded here and remain their own, separate,
+     * untouched feature (still reachable via their own light-posts.show
+     * route and still searchable — see LightPost's own docblock). A Private
+     * Gratitude Journal entry never reaches this query at all, the same
+     * public()-scope guarantee GratitudeJournalVisibilityTest already
+     * covers for this method.
+     *
+     * orderByDesc('id') as a tiebreaker alongside latest() — same reasoning
+     * as GratitudeJournalFeedController/InspirationalResourceController's
+     * own ordering: several entries can share the same created_at second,
+     * and latest() alone leaves those rows in an undefined relative order.
      *
      * @return Collection<int, LightPost>
      */
-    private function latestLightPosts(): Collection
+    private function latestGratitudeEntries(): Collection
     {
-        return LightPost::query()->public()->with('user')->latest()->limit(4)->get();
+        return LightPost::query()->journal()->public()->with('user')->latest()->orderByDesc('id')->limit(8)->get();
     }
 
     /**

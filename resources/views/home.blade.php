@@ -1,11 +1,12 @@
 @php
     $bannerUrl = $hero['media'] ? \Illuminate\Support\Facades\Storage::disk($hero['media']->disk)->url($hero['media']->path) : null;
 
-    // Real public Light Posts (registration's "Share My Light" prompt) —
-    // reuses this existing "Latest Community Comments" display slot rather
-    // than a parallel mechanism.
+    // Public Gratitude Journal entries (source = journal, is_public = true)
+    // — reuses this existing "Latest Gratitude" display slot rather than a
+    // parallel mechanism. Registration-time Light Posts are deliberately
+    // excluded here (see HomeController::latestGratitudeEntries()).
     $lightPostColors = ['bg-rose-100 text-rose-700', 'bg-sky-100 text-sky-700', 'bg-amber-100 text-amber-700', 'bg-emerald-100 text-emerald-700'];
-    $comments = $lightPosts->values()->map(function ($post, $index) use ($lightPostColors) {
+    $comments = $gratitude->values()->map(function ($post, $index) use ($lightPostColors) {
         $name = $post->user?->name ?: 'A Member';
         $initials = collect(preg_split('/\s+/', trim($name)))->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))->take(2)->implode('');
 
@@ -108,29 +109,54 @@
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="h-5 w-5 text-brand-gold">
                             <path d="M21 12a8 8 0 1 1-3.2-6.4L21 4l-1 3.5A8 8 0 0 1 21 12Z" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        <h2 class="text-xs font-semibold tracking-wider uppercase">Latest Community Comments</h2>
+                        <h2 class="text-xs font-semibold tracking-wider uppercase">Latest Gratitude</h2>
                     </div>
-                    <a href="#" class="hidden shrink-0 text-sm font-medium text-brand-gold transition hover:text-brand-navy sm:inline-block">
+                    <a
+                        href="{{ auth()->check() ? route('account.gratitude-journal.index') : route('register.show') }}"
+                        class="hidden shrink-0 text-sm font-medium text-brand-gold transition hover:text-brand-navy sm:inline-block"
+                    >
                         Join the conversation →
                     </a>
                 </div>
 
-                <ul class="mt-5 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
-                    @foreach ($comments as $comment)
-                        <li class="w-64 shrink-0 snap-start rounded-xl border border-brand-navy/10 p-4 sm:w-auto">
-                            <div class="flex items-center gap-2.5">
-                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold {{ $comment['color'] }}" aria-hidden="true">
-                                    {{ $comment['initials'] }}
-                                </span>
-                                <div class="min-w-0">
-                                    <p class="truncate text-sm font-semibold text-brand-navy">{{ $comment['name'] }}</p>
-                                    <p class="text-xs text-brand-navy/50">{{ $comment['time'] }}</p>
-                                </div>
-                            </div>
-                            <p class="mt-3 text-sm text-brand-navy/75">&ldquo;{{ $comment['quote'] }}&rdquo;</p>
-                        </li>
-                    @endforeach
-                </ul>
+                <div class="mt-5 flex items-center gap-2 sm:gap-3" data-gratitude-carousel>
+                    @if ($comments->count() > 1)
+                        <button
+                            type="button" data-gratitude-carousel-prev aria-label="Previous gratitude"
+                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-brand-navy/20 text-brand-navy/60 transition hover:border-brand-gold hover:text-brand-gold"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                    @endif
+
+                    <div class="min-w-0 flex-1 overflow-hidden">
+                        <ul class="flex gap-4 transition-transform duration-700 ease-in-out" data-gratitude-carousel-track>
+                            @foreach ($comments as $comment)
+                                <li class="w-full shrink-0 rounded-xl border border-brand-navy/10 p-4 sm:w-[calc(50%-0.5rem)] lg:w-[calc(25%-0.75rem)]" data-gratitude-carousel-item>
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold {{ $comment['color'] }}" aria-hidden="true">
+                                            {{ $comment['initials'] }}
+                                        </span>
+                                        <div class="min-w-0">
+                                            <p class="truncate text-sm font-semibold text-brand-navy">{{ $comment['name'] }}</p>
+                                            <p class="text-xs text-brand-navy/50">{{ $comment['time'] }}</p>
+                                        </div>
+                                    </div>
+                                    <p class="mt-3 text-sm text-brand-navy/75">&ldquo;{{ $comment['quote'] }}&rdquo;</p>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+
+                    @if ($comments->count() > 1)
+                        <button
+                            type="button" data-gratitude-carousel-next aria-label="Next gratitude"
+                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-brand-navy/20 text-brand-navy/60 transition hover:border-brand-gold hover:text-brand-gold"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                    @endif
+                </div>
             </div>
         </div>
     @endif

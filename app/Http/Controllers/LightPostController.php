@@ -13,9 +13,12 @@ use Illuminate\Contracts\View\View;
  * A single public Light Post's own minimal detail page — added only because
  * unified Search (App\Modules\Search) needs a real canonical URL to link a
  * Light Post result to; before this, is_public Light Posts had no detail
- * page at all (see LightPost's own docblock and HomeController::
- * latestLightPosts(), the only place they were ever shown). Deliberately
- * bare: no comments/reactions/related-posts — those belong to Track/
+ * page at all (see LightPost's own docblock). A registration-time Light
+ * Post no longer appears on the homepage either (client-confirmed,
+ * 2026-09-04: HomeController::latestGratitudeEntries() now shows Public
+ * Gratitude Journal entries only) — this detail page and unified Search
+ * are its only remaining public surfaces. Deliberately bare: no
+ * comments/reactions/related-posts — those belong to Track/
  * PodcastEpisode/PoetryProse, never to a Light Post (client-confirmed,
  * 2026-09-02: a Light Post is not a Community content type with that kind
  * of page). Read-only — the submission flow (CreatesLightPostOnRegistration)
