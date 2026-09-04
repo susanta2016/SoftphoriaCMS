@@ -69,7 +69,15 @@ class GratitudeJournalController extends Controller
     {
         $data = $this->validateEntry($request);
 
-        $action->handle(Auth::user(), $data['content'], $request->boolean('is_public', true));
+        // No default here — matches update() below. An unchecked HTML
+        // checkbox is never sent at all, so "is_public absent" must mean
+        // false (private), the same as it already correctly does on edit;
+        // a hardcoded `true` default previously made an unchecked box on
+        // the New Entry form silently save as Public regardless of what
+        // the member selected. The form's own checkbox still defaults to
+        // checked, which is what actually gives a *new* entry Public as
+        // its starting visibility — this call has no opinion of its own.
+        $action->handle(Auth::user(), $data['content'], $request->boolean('is_public'));
 
         return redirect()->route('account.gratitude-journal.index')->with('status', 'Your Gratitude Journal entry has been saved.');
     }
