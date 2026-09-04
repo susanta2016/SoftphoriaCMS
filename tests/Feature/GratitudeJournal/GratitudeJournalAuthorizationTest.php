@@ -3,6 +3,7 @@
 namespace Tests\Feature\GratitudeJournal;
 
 use App\Actions\GratitudeJournal\CreateGratitudeJournalEntryAction;
+use App\Enums\GratitudeJournalVisibility;
 use App\Enums\LightPostSource;
 use App\Models\LightPost;
 use App\Models\User;
@@ -46,7 +47,7 @@ class GratitudeJournalAuthorizationTest extends TestCase
     public function test_a_members_own_private_entry_is_visible_to_them_on_their_journal_page(): void
     {
         $owner = User::factory()->create();
-        (new CreateGratitudeJournalEntryAction)->handle($owner, 'A private reflection.', false);
+        (new CreateGratitudeJournalEntryAction)->handle($owner, 'A private reflection.', GratitudeJournalVisibility::Private);
 
         $response = $this->actingAs($owner)->get(route('account.gratitude-journal.index'));
 
@@ -83,15 +84,33 @@ class GratitudeJournalAuthorizationTest extends TestCase
     public function test_a_member_can_change_their_own_entrys_visibility(): void
     {
         $owner = User::factory()->create();
-        $entry = (new CreateGratitudeJournalEntryAction)->handle($owner, 'Flexible visibility.', true);
+        $entry = (new CreateGratitudeJournalEntryAction)->handle($owner, 'Flexible visibility.', GratitudeJournalVisibility::Public);
 
         $response = $this->actingAs($owner)->put(route('account.gratitude-journal.update', $entry), [
             'content' => 'Flexible visibility.',
-            'is_public' => '0',
+            'visibility' => 'private',
         ]);
 
         $response->assertRedirect(route('account.gratitude-journal.index'));
-        $this->assertFalse($entry->fresh()->is_public);
+        $this->assertSame(GratitudeJournalVisibility::Private, $entry->fresh()->visibility);
+    }
+
+    /**
+     * Covers the third state specifically — changing an entry to For
+     * Community, distinct from the Public/Private pair above.
+     */
+    public function test_a_member_can_change_their_own_entrys_visibility_to_for_community(): void
+    {
+        $owner = User::factory()->create();
+        $entry = (new CreateGratitudeJournalEntryAction)->handle($owner, 'Flexible visibility.', GratitudeJournalVisibility::Public);
+
+        $response = $this->actingAs($owner)->put(route('account.gratitude-journal.update', $entry), [
+            'content' => 'Flexible visibility.',
+            'visibility' => 'community',
+        ]);
+
+        $response->assertRedirect(route('account.gratitude-journal.index'));
+        $this->assertSame(GratitudeJournalVisibility::Community, $entry->fresh()->visibility);
     }
 
     public function test_a_member_can_edit_and_delete_their_own_entry(): void
@@ -101,7 +120,7 @@ class GratitudeJournalAuthorizationTest extends TestCase
 
         $this->actingAs($owner)->put(route('account.gratitude-journal.update', $entry), [
             'content' => 'New content.',
-            'is_public' => '1',
+            'visibility' => 'public',
         ])->assertRedirect(route('account.gratitude-journal.index'));
 
         $this->assertSame('New content.', $entry->fresh()->content);
@@ -125,7 +144,7 @@ class GratitudeJournalAuthorizationTest extends TestCase
             'user_id' => $user->id,
             'source' => LightPostSource::Registration,
             'content' => 'My registration post.',
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
 
         $response = $this->actingAs($user)->put(route('account.gratitude-journal.update', $registrationPost), [
@@ -143,7 +162,7 @@ class GratitudeJournalAuthorizationTest extends TestCase
             'user_id' => $user->id,
             'source' => LightPostSource::Registration,
             'content' => 'My registration post.',
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
 
         $response = $this->actingAs($user)->delete(route('account.gratitude-journal.destroy', $registrationPost));

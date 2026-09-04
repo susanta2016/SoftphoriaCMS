@@ -3,6 +3,7 @@
 namespace Tests\Feature\GratitudeJournal;
 
 use App\Actions\GratitudeJournal\CreateGratitudeJournalEntryAction;
+use App\Enums\GratitudeJournalVisibility;
 use App\Enums\LightPostSource;
 use App\Models\LightPost;
 use App\Models\User;
@@ -25,7 +26,7 @@ class GratitudeJournalPublicAccessTest extends TestCase
     public function test_a_public_journal_entry_cannot_be_accessed_through_the_public_light_post_detail_route(): void
     {
         $user = User::factory()->create();
-        $entry = (new CreateGratitudeJournalEntryAction)->handle($user, 'A public journal entry.', true);
+        $entry = (new CreateGratitudeJournalEntryAction)->handle($user, 'A public journal entry.', GratitudeJournalVisibility::Public);
 
         $response = $this->get(route('light-posts.show', $entry));
 
@@ -35,7 +36,7 @@ class GratitudeJournalPublicAccessTest extends TestCase
     public function test_a_public_journal_entry_is_absent_from_the_sitemap(): void
     {
         $user = User::factory()->create();
-        $entry = (new CreateGratitudeJournalEntryAction)->handle($user, 'A public journal entry for sitemap check.', true);
+        $entry = (new CreateGratitudeJournalEntryAction)->handle($user, 'A public journal entry for sitemap check.', GratitudeJournalVisibility::Public);
 
         $response = $this->get('/sitemap.xml');
 
@@ -49,7 +50,7 @@ class GratitudeJournalPublicAccessTest extends TestCase
             'user_id' => $user->id,
             'source' => LightPostSource::Registration,
             'content' => 'A genuine registration light post.',
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
 
         $response = $this->get(route('light-posts.show', $post));

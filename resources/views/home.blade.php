@@ -1,10 +1,10 @@
 @php
     $bannerUrl = $hero['media'] ? \Illuminate\Support\Facades\Storage::disk($hero['media']->disk)->url($hero['media']->path) : null;
 
-    // Public Gratitude Journal entries (source = journal, is_public = true)
-    // — reuses this existing "Latest Gratitude" display slot rather than a
-    // parallel mechanism. Registration-time Light Posts are deliberately
-    // excluded here (see HomeController::latestGratitudeEntries()).
+    // Public Gratitude Journal entries (source = journal, visibility =
+    // public) — reuses this existing "Latest Gratitude" display slot rather
+    // than a parallel mechanism. Registration-time Light Posts are
+    // deliberately excluded here (see HomeController::latestGratitudeEntries()).
     $lightPostColors = ['bg-rose-100 text-rose-700', 'bg-sky-100 text-sky-700', 'bg-amber-100 text-amber-700', 'bg-emerald-100 text-emerald-700'];
     $comments = $gratitude->values()->map(function ($post, $index) use ($lightPostColors) {
         $name = $post->user?->name ?: 'A Member';

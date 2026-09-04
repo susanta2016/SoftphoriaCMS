@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Registration;
 
+use App\Enums\GratitudeJournalVisibility;
 use App\Enums\UserStatus;
 use App\Models\User;
 use App\Modules\Commerce\Enums\SubscriptionStatus;
@@ -101,7 +102,7 @@ class ProRegistrationTest extends TestCase
         $user = User::query()->where('email', 'jane.pro.light@example.com')->firstOrFail();
         $post = $user->lightPosts()->firstOrFail();
         $this->assertSame('Sharing my light as a Pro member.', $post->content);
-        $this->assertTrue($post->is_public);
+        $this->assertSame(GratitudeJournalVisibility::Public, $post->visibility);
     }
 
     public function test_resuming_an_abandoned_pro_registration_does_not_create_a_second_light_post(): void

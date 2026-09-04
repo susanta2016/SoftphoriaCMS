@@ -2,7 +2,7 @@
     <div class="space-y-6">
         <div class="rounded-2xl bg-white p-6 shadow-xl ring-1 ring-brand-navy/5 sm:p-8">
             <h1 class="font-serif text-2xl text-brand-navy sm:text-3xl">Gratitude Journal</h1>
-            <p class="mt-1 text-sm text-brand-navy/70">A place for our members to share what they're grateful for. Public gratitude may appear on the homepage, while private gratitude is shared within our member community.</p>
+            <p class="mt-1 text-sm text-brand-navy/70">A place for our members to share what they're grateful for. Public gratitude may appear on the homepage, For Community gratitude is shared within our member community, and Private gratitude is visible only to you.</p>
 
             @if (session('status'))
                 <div class="mt-6 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-4 py-3 text-sm text-brand-navy">
@@ -31,10 +31,18 @@
                 >{{ old('content') }}</textarea>
                 <p data-gratitude-counter class="mt-1 text-right text-xs text-brand-navy/50">0 / {{ $maxLength }}</p>
 
-                <label class="mt-3 flex items-center gap-2 text-sm text-brand-navy">
-                    <input type="checkbox" name="is_public" value="1" checked class="rounded border-brand-navy/30 text-brand-gold focus:ring-brand-gold">
-                    Share this entry publicly (it may appear on the homepage)
-                </label>
+                <div class="mt-3">
+                    <span class="block text-sm font-medium text-brand-navy">Visibility</span>
+                    <div class="mt-2 flex flex-wrap gap-4">
+                        @foreach ($visibilityOptions as $option)
+                            <label class="flex items-center gap-2 text-sm text-brand-navy">
+                                <input type="radio" name="visibility" value="{{ $option->value }}" @checked($option === \App\Enums\GratitudeJournalVisibility::Public) class="border-brand-navy/30 text-brand-gold focus:ring-brand-gold">
+                                {{ $option->getLabel() }}
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="mt-1.5 text-xs text-brand-navy/50">Public may appear on the homepage. For Community appears in the shared member Gratitude Journal. Private is visible only to you.</p>
+                </div>
 
                 <div class="mt-4">
                     <button
@@ -75,8 +83,15 @@
                             <div class="rounded-md border border-brand-navy/10 p-4" data-gratitude-entry>
                                 <div class="flex items-start justify-between gap-3">
                                     <p class="text-sm text-brand-navy" data-gratitude-entry-display>{{ $entry->content }}</p>
-                                    <span class="shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold tracking-wide uppercase {{ $entry->is_public ? 'border-brand-gold/40 text-brand-gold' : 'border-brand-navy/20 text-brand-navy/60' }}">
-                                        {{ $entry->is_public ? 'Public' : 'Private' }}
+                                    @php
+                                        $visibilityBadgeClass = match ($entry->visibility) {
+                                            \App\Enums\GratitudeJournalVisibility::Public => 'border-brand-gold/40 text-brand-gold',
+                                            \App\Enums\GratitudeJournalVisibility::Community => 'border-blue-300 text-blue-600',
+                                            \App\Enums\GratitudeJournalVisibility::Private => 'border-brand-navy/20 text-brand-navy/60',
+                                        };
+                                    @endphp
+                                    <span class="shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold tracking-wide uppercase {{ $visibilityBadgeClass }}">
+                                        {{ $entry->visibility->getLabel() }}
                                     </span>
                                 </div>
 
@@ -103,10 +118,17 @@
                                     >{{ $entry->content }}</textarea>
                                     <p data-gratitude-counter class="mt-1 text-right text-xs text-brand-navy/50">{{ mb_strlen($entry->content) }} / {{ $maxLength }}</p>
 
-                                    <label class="mt-3 flex items-center gap-2 text-sm text-brand-navy">
-                                        <input type="checkbox" name="is_public" value="1" @checked($entry->is_public) class="rounded border-brand-navy/30 text-brand-gold focus:ring-brand-gold">
-                                        Share this entry publicly
-                                    </label>
+                                    <div class="mt-3">
+                                        <span class="block text-sm font-medium text-brand-navy">Visibility</span>
+                                        <div class="mt-2 flex flex-wrap gap-4">
+                                            @foreach ($visibilityOptions as $option)
+                                                <label class="flex items-center gap-2 text-sm text-brand-navy">
+                                                    <input type="radio" name="visibility" value="{{ $option->value }}" @checked($entry->visibility === $option) class="border-brand-navy/30 text-brand-gold focus:ring-brand-gold">
+                                                    {{ $option->getLabel() }}
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                    </div>
 
                                     <div class="mt-3 flex gap-3">
                                         <button

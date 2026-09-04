@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\GratitudeJournalVisibility;
 use App\Enums\LightPostSource;
 use App\Models\LightPost;
 use App\Models\User;
@@ -28,7 +29,7 @@ class HomeLightPostsTest extends TestCase
             'user_id' => $user->id,
             'source' => LightPostSource::Journal,
             'content' => 'Thankful for this community.',
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
 
         $response = $this->get(route('home'));
@@ -45,7 +46,7 @@ class HomeLightPostsTest extends TestCase
             'user_id' => $user->id,
             'source' => LightPostSource::Journal,
             'content' => 'A private message.',
-            'is_public' => false,
+            'visibility' => GratitudeJournalVisibility::Private,
         ]);
 
         $response = $this->get(route('home'));
@@ -69,7 +70,7 @@ class HomeLightPostsTest extends TestCase
             'user_id' => $user->id,
             'source' => LightPostSource::Registration,
             'content' => 'A registration-time light post message.',
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
 
         $response = $this->get(route('home'));
@@ -95,7 +96,7 @@ class HomeLightPostsTest extends TestCase
                 'user_id' => $user->id,
                 'source' => LightPostSource::Journal,
                 'content' => "Message number {$i}.",
-                'is_public' => true,
+                'visibility' => GratitudeJournalVisibility::Public,
             ]);
         }
 

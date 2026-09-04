@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Registration;
 
+use App\Enums\GratitudeJournalVisibility;
 use App\Enums\UserStatus;
 use App\Models\EmailVerification;
 use App\Models\User;
@@ -140,7 +141,7 @@ class FreeRegistrationTest extends TestCase
         $user = User::query()->where('email', 'jane.light@example.com')->firstOrFail();
         $post = $user->lightPosts()->firstOrFail();
         $this->assertSame('Grateful for this space.', $post->content);
-        $this->assertTrue($post->is_public);
+        $this->assertSame(GratitudeJournalVisibility::Public, $post->visibility);
     }
 
     public function test_sharing_another_time_creates_no_light_post_even_with_text_typed(): void

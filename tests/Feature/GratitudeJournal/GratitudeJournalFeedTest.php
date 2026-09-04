@@ -3,6 +3,7 @@
 namespace Tests\Feature\GratitudeJournal;
 
 use App\Actions\GratitudeJournal\CreateGratitudeJournalEntryAction;
+use App\Enums\GratitudeJournalVisibility;
 use App\Enums\LightPostSource;
 use App\Models\LightPost;
 use App\Models\User;
@@ -14,15 +15,17 @@ use Tests\TestCase;
  * /inspirational-resources/gratitude-journal (GratitudeJournalFeedController)
  * — a READ-ONLY page, deliberately separate from the member's own
  * management area at /account/gratitude-journal
- * (App\Http\Controllers\Account\GratitudeJournalController, unmodified
- * except for its own intro copy — see GratitudeJournalValidationTest/
- * GratitudeJournalAuthorizationTest, both still passing unchanged).
+ * (App\Http\Controllers\Account\GratitudeJournalController).
  *
- * Private journal entries only (client-confirmed, 2026-09-04) — a Public
- * journal entry's exposure is the homepage feed instead, never this page.
- * Every authenticated member sees every OTHER member's (and their own)
- * Private entry here, but can never create, edit, or delete anything from
- * this page.
+ * "For Community" entries only (Gratitude Journal three-state visibility
+ * change, 2026-09-05) — the exact same rows the old is_public = false
+ * ("Private") state already showed here; that state was renamed/reused as
+ * Community, not reinterpreted, so this page's actual content is unchanged.
+ * A genuinely Private entry (the new state) never appears here — only in
+ * its owner's own Account "Your Entries" (see
+ * GratitudeJournalAuthorizationTest). Every authenticated member sees every
+ * OTHER member's (and their own) Community entry here, but can never
+ * create, edit, or delete anything from this page.
  */
 class GratitudeJournalFeedTest extends TestCase
 {
@@ -36,20 +39,20 @@ class GratitudeJournalFeedTest extends TestCase
     }
 
     /**
-     * The core visibility requirement: Private does NOT mean owner-only —
-     * every authenticated member sees every Private entry here, from any
-     * author.
+     * The core visibility requirement: For Community does NOT mean
+     * owner-only — every authenticated member sees every Community entry
+     * here, from any author.
      */
-    public function test_an_authenticated_member_sees_another_members_private_entry(): void
+    public function test_an_authenticated_member_sees_another_members_community_entry(): void
     {
         $author = User::factory()->create();
         $viewer = User::factory()->create();
-        (new CreateGratitudeJournalEntryAction)->handle($author, 'A private feed entry.', false);
+        (new CreateGratitudeJournalEntryAction)->handle($author, 'A community feed entry.', GratitudeJournalVisibility::Community);
 
         $response = $this->actingAs($viewer)->get(route('inspirational-resources.gratitude-journal'));
 
         $response->assertOk();
-        $response->assertSee('A private feed entry.');
+        $response->assertSee('A community feed entry.');
     }
 
     /**
@@ -60,12 +63,28 @@ class GratitudeJournalFeedTest extends TestCase
     {
         $author = User::factory()->create();
         $viewer = User::factory()->create();
-        (new CreateGratitudeJournalEntryAction)->handle($author, 'A public feed entry.', true);
+        (new CreateGratitudeJournalEntryAction)->handle($author, 'A public feed entry.', GratitudeJournalVisibility::Public);
 
         $response = $this->actingAs($viewer)->get(route('inspirational-resources.gratitude-journal'));
 
         $response->assertOk();
         $response->assertDontSee('A public feed entry.');
+    }
+
+    /**
+     * A genuinely Private entry's only surface is the owner's own Account
+     * "Your Entries" — it must never reach the shared feed, even for its
+     * own author.
+     */
+    public function test_a_private_journal_entry_does_not_appear_on_this_feed_even_for_its_own_author(): void
+    {
+        $author = User::factory()->create();
+        (new CreateGratitudeJournalEntryAction)->handle($author, 'A truly private entry.', GratitudeJournalVisibility::Private);
+
+        $response = $this->actingAs($author)->get(route('inspirational-resources.gratitude-journal'));
+
+        $response->assertOk();
+        $response->assertDontSee('A truly private entry.');
     }
 
     public function test_a_registration_light_post_does_not_appear_on_this_feed(): void
@@ -75,7 +94,7 @@ class GratitudeJournalFeedTest extends TestCase
             'user_id' => $user->id,
             'source' => LightPostSource::Registration,
             'content' => 'A registration-time light post.',
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
         $viewer = User::factory()->create();
 
@@ -92,7 +111,7 @@ class GratitudeJournalFeedTest extends TestCase
         $action = new CreateGratitudeJournalEntryAction;
 
         foreach (range(1, 11) as $i) {
-            $action->handle($author, "Feed gratitude entry number {$i}.", false);
+            $action->handle($author, "Feed gratitude entry number {$i}.", GratitudeJournalVisibility::Community);
         }
 
         $firstPage = $this->actingAs($viewer)->get(route('inspirational-resources.gratitude-journal'));
@@ -120,7 +139,7 @@ class GratitudeJournalFeedTest extends TestCase
     public function test_the_feed_has_no_create_edit_or_delete_controls(): void
     {
         $viewer = User::factory()->create();
-        $ownEntry = (new CreateGratitudeJournalEntryAction)->handle($viewer, 'My own entry shown read-only.', false);
+        $ownEntry = (new CreateGratitudeJournalEntryAction)->handle($viewer, 'My own entry shown read-only.', GratitudeJournalVisibility::Community);
 
         $response = $this->actingAs($viewer)->get(route('inspirational-resources.gratitude-journal'));
 

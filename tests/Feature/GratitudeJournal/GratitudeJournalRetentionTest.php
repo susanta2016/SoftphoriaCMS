@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\GratitudeJournal;
 
+use App\Enums\GratitudeJournalVisibility;
 use App\Enums\LightPostSource;
 use App\Models\LightPost;
 use App\Models\User;
@@ -11,7 +12,7 @@ use Tests\TestCase;
 
 /**
  * DeleteExpiredGratitudeJournalEntriesCommand — deletes Gratitude Journal
- * entries (source = journal, Public and Private alike) older than
+ * entries (source = journal, all three visibility states alike) older than
  * config('features.gratitude_journal_retention_months')
  * (GRATITUDE_JOURNAL_RETENTION_MONTHS, default 6, ENV-only). Registration
  * Light Posts (source = registration) must never be touched by this
@@ -31,8 +32,8 @@ class GratitudeJournalRetentionTest extends TestCase
         config(['features.gratitude_journal_retention_months' => 2]);
         $user = User::factory()->create();
 
-        $expired = $this->journalEntry($user, 'Expired under the 2-month policy.', true, now()->subMonthsNoOverflow(3));
-        $retained = $this->journalEntry($user, 'Retained under the 2-month policy.', true, now()->subMonthsNoOverflow(1));
+        $expired = $this->journalEntry($user, 'Expired under the 2-month policy.', GratitudeJournalVisibility::Public, now()->subMonthsNoOverflow(3));
+        $retained = $this->journalEntry($user, 'Retained under the 2-month policy.', GratitudeJournalVisibility::Public, now()->subMonthsNoOverflow(1));
 
         $this->artisan('gratitude-journal:delete-expired')->assertExitCode(0);
 
@@ -43,7 +44,7 @@ class GratitudeJournalRetentionTest extends TestCase
     public function test_an_expired_public_journal_entry_is_deleted(): void
     {
         $user = User::factory()->create();
-        $entry = $this->journalEntry($user, 'Expired public entry.', true, now()->subMonthsNoOverflow(7));
+        $entry = $this->journalEntry($user, 'Expired public entry.', GratitudeJournalVisibility::Public, now()->subMonthsNoOverflow(7));
 
         $this->artisan('gratitude-journal:delete-expired')->assertExitCode(0);
 
@@ -53,7 +54,17 @@ class GratitudeJournalRetentionTest extends TestCase
     public function test_an_expired_private_journal_entry_is_deleted(): void
     {
         $user = User::factory()->create();
-        $entry = $this->journalEntry($user, 'Expired private entry.', false, now()->subMonthsNoOverflow(7));
+        $entry = $this->journalEntry($user, 'Expired private entry.', GratitudeJournalVisibility::Private, now()->subMonthsNoOverflow(7));
+
+        $this->artisan('gratitude-journal:delete-expired')->assertExitCode(0);
+
+        $this->assertNull(LightPost::query()->find($entry->id));
+    }
+
+    public function test_an_expired_community_journal_entry_is_deleted(): void
+    {
+        $user = User::factory()->create();
+        $entry = $this->journalEntry($user, 'Expired community entry.', GratitudeJournalVisibility::Community, now()->subMonthsNoOverflow(7));
 
         $this->artisan('gratitude-journal:delete-expired')->assertExitCode(0);
 
@@ -63,7 +74,7 @@ class GratitudeJournalRetentionTest extends TestCase
     public function test_a_non_expired_journal_entry_is_retained(): void
     {
         $user = User::factory()->create();
-        $entry = $this->journalEntry($user, 'Still within the retention window.', true, now()->subMonthsNoOverflow(5));
+        $entry = $this->journalEntry($user, 'Still within the retention window.', GratitudeJournalVisibility::Public, now()->subMonthsNoOverflow(5));
 
         $this->artisan('gratitude-journal:delete-expired')->assertExitCode(0);
 
@@ -83,7 +94,7 @@ class GratitudeJournalRetentionTest extends TestCase
             'user_id' => $user->id,
             'source' => LightPostSource::Registration,
             'content' => 'A very old registration light post.',
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
         $post->forceFill(['created_at' => now()->subYears(5)])->save();
 
@@ -95,8 +106,8 @@ class GratitudeJournalRetentionTest extends TestCase
     public function test_running_cleanup_twice_is_safe_and_idempotent(): void
     {
         $user = User::factory()->create();
-        $expired = $this->journalEntry($user, 'Expired, deleted on the first run.', true, now()->subMonthsNoOverflow(7));
-        $retained = $this->journalEntry($user, 'Retained across both runs.', true, now()->subMonthsNoOverflow(1));
+        $expired = $this->journalEntry($user, 'Expired, deleted on the first run.', GratitudeJournalVisibility::Public, now()->subMonthsNoOverflow(7));
+        $retained = $this->journalEntry($user, 'Retained across both runs.', GratitudeJournalVisibility::Public, now()->subMonthsNoOverflow(1));
 
         $this->artisan('gratitude-journal:delete-expired')->assertExitCode(0);
         $this->assertNull(LightPost::query()->find($expired->id));
@@ -109,13 +120,13 @@ class GratitudeJournalRetentionTest extends TestCase
         $this->assertSame(1, LightPost::query()->count());
     }
 
-    private function journalEntry(User $user, string $content, bool $isPublic, Carbon $createdAt): LightPost
+    private function journalEntry(User $user, string $content, GratitudeJournalVisibility $visibility, Carbon $createdAt): LightPost
     {
         $entry = LightPost::query()->create([
             'user_id' => $user->id,
             'source' => LightPostSource::Journal,
             'content' => $content,
-            'is_public' => $isPublic,
+            'visibility' => $visibility,
         ]);
 
         $entry->forceFill(['created_at' => $createdAt])->save();

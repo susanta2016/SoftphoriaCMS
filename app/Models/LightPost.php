@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\GratitudeJournalVisibility;
 use App\Enums\LightPostSource;
 use App\Models\Concerns\HasPublicId;
 use App\Shared\Support\Search\SearchResultRepresentable;
@@ -19,9 +20,12 @@ use Laravel\Scout\Searchable;
  * CreatesLightPostOnRegistration) or a Gratitude Journal entry
  * (App\Actions\GratitudeJournal), distinguished by `source`
  * (App\Enums\LightPostSource; Gratitude Journal audit §3/§13 — reuses this
- * table rather than a second one). A private (non-public) Light Post is not
- * shown anywhere, regardless of source. A public *registration* post also
- * has its own minimal detail page (LightPostController@show,
+ * table rather than a second one). Visibility is a three-state enum
+ * (App\Enums\GratitudeJournalVisibility — Gratitude Journal three-state
+ * visibility change, 2026-09-05, replacing the previous is_public boolean):
+ * Public (homepage), Private (owner only), Community (the shared member
+ * feed). A registration post is always Public. A public *registration* post
+ * also has its own minimal detail page (LightPostController@show,
  * light-posts.show) — added only so unified Search (see App\Modules\Search)
  * has a canonical URL to link to; it is deliberately NOT registered in
  * config('seo.sitemap_sources') (see that config file's own comment, which
@@ -30,9 +34,10 @@ use Laravel\Scout\Searchable;
  * hence ROBOTS_NOINDEX in LightPostController rather than Sitemapable. A
  * Gratitude Journal entry has NO detail page and is NOT searchable at all —
  * see newScoutQuery()/shouldBeSearchable() and LightPostController::show()
- * below — its only public surface is the homepage feed.
+ * below — its only public surfaces are the homepage feed (Public) and the
+ * shared member feed (Community).
  */
-#[Fillable(['user_id', 'source', 'content', 'is_public'])]
+#[Fillable(['user_id', 'source', 'content', 'visibility'])]
 class LightPost extends Model implements SearchResultRepresentable
 {
     use HasPublicId, Searchable;
@@ -41,7 +46,7 @@ class LightPost extends Model implements SearchResultRepresentable
     {
         return [
             'source' => LightPostSource::class,
-            'is_public' => 'boolean',
+            'visibility' => GratitudeJournalVisibility::class,
         ];
     }
 
@@ -57,7 +62,26 @@ class LightPost extends Model implements SearchResultRepresentable
 
     public function scopePublic(Builder $query): Builder
     {
-        return $query->where('is_public', true);
+        return $query->where('visibility', GratitudeJournalVisibility::Public);
+    }
+
+    /**
+     * Owner-only — never shown on the homepage, the shared member feed,
+     * search, or anywhere besides the owner's own Account "Your Entries".
+     */
+    public function scopePrivate(Builder $query): Builder
+    {
+        return $query->where('visibility', GratitudeJournalVisibility::Private);
+    }
+
+    /**
+     * The shared member feed's own visibility state — exactly the behavior
+     * the old is_public = false ("Private") state already had. Only a
+     * Gratitude Journal entry can ever carry this value.
+     */
+    public function scopeCommunity(Builder $query): Builder
+    {
+        return $query->where('visibility', GratitudeJournalVisibility::Community);
     }
 
     /**
@@ -111,7 +135,7 @@ class LightPost extends Model implements SearchResultRepresentable
 
     public function shouldBeSearchable(): bool
     {
-        return $this->is_public && $this->source === LightPostSource::Registration;
+        return $this->visibility === GratitudeJournalVisibility::Public && $this->source === LightPostSource::Registration;
     }
 
     public function searchResultType(): string

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Registration\Concerns;
 
+use App\Enums\GratitudeJournalVisibility;
 use App\Enums\LightPostSource;
 use App\Models\User;
 
@@ -37,7 +38,7 @@ trait CreatesLightPostOnRegistration
         $user->lightPosts()->create([
             'source' => LightPostSource::Registration,
             'content' => $content,
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
     }
 }

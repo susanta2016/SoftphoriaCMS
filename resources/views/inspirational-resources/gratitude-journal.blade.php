@@ -11,7 +11,7 @@
                     <span class="text-brand-gold">✦</span>
                 </div>
                 <p class="max-w-xl text-base leading-relaxed text-brand-navy/75">
-                    Private gratitude shared within our member community.
+                    Gratitude shared within our member community.
                 </p>
             </div>
         </div>

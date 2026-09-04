@@ -197,14 +197,16 @@ class HomeController extends Controller implements Sitemapable
     /**
      * The "Latest Gratitude" homepage carousel's real content — reuses this
      * existing display slot rather than a parallel mechanism. Client-confirmed
-     * (2026-09-04): this section now shows Public Gratitude Journal entries
-     * only (source = journal, is_public = true) — registration-time Light
-     * Posts are deliberately excluded here and remain their own, separate,
-     * untouched feature (still reachable via their own light-posts.show
-     * route and still searchable — see LightPost's own docblock). A Private
-     * Gratitude Journal entry never reaches this query at all, the same
-     * public()-scope guarantee GratitudeJournalVisibilityTest already
-     * covers for this method.
+     * (2026-09-04): this section shows Public Gratitude Journal entries only
+     * (source = journal, visibility = public — App\Enums\
+     * GratitudeJournalVisibility, Gratitude Journal three-state visibility
+     * change, 2026-09-05) — registration-time Light Posts are deliberately
+     * excluded here and remain their own, separate, untouched feature (still
+     * reachable via their own light-posts.show route and still searchable —
+     * see LightPost's own docblock). Neither a Private nor a Community
+     * Gratitude Journal entry ever reaches this query, the same public()-
+     * scope guarantee GratitudeJournalVisibilityTest already covers for this
+     * method.
      *
      * orderByDesc('id') as a tiebreaker alongside latest() — same reasoning
      * as GratitudeJournalFeedController/InspirationalResourceController's

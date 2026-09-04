@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Community;
 
+use App\Enums\GratitudeJournalVisibility;
 use App\Models\LightPost;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -27,7 +28,7 @@ class LightPostShowTest extends TestCase
         $post = LightPost::query()->create([
             'user_id' => $user->id,
             'content' => 'Grateful for this new morning.',
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
 
         $response = $this->get(route('light-posts.show', $post));
@@ -43,7 +44,7 @@ class LightPostShowTest extends TestCase
         $post = LightPost::query()->create([
             'user_id' => $user->id,
             'content' => 'A private thought.',
-            'is_public' => false,
+            'visibility' => GratitudeJournalVisibility::Private,
         ]);
 
         $response = $this->get(route('light-posts.show', $post));
@@ -57,7 +58,7 @@ class LightPostShowTest extends TestCase
         $post = LightPost::query()->create([
             'user_id' => $user->id,
             'content' => 'A private thought only the author wrote.',
-            'is_public' => false,
+            'visibility' => GratitudeJournalVisibility::Private,
         ]);
 
         $response = $this->actingAs($user)->get(route('light-posts.show', $post));
@@ -78,7 +79,7 @@ class LightPostShowTest extends TestCase
         $post = LightPost::query()->create([
             'user_id' => $user->id,
             'content' => 'A public reflection.',
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
 
         $response = $this->get(route('light-posts.show', $post));
@@ -92,7 +93,7 @@ class LightPostShowTest extends TestCase
         $post = LightPost::query()->create([
             'user_id' => $user->id,
             'content' => 'A public reflection with a canonical url.',
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
 
         $response = $this->get(route('light-posts.show', $post));
@@ -106,7 +107,7 @@ class LightPostShowTest extends TestCase
         $post = LightPost::query()->create([
             'user_id' => $user->id,
             'content' => 'A public reflection that stays out of the sitemap.',
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
 
         $response = $this->get('/sitemap.xml');

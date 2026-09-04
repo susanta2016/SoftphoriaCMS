@@ -19,14 +19,19 @@ use Illuminate\Contracts\View\View;
  * store/update/destroy at all, so there is no duplicate CRUD path to a
  * light_posts row.
  *
- * Private journal entries only (client-confirmed, 2026-09-04) — a Public
- * journal entry's exposure is the homepage carousel instead
- * (HomeController::latestGratitudeEntries(), untouched by this controller);
- * it does not also appear here. This is the one and only place a Private
- * entry is ever shown to anyone besides its author — the public
- * LightPostController::show() detail route still rejects every
- * journal-sourced row (public or private) regardless. The route itself
- * (routes/web.php) is what keeps a guest out of this page entirely.
+ * "For Community" entries only (Gratitude Journal three-state visibility
+ * change, 2026-09-05) — this is exactly the behavior the old is_public =
+ * false ("Private") state already had; that state was renamed/reused as
+ * Community rather than reinterpreted, so this page's actual content is
+ * unchanged for every pre-existing row (see the visibility migration's own
+ * docblock). A Public journal entry's exposure is the homepage carousel
+ * instead (HomeController::latestGratitudeEntries(), untouched by this
+ * controller) — it does not also appear here. A genuinely Private entry
+ * (the new state) never appears here either — only in its owner's own
+ * Account "Your Entries". The public LightPostController::show() detail
+ * route still rejects every journal-sourced row regardless of visibility.
+ * The route itself (routes/web.php) is what keeps a guest out of this page
+ * entirely.
  */
 class GratitudeJournalFeedController extends Controller
 {
@@ -41,11 +46,11 @@ class GratitudeJournalFeedController extends Controller
     {
         $chrome = $this->siteChrome($settings);
 
-        $entries = LightPost::query()->journal()->where('is_public', false)->with('user')->latest()->orderByDesc('id')->paginate(10)->withQueryString();
+        $entries = LightPost::query()->journal()->community()->with('user')->latest()->orderByDesc('id')->paginate(10)->withQueryString();
 
         $seo = SeoTagBuilder::build(null, [
             'title' => "Gratitude Journal — {$chrome['siteName']}",
-            'description' => 'Read private gratitude shared within our member community.',
+            'description' => 'Read gratitude shared within our member community.',
             'canonical' => route('inspirational-resources.gratitude-journal'),
             'type' => 'website',
             'robots' => SeoTagBuilder::ROBOTS_NOINDEX,

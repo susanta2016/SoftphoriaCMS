@@ -3,6 +3,7 @@
 namespace Tests\Feature\GratitudeJournal;
 
 use App\Actions\GratitudeJournal\CreateGratitudeJournalEntryAction;
+use App\Enums\GratitudeJournalVisibility;
 use App\Enums\LightPostSource;
 use App\Models\LightPost;
 use App\Models\User;
@@ -30,7 +31,7 @@ class GratitudeJournalSearchTest extends TestCase
             'user_id' => $user->id,
             'source' => LightPostSource::Registration,
             'content' => 'A wholly distinctive registration phrase '.uniqid(),
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
 
         $response = $this->get(route('search.index', ['q' => 'wholly distinctive registration']));
@@ -44,7 +45,7 @@ class GratitudeJournalSearchTest extends TestCase
     {
         $user = User::factory()->create();
         $phrase = 'A wholly distinctive journal phrase '.uniqid();
-        (new CreateGratitudeJournalEntryAction)->handle($user, $phrase, true);
+        (new CreateGratitudeJournalEntryAction)->handle($user, $phrase, GratitudeJournalVisibility::Public);
 
         $response = $this->get(route('search.index', ['q' => 'wholly distinctive journal']));
 

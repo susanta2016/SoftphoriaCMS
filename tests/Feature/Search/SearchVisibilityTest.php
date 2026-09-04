@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Search;
 
+use App\Enums\GratitudeJournalVisibility;
 use App\Models\LightPost;
 use App\Models\User;
 use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
@@ -175,7 +176,7 @@ class SearchVisibilityTest extends TestCase
         $post = LightPost::query()->create([
             'user_id' => $user->id,
             'content' => 'A wholly distinctive gratitude phrase '.uniqid(),
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
 
         $response = $this->get(route('search.index', ['q' => 'wholly distinctive gratitude']));
@@ -191,7 +192,7 @@ class SearchVisibilityTest extends TestCase
         LightPost::query()->create([
             'user_id' => $user->id,
             'content' => 'A wholly private uniquely phrased thought '.uniqid(),
-            'is_public' => false,
+            'visibility' => GratitudeJournalVisibility::Private,
         ]);
 
         $response = $this->get(route('search.index', ['q' => 'wholly private uniquely phrased']));
@@ -246,12 +247,12 @@ class SearchVisibilityTest extends TestCase
         $post = LightPost::query()->create([
             'user_id' => $user->id,
             'content' => 'A once public now hidden reflection '.uniqid(),
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
         $response = $this->get(route('search.index', ['q' => 'once public now hidden']));
         $response->assertViewHas('results', fn ($results) => $results->getCollection()->isNotEmpty());
 
-        $post->update(['is_public' => false]);
+        $post->update(['visibility' => GratitudeJournalVisibility::Private]);
 
         $response = $this->get(route('search.index', ['q' => 'once public now hidden']));
         $response->assertViewHas('results', fn ($results) => $results->getCollection()->isEmpty());

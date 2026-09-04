@@ -4,6 +4,7 @@ namespace Tests\Feature\GratitudeJournal;
 
 use App\Actions\GratitudeJournal\CreateGratitudeJournalEntryAction;
 use App\Actions\Registration\Concerns\CreatesLightPostOnRegistration;
+use App\Enums\GratitudeJournalVisibility;
 use App\Enums\LightPostSource;
 use App\Models\LightPost;
 use App\Models\User;
@@ -64,7 +65,7 @@ class GratitudeJournalDatabaseTest extends TestCase
         $post = LightPost::query()->create([
             'user_id' => $user->id,
             'content' => 'A pre-existing post with no source specified.',
-            'is_public' => true,
+            'visibility' => GratitudeJournalVisibility::Public,
         ]);
 
         $this->assertSame(LightPostSource::Registration, $post->fresh()->source);

@@ -6,6 +6,7 @@ use App\Actions\GratitudeJournal\CreateGratitudeJournalEntryAction;
 use App\Actions\GratitudeJournal\DeleteGratitudeJournalEntryAction;
 use App\Actions\GratitudeJournal\UpdateGratitudeJournalEntryAction;
 use App\Actions\GratitudeJournal\UpdateGratitudeReminderFrequencyAction;
+use App\Enums\GratitudeJournalVisibility;
 use App\Enums\GratitudeReminderFrequency;
 use App\Enums\LightPostSource;
 use App\Http\Controllers\Controller;
@@ -62,6 +63,7 @@ class GratitudeJournalController extends Controller
             'maxLength' => (int) config('features.gratitude_journal_max_length'),
             'reminderFrequency' => $user->gratitudeReminderFrequency(),
             'reminderFrequencies' => GratitudeReminderFrequency::cases(),
+            'visibilityOptions' => GratitudeJournalVisibility::cases(),
         ]);
     }
 
@@ -69,15 +71,7 @@ class GratitudeJournalController extends Controller
     {
         $data = $this->validateEntry($request);
 
-        // No default here — matches update() below. An unchecked HTML
-        // checkbox is never sent at all, so "is_public absent" must mean
-        // false (private), the same as it already correctly does on edit;
-        // a hardcoded `true` default previously made an unchecked box on
-        // the New Entry form silently save as Public regardless of what
-        // the member selected. The form's own checkbox still defaults to
-        // checked, which is what actually gives a *new* entry Public as
-        // its starting visibility — this call has no opinion of its own.
-        $action->handle(Auth::user(), $data['content'], $request->boolean('is_public'));
+        $action->handle(Auth::user(), $data['content'], $this->resolveVisibility($request));
 
         return redirect()->route('account.gratitude-journal.index')->with('status', 'Your Gratitude Journal entry has been saved.');
     }
@@ -88,9 +82,23 @@ class GratitudeJournalController extends Controller
 
         $data = $this->validateEntry($request);
 
-        $action->handle($lightPost, $data['content'], $request->boolean('is_public'));
+        $action->handle($lightPost, $data['content'], $this->resolveVisibility($request));
 
         return redirect()->route('account.gratitude-journal.index')->with('status', 'Your Gratitude Journal entry has been updated.');
+    }
+
+    /**
+     * The account form's visibility control is a closed 3-option selector
+     * (Public/Private/For Community), always submitting one of the three
+     * valid values in normal use. A missing or unrecognized value (a
+     * malformed/direct request, or a legacy caller that never sends the
+     * field at all) falls back to Public — the same conservative default
+     * CreateGratitudeJournalEntryAction's own default parameter uses,
+     * rather than rejecting the request outright.
+     */
+    private function resolveVisibility(Request $request): GratitudeJournalVisibility
+    {
+        return GratitudeJournalVisibility::tryFrom((string) $request->input('visibility')) ?? GratitudeJournalVisibility::Public;
     }
 
     public function destroy(LightPost $lightPost, DeleteGratitudeJournalEntryAction $action): RedirectResponse

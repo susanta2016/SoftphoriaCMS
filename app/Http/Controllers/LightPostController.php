@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\GratitudeJournalVisibility;
 use App\Enums\LightPostSource;
 use App\Models\LightPost;
 use App\Models\Media;
@@ -39,7 +40,7 @@ class LightPostController extends Controller
 {
     public function show(LightPost $lightPost, SettingsRepository $settings): View
     {
-        abort_unless($lightPost->is_public && $lightPost->source === LightPostSource::Registration, 404);
+        abort_unless($lightPost->visibility === GratitudeJournalVisibility::Public && $lightPost->source === LightPostSource::Registration, 404);
 
         $lightPost->load('user');
         $chrome = $this->siteChrome($settings);
