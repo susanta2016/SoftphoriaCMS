@@ -5,7 +5,6 @@
     $artworkUrl = $episode->thumbnailUrl();
     $bannerUrl = $heroBanner ? Storage::disk($heroBanner->disk)->url($heroBanner->path) : null;
     $durationLabel = $episode->duration_seconds ? intdiv($episode->duration_seconds, 60).' min' : null;
-    $canDownload = $episode->audio !== null;
 @endphp
 
 <x-layouts.site :seo="$seo">
@@ -84,20 +83,6 @@
                     @endif
 
                     <div class="mt-6 flex flex-wrap items-center gap-3">
-                        @auth
-                            @if ($canDownload)
-                                <a href="{{ route('podcast.episodes.download', $episode) }}" class="inline-flex items-center gap-2 rounded-md border border-brand-navy/20 px-5 py-2.5 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M12 4v11m0 0 4-4m-4 4-4-4M4 19h16" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                    Download Audio
-                                </a>
-                            @endif
-                        @else
-                            <a href="{{ route('login') }}" class="inline-flex items-center gap-2 rounded-md border border-brand-navy/20 px-5 py-2.5 text-sm font-medium text-brand-navy/60 transition hover:border-brand-gold hover:text-brand-gold" title="Log in to download">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M12 4v11m0 0 4-4m-4 4-4-4M4 19h16" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                Log in to Download Audio
-                            </a>
-                        @endauth
-
                         <div class="inline-flex items-center gap-2">
                             <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(route('podcast.episodes.show', $episode)) }}" target="_blank" rel="noopener" aria-label="Share on Facebook" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12Z"/></svg>
@@ -107,6 +92,26 @@
                             </a>
                         </div>
                     </div>
+
+                    {{--
+                        Play-only audio player (replaces the removed "Download
+                        Audio" link, client-confirmed 2026-09-05) — streams the
+                        episode's existing uploaded audio via the public
+                        PodcastEpisodeStreamController, open to guests and
+                        members alike (same "unrestricted" precedent as the
+                        YouTube embed above). controlsList="nodownload" hides
+                        the browser's built-in download affordance in
+                        Chromium/Safari; Firefox has no equivalent and this
+                        cannot fully prevent it there — an inherent native
+                        <audio> limitation, not something app code can close.
+                    --}}
+                    @if ($episode->audio)
+                        <div class="mt-4">
+                            <audio controls controlslist="nodownload" preload="none" class="w-full" data-podcast-audio-player src="{{ route('podcast.episodes.stream', $episode) }}">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                    @endif
 
                     @if ($episode->description)
                         <div class="mt-10">

@@ -80,14 +80,22 @@ class PodcastEpisodeDownloadControllerTest extends TestCase
         $response->assertSessionHas('download_error');
     }
 
-    public function test_the_episode_page_shows_a_download_link_for_a_registered_user(): void
+    /**
+     * The "Download Audio" link was removed from the episode page
+     * (client-confirmed, 2026-09-05) in favor of the on-page audio player —
+     * see PodcastEpisodeAudioPlayerTest for the player's own coverage. The
+     * backend download route/controller above are left fully intact; this
+     * only confirms the page itself no longer links to it, for any visitor.
+     */
+    public function test_the_episode_page_no_longer_shows_a_download_link_for_a_registered_user(): void
     {
         $episode = $this->episodeWithAudio('audio-bytes');
         $user = User::factory()->create(['status' => 'active']);
 
         $response = $this->actingAs($user)->get(route('podcast.episodes.show', $episode));
 
-        $response->assertSee(route('podcast.episodes.download', $episode), false);
+        $response->assertDontSee(route('podcast.episodes.download', $episode), false);
+        $response->assertDontSee('Download Audio');
     }
 
     public function test_the_episode_page_does_not_show_a_download_link_for_a_guest(): void
@@ -97,6 +105,7 @@ class PodcastEpisodeDownloadControllerTest extends TestCase
         $response = $this->get(route('podcast.episodes.show', $episode));
 
         $response->assertDontSee(route('podcast.episodes.download', $episode), false);
+        $response->assertDontSee('Download Audio');
     }
 
     private function episodeWithAudio(string $content, array $overrides = []): PodcastEpisode

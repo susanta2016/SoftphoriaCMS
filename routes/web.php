@@ -36,6 +36,7 @@ use App\Http\Controllers\Podcast\PodcastController;
 use App\Http\Controllers\Podcast\PodcastEpisodeDownloadController;
 use App\Http\Controllers\Podcast\PodcastEpisodeReactionController;
 use App\Http\Controllers\Podcast\PodcastEpisodeReviewController;
+use App\Http\Controllers\Podcast\PodcastEpisodeStreamController;
 use App\Http\Controllers\PoetryProse\PoetryProseController;
 use App\Http\Controllers\PoetryProse\PoetryProseReactionController;
 use App\Http\Controllers\PoetryProse\PoetryProseReviewController;
@@ -236,11 +237,15 @@ Route::get('/inspirational-resources/{resourceSubmission:slug}', [InspirationalR
 // Public Podcast — landing/all-episodes/episode pages, fully public once
 // Published, same shape as Poetry/Prose/Music. An episode's YouTube video
 // (embed_url) is the playback experience — free and unrestricted for
-// guests too; only the Download route (the uploaded audio file) is
+// guests too. The on-page audio player (stream route below) is the same:
+// open to guests and members alike (client-confirmed, 2026-09-05); only the
+// Download route (the uploaded audio file, as an attachment) stays
 // auth-only, and independent of Member Subscription.
 Route::get('/podcast', [PodcastController::class, 'index'])->name('podcast.index');
 Route::get('/podcast/episodes', [PodcastController::class, 'episodes'])->name('podcast.episodes.index');
 Route::get('/podcast/episodes/{episode:slug}', [PodcastController::class, 'show'])->name('podcast.episodes.show');
+Route::get('/podcast/episodes/{episode:slug}/stream', PodcastEpisodeStreamController::class)
+    ->name('podcast.episodes.stream');
 Route::get('/podcast/episodes/{episode:slug}/download', PodcastEpisodeDownloadController::class)
     ->middleware('auth')
     ->name('podcast.episodes.download');
