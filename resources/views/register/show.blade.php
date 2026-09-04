@@ -47,7 +47,7 @@
                 <span class="text-brand-gold">✦</span>
                 <span class="h-px w-12 bg-brand-gold/70"></span>
             </div>
-            <p class="text-sm text-brand-navy/70">Join for free, or become a Pro Member for full access.</p>
+            <p class="text-sm text-brand-navy/70">Join for free, the is no membership charges.</p>
         </div>
 
         @if (session('registration_notice'))
