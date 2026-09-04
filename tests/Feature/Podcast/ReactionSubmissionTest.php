@@ -189,6 +189,10 @@ class ReactionSubmissionTest extends TestCase
 
     public function test_a_user_can_comment_without_reacting(): void
     {
+        // Comments are off by default for Podcast (config('features.podcast_comments_enabled'))
+        // — enabled here only to exercise this cross-feature independence
+        // assertion, not because the shipped default has changed.
+        config(['features.podcast_comments_enabled' => true]);
         $episode = $this->episode();
         $user = User::factory()->create();
 
@@ -202,6 +206,7 @@ class ReactionSubmissionTest extends TestCase
 
     public function test_a_user_can_do_both_independently(): void
     {
+        config(['features.podcast_comments_enabled' => true]);
         $episode = $this->episode();
         $user = User::factory()->create();
 
@@ -245,6 +250,25 @@ class ReactionSubmissionTest extends TestCase
 
         $this->assertSame(1, $episodeA->reactions()->count());
         $this->assertSame(0, $episodeB->reactions()->count());
+    }
+
+    /**
+     * Client-confirmed (2026-09-04): the 🙌 reaction stays enabled for
+     * Podcast by default — this test only confirms the module's own flag
+     * genuinely gates the endpoint server-side
+     * (config('features.podcast_reactions_enabled')), not that the shipped
+     * default has changed.
+     */
+    public function test_reactions_are_disabled_when_the_module_config_is_off(): void
+    {
+        config(['features.podcast_reactions_enabled' => false]);
+        $episode = $this->episode();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('podcast.episodes.reactions.toggle', $episode));
+
+        $response->assertNotFound();
+        $this->assertSame(0, Reaction::query()->count());
     }
 
     private function episode(): PodcastEpisode

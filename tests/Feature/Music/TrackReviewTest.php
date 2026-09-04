@@ -36,6 +36,21 @@ class TrackReviewTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Client-confirmed (2026-09-04): internal comments are disabled for
+     * Music by default (config('features.music_comments_enabled') defaults
+     * to false, the 🙌 reaction is what stays on). Every test below except
+     * the dedicated disabled-by-default ones re-enables the flag here so
+     * this suite continues to exercise the full comment feature, independent
+     * of the shipped production default.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['features.music_comments_enabled' => true]);
+    }
+
     public function test_a_guest_cannot_submit_a_comment_and_is_redirected_to_login(): void
     {
         $track = $this->publishedSingleTrack();
@@ -473,6 +488,35 @@ class TrackReviewTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHas('review_status');
         $this->assertSame(0, Review::query()->count());
+    }
+
+    public function test_comments_are_disabled_when_the_module_config_is_off(): void
+    {
+        config(['features.music_comments_enabled' => false]);
+        $track = $this->publishedSingleTrack();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('music.tracks.reviews.store', $track), [
+            'content' => 'This should never be persisted.',
+        ]);
+
+        $response->assertNotFound();
+        $this->assertSame(0, Review::query()->count());
+    }
+
+    public function test_the_comment_ui_is_hidden_when_music_comments_are_disabled(): void
+    {
+        config(['features.music_comments_enabled' => false]);
+        $single = $this->single(['status' => ReleaseStatus::Published]);
+        $track = $this->track(null, $single, ['status' => TrackStatus::Published]);
+        $this->createApprovedComment($track, User::factory()->create(), 'A comment that must not render.');
+
+        $response = $this->get(route('music.singles.show', $single));
+
+        $response->assertOk();
+        $response->assertDontSee('A comment that must not render.');
+        $response->assertDontSee('data-review-form', false);
+        $response->assertDontSee('Leave a Comment');
     }
 
     private function createApprovedComment(Track $track, User $user, string $content): Review

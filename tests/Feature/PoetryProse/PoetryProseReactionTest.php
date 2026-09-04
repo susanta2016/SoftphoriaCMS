@@ -23,6 +23,20 @@ class PoetryProseReactionTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Client-confirmed (2026-09-04): reactions are disabled for Poetry/Prose
+     * by default (config('features.poetry_prose_reactions_enabled') defaults
+     * to false). Every test below except the dedicated disabled-by-default
+     * ones re-enables the flag here so this suite continues to exercise the
+     * full reaction feature, independent of the shipped production default.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['features.poetry_prose_reactions_enabled' => true]);
+    }
+
     public function test_a_guest_cannot_react_and_is_redirected_to_login(): void
     {
         $entry = $this->entry();
@@ -224,6 +238,30 @@ class PoetryProseReactionTest extends TestCase
 
         $this->assertSame(1, $entryA->reactions()->count());
         $this->assertSame(0, $entryB->reactions()->count());
+    }
+
+    public function test_reactions_are_disabled_when_the_module_config_is_off(): void
+    {
+        config(['features.poetry_prose_reactions_enabled' => false]);
+        $entry = $this->entry();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('poetry-prose.reactions.toggle', $entry));
+
+        $response->assertNotFound();
+        $this->assertSame(0, Reaction::query()->count());
+    }
+
+    public function test_the_reaction_button_is_hidden_when_poetry_prose_reactions_are_disabled(): void
+    {
+        config(['features.poetry_prose_reactions_enabled' => false]);
+        $entry = $this->entry();
+
+        $response = $this->actingAs(User::factory()->create())->get(route('poetry-prose.show', $entry));
+
+        $response->assertOk();
+        $response->assertDontSee('data-reaction-form', false);
+        $response->assertDontSee('data-reaction-button', false);
     }
 
     /**

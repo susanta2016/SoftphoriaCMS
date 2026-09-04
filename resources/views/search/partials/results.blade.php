@@ -3,7 +3,7 @@
 
     $typeIcons = [
         'Music' => '🎵',
-        'Poetry / Prose' => '📖',
+        'Light Posts' => '📖',
         'Inspirational Resource' => '✨',
         'Community' => '💬',
         'Podcast' => '🎧',

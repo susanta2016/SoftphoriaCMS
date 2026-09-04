@@ -247,7 +247,7 @@ class PoetryProse extends Model implements Reviewable, SearchResultRepresentable
 
     public function searchResultType(): string
     {
-        return 'Poetry / Prose';
+        return 'Light Posts';
     }
 
     public function searchResultTitle(): string

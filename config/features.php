@@ -101,4 +101,42 @@ return [
 
     'gratitude_journal_retention_months' => (int) env('GRATITUDE_JOURNAL_RETENTION_MONTHS', 6),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Module-Level Comment / Reaction Toggles (Light Posts / Music / Podcast)
+    |--------------------------------------------------------------------------
+    |
+    | Client-confirmed (2026-09-04): the shared App\Models\Review comment
+    | architecture and App\Models\Reaction 🙌 architecture (config/reviews.php)
+    | stay generic/shared code, but each module now independently controls
+    | whether its own comment form and reaction button are exposed. Checked
+    | by each module's own thin ReviewController/ReactionController (server-
+    | side enforcement, not just a hidden UI element) and by the matching
+    | Blade view. Never read via env() outside this file, per project
+    | convention. Gratitude Journal is untouched by any of these — it has no
+    | Review/Reaction relationship at all.
+    |
+    | Poetry/Prose ("Light Posts" is display text only — the underlying
+    | routes/models/tables keep their existing "poetry-prose"/PoetryProse
+    | naming) comments are word-counted, not character-counted, unlike every
+    | other module — see poetry_prose_comment_max_words below and
+    | config('reviews.max_length') for the unrelated, still-shared
+    | character limit that Music/Podcast continue to use unchanged.
+    |
+    */
+
+    'poetry_prose_comments_enabled' => env('POETRY_PROSE_COMMENTS_ENABLED', true),
+
+    'poetry_prose_reactions_enabled' => env('POETRY_PROSE_REACTIONS_ENABLED', false),
+
+    'poetry_prose_comment_max_words' => (int) env('POETRY_PROSE_COMMENT_MAX_WORDS', 50),
+
+    'music_comments_enabled' => env('MUSIC_COMMENTS_ENABLED', false),
+
+    'music_reactions_enabled' => env('MUSIC_REACTIONS_ENABLED', true),
+
+    'podcast_comments_enabled' => env('PODCAST_COMMENTS_ENABLED', false),
+
+    'podcast_reactions_enabled' => env('PODCAST_REACTIONS_ENABLED', true),
+
 ];

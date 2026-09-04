@@ -28,12 +28,18 @@ use Illuminate\Http\Request;
  * fetch call in resources/js/app.js) gets `{reacted, count}` back; a plain
  * form submission (no JS) still gets the original redirect-back, so the
  * feature keeps working with JavaScript disabled.
+ *
+ * **Client-confirmed (2026-09-04):** gated by
+ * config('features.podcast_reactions_enabled') — currently always true for
+ * Podcast, kept for the same server-side-enforcement consistency as the
+ * other two modules' reaction controllers.
  */
 class PodcastEpisodeReactionController extends Controller
 {
     public function toggle(Request $request, PodcastEpisode $episode, ToggleReactionAction $toggle): JsonResponse|RedirectResponse
     {
         abort_unless($episode->status === PodcastEpisodeStatus::Published, 404);
+        abort_unless(config('features.podcast_reactions_enabled'), 404);
 
         /** @var User $user */
         $user = $request->user();

@@ -105,17 +105,130 @@ class PoetryProseReviewTest extends TestCase
         $this->assertSame(0, Review::query()->count());
     }
 
-    public function test_review_content_cannot_exceed_the_maximum_length(): void
+    /**
+     * Client-confirmed (2026-09-04): Poetry/Prose ("Light Posts") comments
+     * are word-limited, not character-limited like every other module — see
+     * App\Rules\MaxWords and config('features.poetry_prose_comment_max_words').
+     * "Word" is any whitespace-separated token; the six tests below cover
+     * below/at/over the limit plus the two edge cases the client explicitly
+     * called out (multiple whitespace, punctuation attached to a word).
+     */
+    public function test_review_content_under_the_word_limit_is_accepted(): void
     {
         $entry = $this->entry();
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('poetry-prose.reviews.store', $entry), [
-            'content' => str_repeat('a', config('reviews.max_length') + 1),
+            'content' => implode(' ', array_fill(0, 49, 'word')),
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionDoesntHaveErrors('content');
+        $this->assertSame(1, Review::query()->count());
+    }
+
+    public function test_review_content_at_exactly_the_word_limit_is_accepted(): void
+    {
+        $entry = $this->entry();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('poetry-prose.reviews.store', $entry), [
+            'content' => implode(' ', array_fill(0, 50, 'word')),
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionDoesntHaveErrors('content');
+        $this->assertSame(1, Review::query()->count());
+    }
+
+    public function test_review_content_over_the_word_limit_is_rejected(): void
+    {
+        $entry = $this->entry();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('poetry-prose.reviews.store', $entry), [
+            'content' => implode(' ', array_fill(0, 51, 'word')),
         ]);
 
         $response->assertSessionHasErrors('content');
         $this->assertSame(0, Review::query()->count());
+    }
+
+    public function test_review_content_over_the_word_limit_is_never_silently_truncated(): void
+    {
+        $entry = $this->entry();
+        $user = User::factory()->create();
+        $content = implode(' ', array_fill(0, 60, 'word'));
+
+        $this->actingAs($user)->post(route('poetry-prose.reviews.store', $entry), [
+            'content' => $content,
+        ]);
+
+        $this->assertSame(0, Review::query()->count());
+    }
+
+    public function test_word_count_collapses_multiple_whitespace_between_words(): void
+    {
+        $entry = $this->entry();
+        $user = User::factory()->create();
+
+        // 50 real words separated by runs of multiple spaces/tabs/newlines —
+        // still exactly 50 words, must not be inflated by the extra
+        // whitespace into a false rejection.
+        $content = implode("  \t \n ", array_fill(0, 50, 'word'));
+
+        $response = $this->actingAs($user)->post(route('poetry-prose.reviews.store', $entry), [
+            'content' => $content,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionDoesntHaveErrors('content');
+        $this->assertSame(1, Review::query()->count());
+    }
+
+    public function test_punctuation_attached_to_a_word_counts_as_one_word(): void
+    {
+        $entry = $this->entry();
+        $user = User::factory()->create();
+
+        // "grateful," / "it's" / "piece." each count as a single word, not
+        // split by their attached punctuation.
+        $content = implode(' ', array_fill(0, 49, 'word,')).' piece.';
+
+        $response = $this->actingAs($user)->post(route('poetry-prose.reviews.store', $entry), [
+            'content' => $content,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionDoesntHaveErrors('content');
+        $this->assertSame(1, Review::query()->count());
+    }
+
+    public function test_poetry_prose_comments_are_disabled_when_the_module_config_is_off(): void
+    {
+        config(['features.poetry_prose_comments_enabled' => false]);
+        $entry = $this->entry();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('poetry-prose.reviews.store', $entry), [
+            'content' => 'This should never be persisted.',
+        ]);
+
+        $response->assertNotFound();
+        $this->assertSame(0, Review::query()->count());
+    }
+
+    public function test_the_comment_form_is_hidden_when_poetry_prose_comments_are_disabled(): void
+    {
+        config(['features.poetry_prose_comments_enabled' => false]);
+        $entry = $this->entry();
+        $this->createApprovedComment($entry, User::factory()->create(), 'A comment that must not render.');
+
+        $response = $this->actingAs(User::factory()->create())->get(route('poetry-prose.show', $entry));
+
+        $response->assertOk();
+        $response->assertDontSee('A comment that must not render.');
+        $response->assertDontSee('data-review-form', false);
     }
 
     public function test_a_review_is_pending_when_admin_approval_is_required(): void

@@ -21,7 +21,7 @@
                         type="search"
                         name="q"
                         value="{{ $query }}"
-                        placeholder="Search Music, Poetry/Prose, Inspirational Resources, Community…"
+                        placeholder="Search Music, Light Posts, Inspirational Resources, Community…"
                         class="w-full rounded-md border border-brand-navy/20 bg-white py-2.5 pr-3 pl-9 text-sm text-brand-navy placeholder:text-brand-navy/40 focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
                     >
                 </div>

@@ -29,12 +29,18 @@ use Illuminate\Http\Request;
  * fetch call in resources/js/app.js) gets `{reacted, count}` back; a plain
  * form submission (no JS) still gets the original redirect-back, so the
  * feature keeps working with JavaScript disabled.
+ *
+ * **Client-confirmed (2026-09-04):** gated by
+ * config('features.music_reactions_enabled') — currently always true for
+ * Music, kept for the same server-side-enforcement consistency as the other
+ * two modules' reaction controllers.
  */
 class TrackReactionController extends Controller
 {
     public function toggle(Request $request, Track $track, ToggleReactionAction $toggle): JsonResponse|RedirectResponse
     {
         abort_unless($track->status === TrackStatus::Published, 404);
+        abort_unless(config('features.music_reactions_enabled'), 404);
 
         $release = $track->release();
         abort_unless($release?->status === ReleaseStatus::Published, 404);

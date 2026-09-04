@@ -915,21 +915,61 @@ document.addEventListener('DOMContentLoaded', () => {
 // to pair with (data-review-rating/data-review-star) was removed — the
 // public form no longer collects a rating at all, only a comment. See
 // App\Actions\Review\SubmitReviewAction's own docblock.
+//
+// Client-confirmed (2026-09-04): Poetry/Prose ("Light Posts") is
+// word-limited, not character-limited — the form only carries
+// data-review-max-words when that module's config
+// (features.poetry_prose_comment_max_words) is in play; Music/Podcast forms
+// have no such attribute and keep the plain non-empty check above (their
+// character limit is still enforced by the textarea's own maxlength
+// attribute, unchanged). "Word" is defined identically to the server-side
+// App\Rules\MaxWords: any run of non-whitespace characters, so this counter
+// never disagrees with what the server will accept/reject.
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.querySelector('[data-review-form]');
     if (!form) return;
 
     const contentInput = form.querySelector('[data-review-content-input]');
     const contentError = form.querySelector('[data-review-content-error]');
+    const wordCounter = form.querySelector('[data-review-word-counter]');
+    const maxWordsAttr = form.dataset.reviewMaxWords;
+    const maxWords = maxWordsAttr ? parseInt(maxWordsAttr, 10) : null;
 
-    contentInput?.addEventListener('input', () => contentError?.classList.add('hidden'));
+    const countWords = (value) => {
+        const trimmed = value.trim();
+        return trimmed === '' ? 0 : trimmed.split(/\s+/).length;
+    };
+
+    const updateWordCounter = () => {
+        if (!wordCounter || maxWords === null) return;
+
+        const count = countWords(contentInput?.value ?? '');
+        wordCounter.textContent = `${count} / ${maxWords} words`;
+        wordCounter.classList.toggle('text-red-600', count > maxWords);
+        wordCounter.classList.toggle('text-brand-navy/40', count <= maxWords);
+    };
+
+    updateWordCounter();
+
+    contentInput?.addEventListener('input', () => {
+        contentError?.classList.add('hidden');
+        updateWordCounter();
+    });
 
     form.addEventListener('submit', (event) => {
-        const hasContent = (contentInput?.value ?? '').trim().length > 0;
+        const value = contentInput?.value ?? '';
+        const hasContent = value.trim().length > 0;
+        const withinWordLimit = maxWords === null || countWords(value) <= maxWords;
+        const isValid = hasContent && withinWordLimit;
 
-        contentError?.classList.toggle('hidden', hasContent);
+        if (contentError) {
+            contentError.textContent = ! hasContent
+                ? 'Please write a few words before submitting your comment.'
+                : `Comments can be at most ${maxWords} words.`;
+            contentError.classList.toggle('hidden', isValid);
+        }
 
-        if (!hasContent) {
+        if (!isValid) {
             event.preventDefault();
         }
     });
@@ -1288,7 +1328,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const DEBOUNCE_MS = 300;
     const TYPE_ICONS = {
         Music: '🎵',
-        'Poetry / Prose': '📖',
+        'Light Posts': '📖',
         'Inspirational Resource': '✨',
         Community: '💬',
         Podcast: '🎧',

@@ -187,6 +187,10 @@ class TrackReactionTest extends TestCase
 
     public function test_a_user_can_comment_without_reacting(): void
     {
+        // Comments are off by default for Music (config('features.music_comments_enabled'))
+        // — enabled here only to exercise this cross-feature independence
+        // assertion, not because the shipped default has changed.
+        config(['features.music_comments_enabled' => true]);
         $track = $this->publishedSingleTrack();
         $user = User::factory()->create();
 
@@ -200,6 +204,7 @@ class TrackReactionTest extends TestCase
 
     public function test_a_user_can_do_both_independently(): void
     {
+        config(['features.music_comments_enabled' => true]);
         $track = $this->publishedSingleTrack();
         $user = User::factory()->create();
 
@@ -236,6 +241,24 @@ class TrackReactionTest extends TestCase
 
         $this->assertSame(1, $trackA->reactions()->count());
         $this->assertSame(0, $trackB->reactions()->count());
+    }
+
+    /**
+     * Client-confirmed (2026-09-04): the 🙌 reaction stays enabled for Music
+     * by default — this test only confirms the module's own flag genuinely
+     * gates the endpoint server-side (config('features.music_reactions_enabled')),
+     * not that the shipped default has changed.
+     */
+    public function test_reactions_are_disabled_when_the_module_config_is_off(): void
+    {
+        config(['features.music_reactions_enabled' => false]);
+        $track = $this->publishedSingleTrack();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('music.tracks.reactions.toggle', $track));
+
+        $response->assertNotFound();
+        $this->assertSame(0, Reaction::query()->count());
     }
 
     private function publishedSingleTrack(array $overrides = []): Track

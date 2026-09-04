@@ -7,28 +7,40 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\PoetryProse\Enums\PoetryProseStatus;
 use App\Modules\PoetryProse\Models\PoetryProse;
+use App\Rules\MaxWords;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 /**
- * Public-facing comment submission for a Poetry/Prose entry. Mirrors
- * PodcastEpisodeReviewController/TrackReviewController exactly: the `auth`
+ * Public-facing comment submission for a Poetry/Prose ("Light Posts" is
+ * display text only — see resources/views for the label, this class/route/
+ * table keep their existing naming) entry. Mirrors
+ * PodcastEpisodeReviewController/TrackReviewController's shape: the `auth`
  * route middleware is the real server-side "guests cannot submit" gate (see
- * routes/web.php), and all persistence/moderation logic is delegated to the
- * same shared App\Actions\Review\SubmitReviewAction those modules use —
- * never a Poetry/Prose-specific copy.
+ * routes/web.php), and persistence/moderation is delegated to the same
+ * shared App\Actions\Review\SubmitReviewAction those modules use — never a
+ * Poetry/Prose-specific copy.
  *
  * **Client-confirmed reversal (2026-09-02):** no longer collects a star
  * rating — see SubmitReviewAction's own docblock. The honeypot check below
  * reuses ContactController::store()'s exact pattern (same field name,
  * same silent-success-on-trip behavior) rather than a new spam-prevention
  * mechanism.
+ *
+ * **Client-confirmed (2026-09-04):** unlike Music/Podcast, comments here are
+ * gated by config('features.poetry_prose_comments_enabled') (server-side —
+ * a disabled module must reject a submission even if the hidden form is
+ * bypassed) and validated by WORD count via App\Rules\MaxWords against
+ * config('features.poetry_prose_comment_max_words'), not the shared
+ * character-based config('reviews.max_length') that Music/Podcast keep
+ * using unchanged.
  */
 class PoetryProseReviewController extends Controller
 {
     public function store(Request $request, PoetryProse $poetryProse, SubmitReviewAction $submit): RedirectResponse
     {
         abort_unless($poetryProse->status === PoetryProseStatus::Published, 404);
+        abort_unless(config('features.poetry_prose_comments_enabled'), 404);
 
         // A real visitor never sees or fills in this field — see the
         // honeypot markup in resources/views/poetry-prose/show.blade.php.
@@ -45,13 +57,12 @@ class PoetryProseReviewController extends Controller
         // blank comment.
         $request->merge(['content' => trim((string) $request->input('content'))]);
 
-        $maxLength = config('reviews.max_length');
+        $maxWords = config('features.poetry_prose_comment_max_words');
 
         $data = $request->validate([
-            'content' => ['required', 'string', "max:{$maxLength}"],
+            'content' => ['required', 'string', new MaxWords($maxWords)],
         ], [
             'content.required' => 'Please write a few words before submitting your comment.',
-            'content.max' => "Comments can be at most {$maxLength} characters.",
         ]);
 
         /** @var User $user */

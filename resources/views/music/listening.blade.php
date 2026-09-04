@@ -384,7 +384,7 @@
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <h2 class="font-serif text-2xl text-brand-navy">What Listeners Are Saying</h2>
                         <div class="flex items-center gap-3">
-                            @if ($reviewCount > 0)
+                            @if (config('features.music_comments_enabled') && $reviewCount > 0)
                                 <span class="text-sm text-brand-navy/60">{{ $reviewCount }} {{ Str::plural('comment', $reviewCount) }}</span>
                             @endif
 
@@ -393,97 +393,104 @@
                                 reacting, both, or neither. Toggled asynchronously via
                                 resources/js/app.js (data-reaction-*); the real POST
                                 submit here is the no-JS fallback. --}}
+                            @if (config('features.music_reactions_enabled'))
+                                @auth
+                                    <form method="POST" action="{{ route('music.tracks.reactions.toggle', $onlyTrack) }}" data-reaction-form>
+                                        @csrf
+                                        <button
+                                            type="submit"
+                                            data-reaction-button
+                                            aria-pressed="{{ $userReacted ? 'true' : 'false' }}"
+                                            @class([
+                                                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition',
+                                                'border-brand-gold bg-brand-gold/10 text-brand-navy' => $userReacted,
+                                                'border-brand-navy/20 text-brand-navy/70 hover:border-brand-gold' => ! $userReacted,
+                                            ])
+                                        >
+                                            <span aria-hidden="true">🙌</span> <span data-reaction-count>{{ $reactionCount }}</span>
+                                        </button>
+                                    </form>
+                                @else
+                                    <a href="{{ route('login') }}" class="inline-flex items-center gap-1.5 rounded-full border border-brand-navy/20 px-3 py-1.5 text-sm font-medium text-brand-navy/70 transition hover:border-brand-gold" title="Log in to react">
+                                        <span aria-hidden="true">🙌</span> {{ $reactionCount }}
+                                    </a>
+                                @endauth
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Internal comments disabled for Music (client-confirmed,
+                        2026-09-04) — config('features.music_comments_enabled'),
+                        enforced server-side too in TrackReviewController. --}}
+                    @if (config('features.music_comments_enabled'))
+                        @if ($reviews->isEmpty())
+                            <p class="mt-6 text-sm text-brand-navy/60">Be the first to share your thoughts.</p>
+                        @else
+                            <div class="mt-6 space-y-4">
+                                @foreach ($reviews as $review)
+                                    <div class="flex gap-3 rounded-xl border border-brand-navy/10 p-4">
+                                        <img src="{{ $review->reviewerAvatarUrl() }}" alt="" class="h-9 w-9 shrink-0 rounded-full object-cover">
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-sm leading-relaxed text-brand-navy/75">{{ $review->content }}</p>
+                                            <p class="mt-2 text-xs text-brand-navy/50">
+                                                {{ $review->user?->name ?? 'A Member' }} &middot; {{ $review->created_at->format('M j, Y') }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <div class="mt-8 rounded-xl bg-brand-ivory p-5">
                             @auth
-                                <form method="POST" action="{{ route('music.tracks.reactions.toggle', $onlyTrack) }}" data-reaction-form>
+                                @if (session('review_status'))
+                                    <p class="mb-4 rounded-md border border-brand-gold/30 bg-white px-4 py-3 text-sm text-brand-navy">{{ session('review_status') }}</p>
+                                @endif
+
+                                <h3 class="font-serif text-lg text-brand-navy">Leave a Comment</h3>
+                                <form method="POST" action="{{ route('music.tracks.reviews.store', $onlyTrack) }}" class="mt-4 space-y-4" data-review-form novalidate>
                                     @csrf
-                                    <button
-                                        type="submit"
-                                        data-reaction-button
-                                        aria-pressed="{{ $userReacted ? 'true' : 'false' }}"
-                                        @class([
-                                            'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition',
-                                            'border-brand-gold bg-brand-gold/10 text-brand-navy' => $userReacted,
-                                            'border-brand-navy/20 text-brand-navy/70 hover:border-brand-gold' => ! $userReacted,
-                                        ])
-                                    >
-                                        <span aria-hidden="true">🙌</span> <span data-reaction-count>{{ $reactionCount }}</span>
+
+                                    {{--
+                                        Honeypot spam trap — reuses ContactController::store()'s
+                                        exact pattern (same field name, same silent-discard
+                                        behavior on the server). Visually hidden off-screen
+                                        (never display:none/visibility:hidden, which some bots
+                                        detect and skip) and excluded from tab order.
+                                    --}}
+                                    <div class="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+                                        <label for="music-review-hp-website">Website</label>
+                                        <input type="text" id="music-review-hp-website" name="hp_website" tabindex="-1" autocomplete="off">
+                                    </div>
+
+                                    <div>
+                                        <label for="review-content" class="text-xs font-medium text-brand-navy/60">Your Comment</label>
+                                        <textarea id="review-content" name="content" rows="3" maxlength="{{ config('reviews.max_length') }}" data-review-content-input class="mt-1.5 w-full rounded-md border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy placeholder:text-brand-navy/40 focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none" placeholder="Share your thoughts on this song…">{{ old('content') }}</textarea>
+                                        <p data-review-content-error class="mt-1 hidden text-xs text-red-600">Please write a few words before submitting your comment.</p>
+                                        @error('content')
+                                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-brand-gold px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-gold-light">
+                                        Post Comment
                                     </button>
+                                    <p class="text-xs text-brand-navy/50">
+                                        @if (config('reviews.reviews_ratings_admin_approval'))
+                                            Your comment will appear here once approved.
+                                        @endif
+                                    </p>
                                 </form>
                             @else
-                                <a href="{{ route('login') }}" class="inline-flex items-center gap-1.5 rounded-full border border-brand-navy/20 px-3 py-1.5 text-sm font-medium text-brand-navy/70 transition hover:border-brand-gold" title="Log in to react">
-                                    <span aria-hidden="true">🙌</span> {{ $reactionCount }}
-                                </a>
+                                <p class="text-sm text-brand-navy/70">
+                                    <a href="{{ route('login') }}" class="font-semibold text-brand-gold hover:text-brand-navy">Log in</a>
+                                    or
+                                    <a href="{{ route('register.show') }}" class="font-semibold text-brand-gold hover:text-brand-navy">register</a>
+                                    to leave a comment.
+                                </p>
                             @endauth
                         </div>
-                    </div>
-
-                    @if ($reviews->isEmpty())
-                        <p class="mt-6 text-sm text-brand-navy/60">Be the first to share your thoughts.</p>
-                    @else
-                        <div class="mt-6 space-y-4">
-                            @foreach ($reviews as $review)
-                                <div class="flex gap-3 rounded-xl border border-brand-navy/10 p-4">
-                                    <img src="{{ $review->reviewerAvatarUrl() }}" alt="" class="h-9 w-9 shrink-0 rounded-full object-cover">
-                                    <div class="min-w-0 flex-1">
-                                        <p class="text-sm leading-relaxed text-brand-navy/75">{{ $review->content }}</p>
-                                        <p class="mt-2 text-xs text-brand-navy/50">
-                                            {{ $review->user?->name ?? 'A Member' }} &middot; {{ $review->created_at->format('M j, Y') }}
-                                        </p>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
                     @endif
-
-                    <div class="mt-8 rounded-xl bg-brand-ivory p-5">
-                        @auth
-                            @if (session('review_status'))
-                                <p class="mb-4 rounded-md border border-brand-gold/30 bg-white px-4 py-3 text-sm text-brand-navy">{{ session('review_status') }}</p>
-                            @endif
-
-                            <h3 class="font-serif text-lg text-brand-navy">Leave a Comment</h3>
-                            <form method="POST" action="{{ route('music.tracks.reviews.store', $onlyTrack) }}" class="mt-4 space-y-4" data-review-form novalidate>
-                                @csrf
-
-                                {{--
-                                    Honeypot spam trap — reuses ContactController::store()'s
-                                    exact pattern (same field name, same silent-discard
-                                    behavior on the server). Visually hidden off-screen
-                                    (never display:none/visibility:hidden, which some bots
-                                    detect and skip) and excluded from tab order.
-                                --}}
-                                <div class="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
-                                    <label for="music-review-hp-website">Website</label>
-                                    <input type="text" id="music-review-hp-website" name="hp_website" tabindex="-1" autocomplete="off">
-                                </div>
-
-                                <div>
-                                    <label for="review-content" class="text-xs font-medium text-brand-navy/60">Your Comment</label>
-                                    <textarea id="review-content" name="content" rows="3" maxlength="{{ config('reviews.max_length') }}" data-review-content-input class="mt-1.5 w-full rounded-md border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy placeholder:text-brand-navy/40 focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none" placeholder="Share your thoughts on this song…">{{ old('content') }}</textarea>
-                                    <p data-review-content-error class="mt-1 hidden text-xs text-red-600">Please write a few words before submitting your comment.</p>
-                                    @error('content')
-                                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-brand-gold px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-gold-light">
-                                    Post Comment
-                                </button>
-                                <p class="text-xs text-brand-navy/50">
-                                    @if (config('reviews.reviews_ratings_admin_approval'))
-                                        Your comment will appear here once approved.
-                                    @endif
-                                </p>
-                            </form>
-                        @else
-                            <p class="text-sm text-brand-navy/70">
-                                <a href="{{ route('login') }}" class="font-semibold text-brand-gold hover:text-brand-navy">Log in</a>
-                                or
-                                <a href="{{ route('register.show') }}" class="font-semibold text-brand-gold hover:text-brand-navy">register</a>
-                                to leave a comment.
-                            </p>
-                        @endauth
-                    </div>
                 </div>
             @endif
 

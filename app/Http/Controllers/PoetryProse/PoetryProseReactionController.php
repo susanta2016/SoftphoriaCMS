@@ -28,12 +28,18 @@ use Illuminate\Http\Request;
  * fetch call in resources/js/app.js) gets `{reacted, count}` back; a plain
  * form submission (no JS) still gets the original redirect-back, so the
  * feature keeps working with JavaScript disabled.
+ *
+ * **Client-confirmed (2026-09-04):** reactions are disabled for Poetry/Prose
+ * — gated server-side by config('features.poetry_prose_reactions_enabled'),
+ * not just a hidden button, so a direct POST is rejected the same as a
+ * genuinely unpublished entry.
  */
 class PoetryProseReactionController extends Controller
 {
     public function toggle(Request $request, PoetryProse $poetryProse, ToggleReactionAction $toggle): JsonResponse|RedirectResponse
     {
         abort_unless($poetryProse->status === PoetryProseStatus::Published, 404);
+        abort_unless(config('features.poetry_prose_reactions_enabled'), 404);
 
         /** @var User $user */
         $user = $request->user();

@@ -40,6 +40,15 @@ use UnitEnum;
  * docblock); a submission is a plain text comment now, and can no longer
  * be updated in place — every submission is its own independently-
  * moderated Review row.
+ *
+ * **Client-confirmed (2026-09-04):** the "Community" navigation group is
+ * hidden from the Filament sidebar entirely (shouldRegisterNavigation()
+ * below) — nothing else uses this group, so hiding it fully removes it from
+ * the menu. This is a pure navigation/UI change: the resource, its routes,
+ * the Review model, the reviews table, and all existing data are untouched,
+ * and an authorized admin who navigates to /admin/reviews directly still
+ * reaches it — Filament's navigation visibility is independent of route
+ * registration/access control.
  */
 class ReviewResource extends Resource
 {
@@ -48,6 +57,11 @@ class ReviewResource extends Resource
     protected static string|UnitEnum|null $navigationGroup = 'Community';
 
     protected static ?string $navigationLabel = 'Light Posts & Comments';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
 
     protected static ?string $modelLabel = 'Light Post / Comment';
 

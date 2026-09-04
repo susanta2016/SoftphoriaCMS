@@ -24,12 +24,20 @@ use Illuminate\Http\Request;
  * reuses ContactController::store()'s exact pattern (same field name,
  * same silent-success-on-trip behavior) rather than a new spam-prevention
  * mechanism.
+ *
+ * **Client-confirmed (2026-09-04):** internal comments are disabled for
+ * Podcast — comment discussion happens on YouTube instead. Gated
+ * server-side by config('features.podcast_comments_enabled'), not just a
+ * hidden form, so a direct POST is rejected the same as a genuinely
+ * unpublished episode. The independent 🙌 reaction
+ * (PodcastEpisodeReactionController) stays enabled.
  */
 class PodcastEpisodeReviewController extends Controller
 {
     public function store(Request $request, PodcastEpisode $episode, SubmitReviewAction $submit): RedirectResponse
     {
         abort_unless($episode->status === PodcastEpisodeStatus::Published, 404);
+        abort_unless(config('features.podcast_comments_enabled'), 404);
 
         // A real visitor never sees or fills in this field — see the
         // honeypot markup in resources/views/podcast/show.blade.php.

@@ -255,6 +255,40 @@ class ReviewResourceTest extends TestCase
         ]);
     }
 
+    /**
+     * Client-confirmed (2026-09-04): the "Community" navigation group (the
+     * only group ReviewResource belongs to) is hidden from the Filament
+     * sidebar entirely (ReviewResource::shouldRegisterNavigation() ===
+     * false) — checked from the dashboard, a different admin page, so an
+     * active-page highlight on /admin/reviews itself can't mask a still-
+     * present sidebar link. This is a pure navigation change: the resource,
+     * routes, model, table, and data are untouched — see the direct-access
+     * test right below.
+     */
+    public function test_community_navigation_group_does_not_appear_in_the_admin_sidebar(): void
+    {
+        $response = $this->actingAs($this->admin())->get('/admin');
+
+        $response->assertOk();
+        $response->assertDontSee('Community');
+        $response->assertDontSee('Light Posts &amp; Comments', false);
+    }
+
+    /**
+     * Hiding the navigation entry must never gate direct access — an
+     * authorized admin who already knows/bookmarks the URL (or follows a
+     * deep link) still reaches the resource and its data exactly as before.
+     */
+    public function test_direct_access_to_reviews_still_works_with_navigation_hidden(): void
+    {
+        $review = $this->createReview();
+
+        $response = $this->actingAs($this->admin())->get('/admin/reviews');
+
+        $response->assertOk();
+        $response->assertSee($review->content);
+    }
+
     private function admin(): User
     {
         $user = User::factory()->create(['status' => 'active']);

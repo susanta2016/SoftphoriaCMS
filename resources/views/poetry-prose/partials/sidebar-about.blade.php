@@ -1,5 +1,5 @@
 <div class="rounded-2xl bg-brand-ivory p-6 ring-1 ring-brand-navy/5">
-    <h2 class="font-serif text-lg text-brand-navy">About Poetry / Prose</h2>
+    <h2 class="font-serif text-lg text-brand-navy">About Light Posts</h2>
     <div class="mt-3 space-y-3 text-sm leading-relaxed text-brand-navy/70">
         @foreach (explode("\n\n", $aboutBody) as $paragraph)
             @if (trim($paragraph) !== '')
