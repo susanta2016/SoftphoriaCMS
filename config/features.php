@@ -139,4 +139,23 @@ return [
 
     'podcast_reactions_enabled' => env('PODCAST_REACTIONS_ENABLED', true),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Gratitude Journal Shared Feed Reaction Toggle
+    |--------------------------------------------------------------------------
+    |
+    | Client-confirmed (2026-09-05): the same generic App\Models\Reaction 🙌
+    | architecture used by Poetry/Prose, Music, and Podcast above, extended to
+    | Gratitude Journal entries on the shared member feed
+    | (/inspirational-resources/gratitude-journal). No comment toggle exists
+    | for Gratitude Journal — this is reaction-only. Enforced server-side by
+    | GratitudeJournalReactionController, which also restricts reactable
+    | LightPost rows to source = journal AND visibility = community
+    | regardless of this flag — see that controller's own docblock. Code
+    | default is false; only this environment's .env explicitly enables it.
+    |
+    */
+
+    'gratitude_journal_reactions_enabled' => env('GRATITUDE_JOURNAL_REACTIONS_ENABLED', false),
+
 ];

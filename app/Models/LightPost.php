@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Laravel\Scout\Builder as ScoutBuilder;
 use Laravel\Scout\Searchable;
@@ -58,6 +59,20 @@ class LightPost extends Model implements SearchResultRepresentable
     public function seo(): MorphOne
     {
         return $this->morphOne(SeoMetadata::class, 'seoable');
+    }
+
+    /**
+     * The generic 🙌 reaction (App\Models\Reaction) — same relation shape as
+     * Track/PodcastEpisode/PoetryProse. Having this relation does not by
+     * itself make every LightPost reactable: GratitudeJournalReactionController
+     * is what actually restricts a toggle to source = journal AND
+     * visibility = community rows, so a registration post or a non-Community
+     * journal entry never receives a real reaction despite this relation
+     * existing on every row.
+     */
+    public function reactions(): MorphMany
+    {
+        return $this->morphMany(Reaction::class, 'reactable');
     }
 
     public function scopePublic(Builder $query): Builder

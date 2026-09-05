@@ -5,9 +5,12 @@ namespace App\Http\Controllers\InspirationalResources;
 use App\Http\Controllers\Controller;
 use App\Models\LightPost;
 use App\Models\Media;
+use App\Models\Reaction;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * The Gratitude Journal shared member feed — READ-ONLY, a subpage of
@@ -46,7 +49,9 @@ class GratitudeJournalFeedController extends Controller
     {
         $chrome = $this->siteChrome($settings);
 
-        $entries = LightPost::query()->journal()->community()->with('user')->latest()->orderByDesc('id')->paginate(10)->withQueryString();
+        $entries = LightPost::query()->journal()->community()->with('user')->withCount('reactions')->latest()->orderByDesc('id')->paginate(10)->withQueryString();
+
+        $this->markReactedEntries($entries->getCollection());
 
         $seo = SeoTagBuilder::build(null, [
             'title' => "Gratitude Journal — {$chrome['siteName']}",
@@ -61,6 +66,33 @@ class GratitudeJournalFeedController extends Controller
             'seo' => $seo,
             'entries' => $entries,
         ]);
+    }
+
+    /**
+     * Sets a transient `userReacted` attribute on each entry for the
+     * current viewer — one query total for the whole page (10 entries),
+     * never one query per entry. Deliberately separate from
+     * `withCount('reactions')` above, which already gives every entry its
+     * total count in the same single paginated query.
+     *
+     * @param  Collection<int, LightPost>  $entries
+     */
+    private function markReactedEntries(Collection $entries): void
+    {
+        if (! Auth::check() || $entries->isEmpty()) {
+            $entries->each(fn (LightPost $entry) => $entry->userReacted = false);
+
+            return;
+        }
+
+        $reactedIds = Reaction::query()
+            ->where('reactable_type', LightPost::class)
+            ->where('user_id', Auth::id())
+            ->whereIn('reactable_id', $entries->pluck('id'))
+            ->pluck('reactable_id')
+            ->all();
+
+        $entries->each(fn (LightPost $entry) => $entry->userReacted = in_array($entry->id, $reactedIds, true));
     }
 
     /**

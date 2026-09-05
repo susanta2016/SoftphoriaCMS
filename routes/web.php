@@ -15,6 +15,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InspirationalResources\GratitudeJournalFeedController;
+use App\Http\Controllers\InspirationalResources\GratitudeJournalReactionController;
 use App\Http\Controllers\InspirationalResources\InspirationalResourceController;
 use App\Http\Controllers\InspirationalResources\InspirationalResourceSubmissionController;
 use App\Http\Controllers\LightPostController;
@@ -231,6 +232,21 @@ Route::post('/inspirational-resources/submit', [InspirationalResourceSubmissionC
 Route::get('/inspirational-resources/gratitude-journal', [GratitudeJournalFeedController::class, 'index'])
     ->middleware(['auth', EnsureAccountIsUsable::class])
     ->name('inspirational-resources.gratitude-journal');
+
+// The 🙌 reaction (client-confirmed, 2026-09-05) — same generic
+// App\Models\Reaction/ToggleReactionAction as Music/Podcast/Poetry-Prose
+// above, scoped to this shared feed's own entries. Registered immediately
+// after the feed's own GET route, still ahead of the
+// {resourceSubmission:slug} wildcard below, for the same routing-order
+// reason. Same auth + EnsureAccountIsUsable gate as the feed itself, plus
+// the same throttle:10,1 the other reaction routes use.
+// GratitudeJournalReactionController::toggle() is what actually enforces
+// source = journal AND visibility = community on the bound LightPost —
+// this route alone does not distinguish it from a registration post or a
+// Public/Private journal entry.
+Route::post('/inspirational-resources/gratitude-journal/{lightPost:public_id}/reactions', [GratitudeJournalReactionController::class, 'toggle'])
+    ->middleware(['auth', EnsureAccountIsUsable::class, 'throttle:10,1'])
+    ->name('inspirational-resources.gratitude-journal.reactions.toggle');
 
 Route::get('/inspirational-resources/{resourceSubmission:slug}', [InspirationalResourceController::class, 'show'])->name('inspirational-resources.show');
 

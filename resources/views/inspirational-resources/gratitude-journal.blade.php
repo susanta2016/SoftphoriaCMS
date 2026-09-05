@@ -30,9 +30,40 @@
                     @foreach ($entries as $entry)
                         <li class="py-8 sm:py-9">
                             <p class="max-w-3xl font-serif text-xl leading-relaxed text-brand-navy sm:text-2xl">{{ $entry->content }}</p>
-                            <p class="mt-4 text-xs text-brand-navy/50">
-                                {{ $entry->user?->name ?? 'A member' }} · <span class="tabular-nums">{{ $entry->created_at?->format('M j, Y') }}</span>
-                            </p>
+                            <div class="mt-4 flex flex-wrap items-center gap-4">
+                                <p class="text-xs text-brand-navy/50">
+                                    {{ $entry->user?->name ?? 'A member' }} · <span class="tabular-nums">{{ $entry->created_at?->format('M j, Y') }}</span>
+                                </p>
+
+                                {{-- The 🙌 reaction — same generic
+                                    data-reaction-* markup/JS as Music/Podcast/
+                                    Poetry-Prose. Toggled asynchronously via
+                                    resources/js/app.js; the real POST submit
+                                    here is the no-JS fallback. --}}
+                                @if (config('features.gratitude_journal_reactions_enabled'))
+                                    @auth
+                                        <form method="POST" action="{{ route('inspirational-resources.gratitude-journal.reactions.toggle', $entry) }}" data-reaction-form>
+                                            @csrf
+                                            <button
+                                                type="submit"
+                                                data-reaction-button
+                                                aria-pressed="{{ $entry->userReacted ? 'true' : 'false' }}"
+                                                @class([
+                                                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition',
+                                                    'border-brand-gold bg-brand-gold/10 text-brand-navy' => $entry->userReacted,
+                                                    'border-brand-navy/20 text-brand-navy/70 hover:border-brand-gold' => ! $entry->userReacted,
+                                                ])
+                                            >
+                                                <span aria-hidden="true">🙌</span> <span data-reaction-count>{{ $entry->reactions_count }}</span>
+                                            </button>
+                                        </form>
+                                    @else
+                                        <a href="{{ route('login') }}" class="inline-flex items-center gap-1.5 rounded-full border border-brand-navy/20 px-3 py-1.5 text-sm font-medium text-brand-navy/70 transition hover:border-brand-gold" title="Log in to react">
+                                            <span aria-hidden="true">🙌</span> {{ $entry->reactions_count }}
+                                        </a>
+                                    @endauth
+                                @endif
+                            </div>
                         </li>
                     @endforeach
                 </ul>
