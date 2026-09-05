@@ -227,20 +227,22 @@ class MusicControllerTest extends TestCase
     /**
      * The Album video field was restored to the admin form (client-
      * confirmed, 2026-09-05) — see AlbumForm.php and AlbumYoutubeVideoTest
-     * for the admin/frontend coverage. It still never shows the Track/
-     * Single-only "Watch video" modal-toggle icon (data-video-modal-toggle
-     * lives beside the Song Story heading, which an Album page has none of)
-     * — that remains exclusively Track/Single behavior.
+     * for the admin/frontend coverage. Corrected 2026-09-05: the video no
+     * longer embeds inline on the album page — it now opens in the same
+     * shared [data-video-modal] popup used by the Track/Single "Watch
+     * video" icon, via a "Watch Video" button reusing the identical
+     * data-video-modal-toggle wiring (resources/js/app.js).
      */
-    public function test_the_album_page_never_shows_the_track_only_video_modal_toggle(): void
+    public function test_the_album_page_shows_a_watch_video_button_that_opens_the_shared_modal(): void
     {
         $album = $this->album(['status' => ReleaseStatus::Published, 'embed_video_url' => 'https://www.youtube.com/watch?v=abc123']);
 
         $response = $this->get(route('music.albums.show', $album));
 
         $response->assertOk();
-        $response->assertDontSee('data-video-modal-toggle', false);
-        $response->assertSee('data-album-video', false);
+        $response->assertSee('data-video-modal-toggle', false);
+        $response->assertSee('Watch Video', false);
+        $response->assertDontSee('data-album-video', false);
     }
 
     public function test_a_single_pages_hero_never_shows_external_streaming_links(): void

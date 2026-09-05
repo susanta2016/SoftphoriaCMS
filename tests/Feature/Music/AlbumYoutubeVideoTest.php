@@ -70,25 +70,35 @@ class AlbumYoutubeVideoTest extends TestCase
         );
     }
 
-    public function test_the_album_page_renders_the_youtube_embed_when_configured(): void
+    /**
+     * Corrected 2026-09-05: the album's YouTube video no longer embeds
+     * inline — it opens in the shared [data-video-modal] popup (the same
+     * one the Track/Single "Watch video" icon uses) via a "Watch Video"
+     * button. The iframe still carries the real embed URL, just as
+     * data-src rather than src, so it never autoloads/autoplays before the
+     * modal is opened (see resources/js/app.js's setOpen()).
+     */
+    public function test_the_album_page_renders_a_watch_video_button_when_configured(): void
     {
         $album = $this->album(['embed_video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ']);
 
         $response = $this->get(route('music.albums.show', $album));
 
         $response->assertOk();
-        $response->assertSee('data-album-video', false);
+        $response->assertSee('data-video-modal-toggle', false);
+        $response->assertSee('Watch Video', false);
         $response->assertSee('youtube.com/embed/dQw4w9WgXcQ', false);
+        $response->assertDontSee('data-album-video', false);
     }
 
-    public function test_the_album_page_renders_no_video_section_when_no_url_is_configured(): void
+    public function test_the_album_page_renders_no_video_button_when_no_url_is_configured(): void
     {
         $album = $this->album();
 
         $response = $this->get(route('music.albums.show', $album));
 
         $response->assertOk();
-        $response->assertDontSee('data-album-video', false);
+        $response->assertDontSee('data-video-modal-toggle', false);
     }
 
     /**
@@ -97,22 +107,24 @@ class AlbumYoutubeVideoTest extends TestCase
      * fail-safe the pre-existing Track/Single $embedUrl parser already
      * guarantees (a non-matching URL simply leaves $embedUrl null).
      */
-    public function test_the_album_page_renders_no_video_section_when_the_stored_url_does_not_parse(): void
+    public function test_the_album_page_renders_no_video_button_when_the_stored_url_does_not_parse(): void
     {
         $album = $this->album(['embed_video_url' => 'https://vimeo.com/12345678']);
 
         $response = $this->get(route('music.albums.show', $album));
 
         $response->assertOk();
-        $response->assertDontSee('data-album-video', false);
+        $response->assertDontSee('data-video-modal-toggle', false);
     }
 
     /**
-     * The video block must appear after the Share buttons in document order
-     * — asserted directly on the rendered HTML rather than just "both are
-     * present", since ordering is the actual requirement.
+     * The Watch Video button must appear before the Share buttons in
+     * document order (it's one of the primary action buttons alongside
+     * Play Now/Save, while Share stays a separate icon row) — asserted
+     * directly on the rendered HTML rather than just "both are present",
+     * since ordering is the actual requirement.
      */
-    public function test_the_video_is_placed_after_the_share_buttons(): void
+    public function test_the_video_button_is_placed_before_the_share_buttons(): void
     {
         $album = $this->album(['embed_video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ']);
 
@@ -122,11 +134,11 @@ class AlbumYoutubeVideoTest extends TestCase
         $content = $response->getContent();
 
         $shareButtonsPosition = strpos($content, 'Share on Facebook');
-        $videoPosition = strpos($content, 'data-album-video');
+        $videoPosition = strpos($content, 'data-video-modal-toggle');
 
         $this->assertNotFalse($shareButtonsPosition);
         $this->assertNotFalse($videoPosition);
-        $this->assertLessThan($videoPosition, $shareButtonsPosition);
+        $this->assertLessThan($shareButtonsPosition, $videoPosition);
     }
 
     private function album(array $overrides = []): Album

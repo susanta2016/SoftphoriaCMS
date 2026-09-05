@@ -135,6 +135,24 @@
                             Save
                         </button>
 
+                        {{--
+                            Album-level YouTube video (client-confirmed,
+                            2026-09-05, corrected 2026-09-05 to open in the
+                            shared modal instead of embedding inline —
+                            matches the Song Story "Watch video" icon below
+                            and reuses the same [data-video-modal] wired in
+                            resources/js/app.js). Scoped to type === 'album'
+                            only so Track/Single pages (whose own video
+                            stays exclusively in the Song Story modal below)
+                            are never affected.
+                        --}}
+                        @if ($release['type'] === 'album' && $embedUrl)
+                            <button type="button" data-video-modal-toggle class="inline-flex items-center gap-2 rounded-md border border-brand-navy/20 px-5 py-3 text-sm font-medium text-brand-navy transition hover:border-brand-gold">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><rect x="2.5" y="5.5" width="14" height="13" rx="2"/><path d="M16.5 10.5 21 7.5v9l-4.5-3Z" stroke-linejoin="round"/></svg>
+                                Watch Video
+                            </button>
+                        @endif
+
                         <div class="inline-flex items-center gap-2">
                             <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($release['show_route']) }}" target="_blank" rel="noopener" aria-label="Share on Facebook" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12Z"/></svg>
@@ -144,28 +162,6 @@
                             </a>
                         </div>
                     </div>
-
-                    {{--
-                        Album-level YouTube video (client-confirmed,
-                        2026-09-05) — restored admin field (AlbumForm.php),
-                        YouTube only. Reuses the $embedUrl already parsed
-                        generically above from $release['embed_video_url'];
-                        scoped to type === 'album' only so Track/Single pages
-                        (whose own video stays exclusively in the Song
-                        Story modal below) are never affected.
-                    --}}
-                    @if ($release['type'] === 'album' && $embedUrl)
-                        <div data-album-video class="mt-6 aspect-video overflow-hidden rounded-2xl bg-brand-navy shadow-xl ring-1 ring-brand-navy/5">
-                            <iframe
-                                src="{{ $embedUrl }}"
-                                class="h-full w-full"
-                                title="{{ $release['title'] }}"
-                                allow="autoplay; fullscreen; picture-in-picture"
-                                allowfullscreen
-                                frameborder="0"
-                            ></iframe>
-                        </div>
-                    @endif
 
                     @if ($purchase && $purchase['state'] !== 'not_ready')
                         <div class="mt-3 flex flex-wrap items-center gap-3">
