@@ -65,7 +65,25 @@ class GratitudeJournalFeedController extends Controller
             ...$chrome,
             'seo' => $seo,
             'entries' => $entries,
+            'heroBanner' => $this->heroBanner(),
         ]);
+    }
+
+    /**
+     * The client-supplied Gratitude Journal hero photograph (client-
+     * confirmed, 2026-09-05) — a specific, already-uploaded Media Library
+     * asset (original_filename 01M1S3AAH70930J5YXGRS2EJAM.jpg), reused
+     * as-is rather than duplicated. Unlike Music/Poetry-Prose's own hero
+     * banners, this isn't wired to an admin-configurable setting/Page
+     * section — no "gratitude_journal" settings group exists, and none was
+     * requested; this is a one-off supplied asset for this one page.
+     * Looked up by its stable public_id, the same identifier convention
+     * every other cross-reference in this codebase uses, rather than a
+     * hardcoded filesystem path.
+     */
+    private function heroBanner(): ?Media
+    {
+        return Media::query()->where('public_id', '01m1s3aaqgz0jwk2w6dpdshjbf')->first();
     }
 
     /**
