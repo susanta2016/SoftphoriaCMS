@@ -1,0 +1,125 @@
+name: softphoria-prod
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
+      target: app
+    image: softphoria-app:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - storage_data:/var/www/html/storage
+    networks:
+      - softphoria_net
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "artisan", "about"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  queue:
+    image: softphoria-app:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - storage_data:/var/www/html/storage
+    networks:
+      - softphoria_net
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["php", "artisan", "queue:work", "--tries=3", "--backoff=3", "--sleep=1", "--max-time=3600"]
+
+  scheduler:
+    image: softphoria-app:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - storage_data:/var/www/html/storage
+    networks:
+      - softphoria_net
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["php", "artisan", "schedule:work"]
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
+      target: nginx
+    image: softphoria-nginx:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+
+    volumes:
+      - storage_data:/var/www/html/storage:ro
+      - ./docker/nginx/local.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - softphoria_net
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  mariadb:
+    image: mariadb:10.11.14
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_DATABASE}
+      MARIADB_USER: ${DB_USERNAME}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - softphoria_net
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - softphoria_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  softphoria_net:
+    driver: bridge
+
+volumes:
+  mariadb_data:
+    name: softphoria_prod_mariadb_data
+  redis_data:
+    name: softphoria_prod_redis_data
+  storage_data:
+    name: softphoria_prod_storage_data

@@ -1,0 +1,91 @@
+# Production image for SoftphoriaCMS.
+# Targets:
+#   app   - PHP-FPM runtime used by app/queue/scheduler
+#   nginx - nginx image containing only the public web tree
+
+FROM node:22-bookworm-slim AS frontend
+WORKDIR /var/www/html
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY vite.config.js ./
+COPY resources ./resources
+COPY public ./public
+RUN npm run build
+
+FROM php:8.4-cli AS vendor
+
+RUN apt-get update && apt-get install -y \
+    unzip \
+    git \
+    libicu-dev \
+    libzip-dev \
+    libonig-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-install \
+    intl \
+    mbstring \
+    zip
+
+COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+
+COPY composer.json composer.lock ./
+
+RUN composer install \
+    --no-dev \
+    --prefer-dist \
+    --no-interaction \
+    --no-progress \
+    --no-scripts \
+    --optimize-autoloader
+
+FROM php:8.4-fpm AS app
+
+RUN apt-get update && apt-get install -y \
+    git curl unzip ca-certificates \
+    libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
+    libwebp-dev libavif-dev libzip-dev libicu-dev \
+    libonig-dev libxml2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-configure gd \
+        --with-freetype --with-jpeg --with-webp --with-avif \
+    && docker-php-ext-install -j$(nproc) \
+        pdo_mysql gd zip bcmath intl opcache exif pcntl
+
+RUN pecl install redis && docker-php-ext-enable redis
+
+COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
+COPY docker/php/php.prod.ini /usr/local/etc/php/conf.d/99-softphoria.ini
+COPY docker/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+WORKDIR /var/www/html
+COPY --from=vendor /var/www/html/vendor ./vendor
+COPY . .
+
+RUN mkdir -p \
+        storage/app/public \
+        storage/app/private \
+        storage/framework/cache \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
+    && composer dump-autoload --no-dev --optimize --no-interaction \
+    && php artisan storage:link \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R ug+rwX storage bootstrap/cache
+
+COPY --from=frontend /var/www/html/public/build ./public/build
+
+EXPOSE 9000
+ENTRYPOINT ["entrypoint.sh"]
+CMD ["php-fpm"]
+
+FROM nginx:stable-alpine AS nginx
+COPY --from=app /var/www/html/public /var/www/html/public
+EXPOSE 80 443
+CMD ["nginx", "-g", "daemon off;"]
