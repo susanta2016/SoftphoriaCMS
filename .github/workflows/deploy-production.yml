@@ -41,11 +41,32 @@ jobs:
             echo "==> Running database migrations..."
             docker compose -f docker-compose.prod.yml run --rm app php artisan migrate --force
 
-            echo "==> Starting application..."
-            docker compose -f docker-compose.prod.yml up -d app nginx queue scheduler
+            echo "==> Starting application container..."
+            docker compose -f docker-compose.prod.yml up -d --force-recreate app
 
-            echo "==> Waiting for application..."
-            sleep 15
+            echo "==> Waiting for application to become healthy..."
+            for i in {1..30}; do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' softphoria-prod-app-1 2>/dev/null || true)
+
+            if [ "$STATUS" = "healthy" ]; then
+                echo "Application is healthy."
+                break
+            fi
+
+            if [ "$i" -eq 30 ]; then
+                echo "Application did not become healthy."
+                docker compose -f docker-compose.prod.yml logs --tail=100 app
+                exit 1
+            fi
+
+            sleep 2
+            done
+
+            echo "==> Starting Nginx, queue and scheduler..."
+            docker compose -f docker-compose.prod.yml up -d --force-recreate nginx queue scheduler
+
+            echo "==> Waiting for services..."
+            sleep 5
 
             echo "==> Container status..."
             docker compose -f docker-compose.prod.yml ps
