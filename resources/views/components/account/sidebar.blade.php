@@ -48,6 +48,10 @@
             'icon' => '<path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/>',
         ],
     ];
+
+    // Profile nav item hidden from the account menu for now (kept above,
+    // not removed, in case it needs to come back).
+    $navItems = array_values(array_filter($navItems, fn ($item) => $item['route'] !== 'account.profile.edit'));
 @endphp
 
 <nav

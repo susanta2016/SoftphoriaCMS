@@ -17,9 +17,12 @@
                     <dd class="text-right font-medium text-brand-navy">{{ $user->email }}</dd>
                 </div>
             </dl>
-            <a href="{{ route('account.profile.edit') }}" class="mt-4 inline-block text-sm font-medium text-brand-gold transition hover:text-brand-gold-light">
-                Edit Profile →
-            </a>
+            {{-- Edit Profile link hidden for now (kept below, not removed, in case it needs to come back) --}}
+            @if (false)
+                <a href="{{ route('account.profile.edit') }}" class="mt-4 inline-block text-sm font-medium text-brand-gold transition hover:text-brand-gold-light">
+                    Edit Profile →
+                </a>
+            @endif
         </div>
 
         {{-- Phase 1: no paid membership (UI only, config/features.php) --}}
@@ -43,23 +46,26 @@
         @endif
     </div>
 
-    <div class="mt-6 rounded-2xl bg-white p-6 shadow-xl ring-1 ring-brand-navy/5">
-        <h2 class="font-serif text-lg text-brand-navy">Quick Actions</h2>
-        <div class="mt-4 flex flex-wrap gap-3">
-            <a href="{{ route('account.profile.edit') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
-                Edit Profile
-            </a>
-            <a href="{{ route('account.password.edit') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
-                Change Password
-            </a>
-            @if (config('features.member_subscription_enabled'))
-                <a href="{{ route('account.subscription') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
-                    View Subscription
+    {{-- Quick Actions hidden for now (kept below, not removed, in case it needs to come back) --}}
+    @if (false)
+        <div class="mt-6 rounded-2xl bg-white p-6 shadow-xl ring-1 ring-brand-navy/5">
+            <h2 class="font-serif text-lg text-brand-navy">Quick Actions</h2>
+            <div class="mt-4 flex flex-wrap gap-3">
+                <a href="{{ route('account.profile.edit') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
+                    Edit Profile
                 </a>
-            @endif
-            <a href="{{ route('account.transactions') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
-                Transaction History
-            </a>
+                <a href="{{ route('account.password.edit') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
+                    Change Password
+                </a>
+                @if (config('features.member_subscription_enabled'))
+                    <a href="{{ route('account.subscription') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
+                        View Subscription
+                    </a>
+                @endif
+                <a href="{{ route('account.transactions') }}" class="rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
+                    Transaction History
+                </a>
+            </div>
         </div>
-    </div>
+    @endif
 </x-layouts.account>
