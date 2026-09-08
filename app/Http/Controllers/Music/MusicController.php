@@ -443,6 +443,11 @@ class MusicController extends Controller implements Sitemapable
             // block below the header actions), reusing the same generic
             // $embedUrl parser this file already computes for Track/Single.
             'embed_video_url' => $album->embed_video_url,
+            // Same field, reused as the "Watch Video" button's source — an
+            // Album only has this one video field, so both keys share it.
+            // See Track's own video_button_embed_url for why Track/Single
+            // need two distinct keys instead.
+            'video_button_embed_url' => $album->embed_video_url,
             'streaming_links' => $album->streamingLinks,
             'tracks' => $album->tracks,
             'total_duration_seconds' => $album->tracks->sum('duration_seconds'),
@@ -475,6 +480,11 @@ class MusicController extends Controller implements Sitemapable
             'release_date' => $single->release_date,
             'cover' => $single->cover,
             'embed_video_url' => $track?->video_embed_url,
+            // A track's own second, independent video field — powers the
+            // "Watch Video" button before the Share buttons, same as an
+            // Album's. Distinct from video_embed_url above, which stays the
+            // Song Story section's own "Watch video" icon only.
+            'video_button_embed_url' => $track?->embed_video_url,
             'streaming_links' => $single->streamingLinks,
             'tracks' => $track ? collect([$track]) : collect(),
             'total_duration_seconds' => $track?->duration_seconds ?? 0,
@@ -505,6 +515,8 @@ class MusicController extends Controller implements Sitemapable
             'release_date' => $album->release_date,
             'cover' => $album->cover,
             'embed_video_url' => $track->video_embed_url,
+            // See singleViewModel()'s identically-named key above.
+            'video_button_embed_url' => $track->embed_video_url,
             'streaming_links' => $album->streamingLinks,
             'tracks' => collect([$track]),
             'total_duration_seconds' => $track->duration_seconds,

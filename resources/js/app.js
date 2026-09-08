@@ -334,7 +334,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    toggles.forEach((toggle) => toggle.addEventListener('click', () => setOpen(true)));
+    // A page can have more than one trigger for the same modal (e.g. the
+    // Music listening page's Song Story "Watch video" icon and its own
+    // separate "Watch Video" button), each pointing at a different video —
+    // a trigger's own data-video-src (if present) wins over the iframe's
+    // baked-in default so the right video always opens.
+    toggles.forEach((toggle) => toggle.addEventListener('click', () => {
+        if (iframe && toggle.dataset.videoSrc) {
+            iframe.dataset.src = toggle.dataset.videoSrc;
+        }
+
+        setOpen(true);
+    }));
     closeButton?.addEventListener('click', () => setOpen(false));
 
     modal.addEventListener('click', (event) => {

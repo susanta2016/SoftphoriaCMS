@@ -44,7 +44,8 @@ use Laravel\Scout\Searchable;
  */
 #[Fillable([
     'album_id', 'single_id', 'title', 'slug', 'description', 'track_number', 'duration_seconds',
-    'written_by', 'produced_by', 'isrc', 'video_embed_url', 'audio_media_id', 'video_media_id', 'status',
+    'written_by', 'produced_by', 'isrc', 'video_embed_url', 'audio_media_id', 'video_media_id',
+    'embed_video_url', 'status',
 ])]
 class Track extends Model implements Reviewable, SearchResultRepresentable, Sitemapable
 {
@@ -123,6 +124,13 @@ class Track extends Model implements Reviewable, SearchResultRepresentable, Site
     {
         return $this->belongsTo(Media::class, 'video_media_id');
     }
+
+    // `embed_video_url` (plain string column, no accessor needed) is a
+    // second, independent external video URL — mirrors albums.embed_video_url
+    // (YouTube only) and drives the "Watch Video" button placed just before
+    // the Share buttons on the listening page. Distinct from `video_embed_url`
+    // above, which stays scoped to the Song Story section's own "Watch video"
+    // icon. See the add_embed_video_url_to_tracks_table migration.
 
     public function lyrics(): HasOne
     {

@@ -41,12 +41,20 @@
         ];
     };
 
-    $embedUrl = null;
-    if ($release['embed_video_url']) {
-        if (preg_match('#youtu\.be/([\w-]+)#', $release['embed_video_url'], $m) || preg_match('#youtube\.com/(?:watch\?v=|embed/|shorts/)([\w-]+)#', $release['embed_video_url'], $m)) {
-            $embedUrl = "https://www.youtube.com/embed/{$m[1]}?rel=0";
+    $parseEmbedUrl = function (?string $url): ?string {
+        if ($url && (preg_match('#youtu\.be/([\w-]+)#', $url, $m) || preg_match('#youtube\.com/(?:watch\?v=|embed/|shorts/)([\w-]+)#', $url, $m))) {
+            return "https://www.youtube.com/embed/{$m[1]}?rel=0";
         }
-    }
+
+        return null;
+    };
+
+    $embedUrl = $parseEmbedUrl($release['embed_video_url']);
+    // The "Watch Video" button's own source, before the Share buttons —
+    // independent of $embedUrl above (Song Story's "Watch video" icon on
+    // Track/Single pages). Both can be set at once on the same page, so each
+    // trigger below carries its own data-video-src for the shared modal.
+    $videoButtonUrl = $parseEmbedUrl($release['video_button_embed_url'] ?? null);
 @endphp
 
 <x-layouts.site :seo="$seo">
@@ -136,18 +144,16 @@
                         </button>
 
                         {{--
-                            Album-level YouTube video (client-confirmed,
-                            2026-09-05, corrected 2026-09-05 to open in the
-                            shared modal instead of embedding inline —
-                            matches the Song Story "Watch video" icon below
-                            and reuses the same [data-video-modal] wired in
-                            resources/js/app.js). Scoped to type === 'album'
-                            only so Track/Single pages (whose own video
-                            stays exclusively in the Song Story modal below)
-                            are never affected.
+                            Release-level YouTube video (Album: client-
+                            confirmed 2026-09-05; Track/Single: restored
+                            2026-09-08) — opens in the shared modal instead
+                            of embedding inline, reusing the same
+                            [data-video-modal] wired in resources/js/app.js.
+                            Independent of the Song Story "Watch video" icon
+                            below, which stays on Track's own video_embed_url.
                         --}}
-                        @if ($release['type'] === 'album' && $embedUrl)
-                            <button type="button" data-video-modal-toggle class="inline-flex items-center gap-2 rounded-md border border-brand-navy/20 px-5 py-3 text-sm font-medium text-brand-navy transition hover:border-brand-gold">
+                        @if ($videoButtonUrl)
+                            <button type="button" data-video-modal-toggle data-video-src="{{ $videoButtonUrl }}" class="inline-flex items-center gap-2 rounded-md border border-brand-navy/20 px-5 py-3 text-sm font-medium text-brand-navy transition hover:border-brand-gold">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><rect x="2.5" y="5.5" width="14" height="13" rx="2"/><path d="M16.5 10.5 21 7.5v9l-4.5-3Z" stroke-linejoin="round"/></svg>
                                 Watch Video
                             </button>
@@ -371,7 +377,7 @@
                         <div class="flex items-center gap-2">
                             <h2 class="font-serif text-2xl text-brand-navy">Song Story</h2>
                             @if ($embedUrl)
-                                <button type="button" data-video-modal-toggle aria-label="Watch video" class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
+                                <button type="button" data-video-modal-toggle data-video-src="{{ $embedUrl }}" aria-label="Watch video" class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-3.5 w-3.5"><rect x="2.5" y="5.5" width="14" height="13" rx="2"/><path d="M16.5 10.5 21 7.5v9l-4.5-3Z" stroke-linejoin="round"/></svg>
                                 </button>
                             @endif
@@ -577,7 +583,7 @@
 
     <x-site.footer :site-name="$siteName" :tagline="$tagline"/>
 
-    @if ($embedUrl)
+    @if ($embedUrl || $videoButtonUrl)
         <div data-video-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4">
             <div class="relative w-full max-w-3xl">
                 <button type="button" data-video-modal-close aria-label="Close video" class="absolute -top-10 right-0 text-white transition hover:text-brand-gold">
@@ -585,7 +591,7 @@
                 </button>
                 <iframe
                     data-video-modal-iframe
-                    data-src="{{ $embedUrl }}"
+                    data-src="{{ $videoButtonUrl ?: $embedUrl }}"
                     class="aspect-video w-full rounded-lg bg-black"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowfullscreen

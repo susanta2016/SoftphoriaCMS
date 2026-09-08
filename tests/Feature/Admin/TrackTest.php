@@ -243,6 +243,46 @@ class TrackTest extends TestCase
         $this->assertDatabaseHas('tracks', ['slug' => 'album-two-track-1', 'track_number' => 1]);
     }
 
+    /**
+     * embed_video_url — a second, independent video field restored
+     * 2026-09-08 (mirrors Album's own embed_video_url), YouTube-only,
+     * distinct from video_embed_url (Song Story section, untouched).
+     */
+    public function test_admin_can_save_a_tracks_embed_video_url(): void
+    {
+        $album = $this->createAlbum();
+
+        Livewire::actingAs($this->admin())
+            ->test(CreateTrack::class)
+            ->fillForm([
+                'release' => "album:{$album->id}",
+                'title' => 'Here I Am',
+                'slug' => 'here-i-am-track',
+                'embed_video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $track = Track::query()->where('slug', 'here-i-am-track')->firstOrFail();
+        $this->assertSame('https://www.youtube.com/watch?v=dQw4w9WgXcQ', $track->embed_video_url);
+    }
+
+    public function test_a_non_youtube_embed_video_url_fails_validation(): void
+    {
+        $album = $this->createAlbum();
+
+        Livewire::actingAs($this->admin())
+            ->test(CreateTrack::class)
+            ->fillForm([
+                'release' => "album:{$album->id}",
+                'title' => 'Here I Am',
+                'slug' => 'here-i-am-track',
+                'embed_video_url' => 'https://vimeo.com/12345678',
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['embed_video_url']);
+    }
+
     public function test_admin_can_view_the_track_list(): void
     {
         $album = $this->createAlbum();

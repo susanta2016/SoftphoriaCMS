@@ -294,6 +294,72 @@ class MusicControllerTest extends TestCase
         $response->assertDontSee('data-video-modal-toggle', false);
     }
 
+    /**
+     * The track-level embed_video_url column (restored 2026-09-08) — a
+     * second, independent video field mirroring Album's own embed_video_url,
+     * driving a "Watch Video" button among the primary action buttons,
+     * before the Share buttons — distinct from video_embed_url's Song Story
+     * "Watch video" icon (still covered above).
+     */
+    public function test_a_single_pages_watch_video_button_uses_the_tracks_own_embed_video_url_field(): void
+    {
+        $single = $this->single(['status' => ReleaseStatus::Published]);
+        $this->track(null, $single, [
+            'status' => TrackStatus::Published,
+            'embed_video_url' => 'https://www.youtube.com/watch?v=xyz789',
+        ]);
+
+        $response = $this->get(route('music.singles.show', $single));
+
+        $response->assertOk();
+        $response->assertSee('data-video-modal-toggle', false);
+        $response->assertSee('Watch Video', false);
+        $response->assertSee('youtube.com/embed/xyz789', false);
+    }
+
+    public function test_an_album_owned_tracks_page_shows_its_own_watch_video_button_before_share_buttons(): void
+    {
+        $album = $this->album(['status' => ReleaseStatus::Published]);
+        $track = $this->track($album, null, [
+            'status' => TrackStatus::Published,
+            'embed_video_url' => 'https://www.youtube.com/watch?v=track999',
+        ]);
+
+        $response = $this->get(route('music.tracks.show', $track));
+
+        $response->assertOk();
+        $content = $response->getContent();
+
+        $videoPosition = strpos($content, 'data-video-modal-toggle');
+        $sharePosition = strpos($content, 'Share on Facebook');
+
+        $this->assertNotFalse($videoPosition);
+        $this->assertNotFalse($sharePosition);
+        $this->assertLessThan($sharePosition, $videoPosition);
+    }
+
+    /**
+     * A track can carry both videos at once — the Song Story icon
+     * (video_embed_url) and the header button (embed_video_url) — and each
+     * must open its own distinct video, not whichever loaded last. Asserted
+     * via each trigger's own data-video-src (see resources/js/app.js).
+     */
+    public function test_a_tracks_song_story_icon_and_watch_video_button_open_independent_videos(): void
+    {
+        $single = $this->single(['status' => ReleaseStatus::Published]);
+        $this->track(null, $single, [
+            'status' => TrackStatus::Published,
+            'video_embed_url' => 'https://www.youtube.com/watch?v=iconvid1',
+            'embed_video_url' => 'https://www.youtube.com/watch?v=buttonvid2',
+        ]);
+
+        $response = $this->get(route('music.singles.show', $single));
+
+        $response->assertOk();
+        $response->assertSee('data-video-src="https://www.youtube.com/embed/iconvid1?rel=0"', false);
+        $response->assertSee('data-video-src="https://www.youtube.com/embed/buttonvid2?rel=0"', false);
+    }
+
     public function test_a_draft_album_404s_publicly(): void
     {
         $album = $this->album(['status' => ReleaseStatus::Draft]);

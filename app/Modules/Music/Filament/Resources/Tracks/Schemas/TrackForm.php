@@ -12,6 +12,8 @@ use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Single;
 use App\Modules\Music\Models\Track;
+use App\Shared\Support\Media\YoutubeUrl;
+use Closure;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
@@ -89,6 +91,17 @@ class TrackForm
                                     Text::make('The audio file used for playback on the listening page, and the file customers receive when they purchase this Single or an Album containing this Track.')
                                         ->size(TextSize::Small)
                                         ->color('gray')
+                                        ->columnSpanFull(),
+                                    TextInput::make('embed_video_url')
+                                        ->label('Embedded Music Video URL')
+                                        ->url()
+                                        ->maxLength(255)
+                                        ->rule(fn (): Closure => function (string $attribute, ?string $value, Closure $fail): void {
+                                            if (filled($value) && ! YoutubeUrl::isValid($value)) {
+                                                $fail('The Embedded Music Video URL must be a YouTube video link (e.g. youtube.com/watch?v=... or youtu.be/...).');
+                                            }
+                                        })
+                                        ->helperText('A YouTube video for this song — shown as a "Watch Video" button before the Share buttons on the listening page, same as an Album\'s video. Separate from the Song Story video below. Leave blank for no button.')
                                         ->columnSpanFull(),
                                 ]),
 
