@@ -15,11 +15,21 @@ use Illuminate\Http\Response;
  * §4) — it is never the actual access control for the panel, which is
  * AdminPanelProvider's own auth middleware (see §3: "robots.txt must never
  * be treated as a security mechanism").
+ *
+ * While the Temporary Beta Access Gate is enabled (config('beta.enabled'),
+ * SeoTagBuilder's own docblock), this disallows the entire site instead —
+ * every page is already forced noindex, nofollow via SeoTagBuilder, and the
+ * gate itself blocks a crawler from reaching any content regardless, but a
+ * blanket Disallow is the "appropriate crawler directive" alongside that.
  */
 class RobotsController extends Controller
 {
     public function __invoke(): Response
     {
+        if (config('beta.enabled')) {
+            return response("User-agent: *\nDisallow: /\n")->header('Content-Type', 'text/plain');
+        }
+
         $lines = [
             'User-agent: *',
             'Disallow: /admin',

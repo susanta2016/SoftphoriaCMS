@@ -87,7 +87,13 @@ class SeoTagBuilder
             'description' => $description,
             'keywords' => $seo?->keywords,
             'canonical' => $canonical,
-            'robots' => $seo?->robots ?: ($fallbacks['robots'] ?? 'index, follow'),
+            // Temporary Beta Access Gate (2026-09-09): while
+            // config('beta.enabled') is true, every page — regardless of
+            // its own SeoMetadata::robots or fallback — is forced noindex,
+            // nofollow. This is the one central place every public <head>
+            // resolves its robots value from, so extending it here covers
+            // the whole site without a second, parallel noindex mechanism.
+            'robots' => config('beta.enabled') ? self::ROBOTS_NOINDEX : ($seo?->robots ?: ($fallbacks['robots'] ?? 'index, follow')),
             'site_name' => $siteName,
             'og_title' => $seo?->og_title ?: $title,
             'og_description' => self::flatten($seo?->og_description) ?: $description,

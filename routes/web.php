@@ -9,6 +9,7 @@ use App\Http\Controllers\Account\ProfileController as AccountProfileController;
 use App\Http\Controllers\Account\SubscriptionController as AccountSubscriptionController;
 use App\Http\Controllers\Account\TransactionController as AccountTransactionController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\BetaAccessController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\ContactController;
@@ -52,6 +53,17 @@ Route::get('/', HomeController::class)->name('home');
 
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 Route::get('/robots.txt', RobotsController::class)->name('robots');
+
+// Temporary Beta Access Gate (App\Http\Middleware\BetaAccessGate's own
+// docblock) — the show/verify pair the gate itself excludes by path so a
+// visitor can actually reach and submit this form, plus the internal check
+// Nginx's auth_request calls before serving a /storage/... file directly
+// (docker/nginx/prod.conf). throttle:10,1 slows brute-forcing the password.
+Route::get('/beta-access', [BetaAccessController::class, 'show'])->name('beta.show');
+Route::post('/beta-access', [BetaAccessController::class, 'attempt'])
+    ->middleware('throttle:10,1')
+    ->name('beta.attempt');
+Route::get('/internal/beta-auth-check', [BetaAccessController::class, 'authCheck'])->name('beta.auth-check');
 
 // Public newsletter signup (footer form) — sends the "newsletter_subscribed"
 // Email Template (docs/ARCHITECTURE.md §16.5/§16.6) via TemplatedMailer.

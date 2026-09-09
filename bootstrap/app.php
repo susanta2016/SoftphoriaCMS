@@ -3,6 +3,7 @@
 use App\Console\Commands\DeleteExpiredGratitudeJournalEntriesCommand;
 use App\Console\Commands\PublishDuePagesCommand;
 use App\Console\Commands\SendGratitudeJournalRemindersCommand;
+use App\Http\Middleware\BetaAccessGate;
 use App\Http\Middleware\CheckMaintenanceMode;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -17,9 +18,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Temporary Beta Access Gate (App\Http\Middleware\BetaAccessGate's
+        // own docblock) — appended (never prepended: the "web" group's own
+        // StartSession middleware has to run first, or $request->session()
+        // below throws) but listed ahead of Maintenance Mode, so an
+        // un-authorized visitor never learns anything about the site beyond
+        // the password page.
+        //
         // Website Setup's Maintenance Mode (docs/ARCHITECTURE.md §16.3) —
         // excludes /admin/*, /livewire/*, and /up internally.
         $middleware->web(append: [
+            BetaAccessGate::class,
             CheckMaintenanceMode::class,
         ]);
 
