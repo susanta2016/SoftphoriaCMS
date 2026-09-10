@@ -21,11 +21,11 @@ use Laravel\Scout\Searchable;
  * CreatesLightPostOnRegistration) or a Gratitude Journal entry
  * (App\Actions\GratitudeJournal), distinguished by `source`
  * (App\Enums\LightPostSource; Gratitude Journal audit §3/§13 — reuses this
- * table rather than a second one). Visibility is a three-state enum
- * (App\Enums\GratitudeJournalVisibility — Gratitude Journal three-state
- * visibility change, 2026-09-05, replacing the previous is_public boolean):
- * Public (homepage), Private (owner only), Community (the shared member
- * feed). A registration post is always Public. A public *registration* post
+ * table rather than a second one). Visibility is a two-state enum
+ * (App\Enums\GratitudeJournalVisibility — simplified from three states to
+ * two, 2026-09-10, removing the previous `Community` state): Public (shown
+ * on both the homepage carousel and the shared member feed), Private (owner
+ * only). A registration post is always Public. A public *registration* post
  * also has its own minimal detail page (LightPostController@show,
  * light-posts.show) — added only so unified Search (see App\Modules\Search)
  * has a canonical URL to link to; it is deliberately NOT registered in
@@ -35,8 +35,8 @@ use Laravel\Scout\Searchable;
  * hence ROBOTS_NOINDEX in LightPostController rather than Sitemapable. A
  * Gratitude Journal entry has NO detail page and is NOT searchable at all —
  * see newScoutQuery()/shouldBeSearchable() and LightPostController::show()
- * below — its only public surfaces are the homepage feed (Public) and the
- * shared member feed (Community).
+ * below — its only public surfaces are the homepage feed and the shared
+ * member feed (both Public only).
  */
 #[Fillable(['user_id', 'source', 'content', 'visibility'])]
 class LightPost extends Model implements SearchResultRepresentable
@@ -66,9 +66,9 @@ class LightPost extends Model implements SearchResultRepresentable
      * Track/PodcastEpisode/PoetryProse. Having this relation does not by
      * itself make every LightPost reactable: GratitudeJournalReactionController
      * is what actually restricts a toggle to source = journal AND
-     * visibility = community rows, so a registration post or a non-Community
-     * journal entry never receives a real reaction despite this relation
-     * existing on every row.
+     * visibility = public rows, so a registration post or a Private journal
+     * entry never receives a real reaction despite this relation existing on
+     * every row.
      */
     public function reactions(): MorphMany
     {
@@ -87,16 +87,6 @@ class LightPost extends Model implements SearchResultRepresentable
     public function scopePrivate(Builder $query): Builder
     {
         return $query->where('visibility', GratitudeJournalVisibility::Private);
-    }
-
-    /**
-     * The shared member feed's own visibility state — exactly the behavior
-     * the old is_public = false ("Private") state already had. Only a
-     * Gratitude Journal entry can ever carry this value.
-     */
-    public function scopeCommunity(Builder $query): Builder
-    {
-        return $query->where('visibility', GratitudeJournalVisibility::Community);
     }
 
     /**

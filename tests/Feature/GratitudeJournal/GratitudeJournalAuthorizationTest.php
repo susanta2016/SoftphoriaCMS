@@ -96,13 +96,14 @@ class GratitudeJournalAuthorizationTest extends TestCase
     }
 
     /**
-     * Covers the third state specifically — changing an entry to For
-     * Community, distinct from the Public/Private pair above.
+     * Community no longer exists at the application level — submitting the
+     * legacy value on an update falls back to Public, the same behavior as
+     * an entirely missing/unrecognized value.
      */
-    public function test_a_member_can_change_their_own_entrys_visibility_to_for_community(): void
+    public function test_updating_an_entry_with_the_legacy_community_value_falls_back_to_public(): void
     {
         $owner = User::factory()->create();
-        $entry = (new CreateGratitudeJournalEntryAction)->handle($owner, 'Flexible visibility.', GratitudeJournalVisibility::Public);
+        $entry = (new CreateGratitudeJournalEntryAction)->handle($owner, 'Flexible visibility.', GratitudeJournalVisibility::Private);
 
         $response = $this->actingAs($owner)->put(route('account.gratitude-journal.update', $entry), [
             'content' => 'Flexible visibility.',
@@ -110,7 +111,7 @@ class GratitudeJournalAuthorizationTest extends TestCase
         ]);
 
         $response->assertRedirect(route('account.gratitude-journal.index'));
-        $this->assertSame(GratitudeJournalVisibility::Community, $entry->fresh()->visibility);
+        $this->assertSame(GratitudeJournalVisibility::Public, $entry->fresh()->visibility);
     }
 
     public function test_a_member_can_edit_and_delete_their_own_entry(): void

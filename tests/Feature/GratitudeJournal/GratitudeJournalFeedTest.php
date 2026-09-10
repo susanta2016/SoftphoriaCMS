@@ -17,15 +17,15 @@ use Tests\TestCase;
  * management area at /account/gratitude-journal
  * (App\Http\Controllers\Account\GratitudeJournalController).
  *
- * "For Community" entries only (Gratitude Journal three-state visibility
- * change, 2026-09-05) — the exact same rows the old is_public = false
- * ("Private") state already showed here; that state was renamed/reused as
- * Community, not reinterpreted, so this page's actual content is unchanged.
- * A genuinely Private entry (the new state) never appears here — only in
- * its owner's own Account "Your Entries" (see
- * GratitudeJournalAuthorizationTest). Every authenticated member sees every
- * OTHER member's (and their own) Community entry here, but can never
- * create, edit, or delete anything from this page.
+ * Public entries only (visibility simplified from three states to two,
+ * 2026-09-10 — the previous "For Community" state was removed, and this
+ * feed's scope moved from Community to Public). A Public entry now appears
+ * BOTH here and on the homepage carousel (see GratitudeJournalVisibilityTest)
+ * — the two surfaces are deliberately no longer mutually exclusive. A
+ * Private entry never appears here — only in its owner's own Account "Your
+ * Entries" (see GratitudeJournalAuthorizationTest). Every authenticated
+ * member sees every OTHER member's (and their own) Public entry here, but
+ * can never create, edit, or delete anything from this page.
  */
 class GratitudeJournalFeedTest extends TestCase
 {
@@ -39,27 +39,11 @@ class GratitudeJournalFeedTest extends TestCase
     }
 
     /**
-     * The core visibility requirement: For Community does NOT mean
-     * owner-only — every authenticated member sees every Community entry
+     * The core visibility requirement: Public does NOT mean owner-only —
+     * every authenticated member sees every other member's Public entry
      * here, from any author.
      */
-    public function test_an_authenticated_member_sees_another_members_community_entry(): void
-    {
-        $author = User::factory()->create();
-        $viewer = User::factory()->create();
-        (new CreateGratitudeJournalEntryAction)->handle($author, 'A community feed entry.', GratitudeJournalVisibility::Community);
-
-        $response = $this->actingAs($viewer)->get(route('inspirational-resources.gratitude-journal'));
-
-        $response->assertOk();
-        $response->assertSee('A community feed entry.');
-    }
-
-    /**
-     * A Public journal entry's own exposure is the homepage feed instead
-     * (see GratitudeJournalVisibilityTest) — it must not also appear here.
-     */
-    public function test_a_public_journal_entry_does_not_appear_on_this_feed(): void
+    public function test_an_authenticated_member_sees_another_members_public_entry(): void
     {
         $author = User::factory()->create();
         $viewer = User::factory()->create();
@@ -68,7 +52,24 @@ class GratitudeJournalFeedTest extends TestCase
         $response = $this->actingAs($viewer)->get(route('inspirational-resources.gratitude-journal'));
 
         $response->assertOk();
-        $response->assertDontSee('A public feed entry.');
+        $response->assertSee('A public feed entry.');
+    }
+
+    /**
+     * A Public journal entry appears on both the homepage carousel (see
+     * GratitudeJournalVisibilityTest) AND this shared feed simultaneously —
+     * intentional dual exposure, per the client's confirmed spec.
+     */
+    public function test_a_public_journal_entry_also_appears_on_the_homepage(): void
+    {
+        $author = User::factory()->create(['name' => 'Dual Surface Journaler']);
+        (new CreateGratitudeJournalEntryAction)->handle($author, 'A dual-surface public entry.', GratitudeJournalVisibility::Public);
+
+        $feedResponse = $this->actingAs($author)->get(route('inspirational-resources.gratitude-journal'));
+        $homeResponse = $this->get(route('home'));
+
+        $feedResponse->assertOk()->assertSee('A dual-surface public entry.');
+        $homeResponse->assertOk()->assertSee('A dual-surface public entry.');
     }
 
     /**
@@ -111,7 +112,7 @@ class GratitudeJournalFeedTest extends TestCase
         $action = new CreateGratitudeJournalEntryAction;
 
         foreach (range(1, 11) as $i) {
-            $action->handle($author, "Feed gratitude entry number {$i}.", GratitudeJournalVisibility::Community);
+            $action->handle($author, "Feed gratitude entry number {$i}.", GratitudeJournalVisibility::Public);
         }
 
         $firstPage = $this->actingAs($viewer)->get(route('inspirational-resources.gratitude-journal'));
@@ -139,7 +140,7 @@ class GratitudeJournalFeedTest extends TestCase
     public function test_the_feed_has_no_create_edit_or_delete_controls(): void
     {
         $viewer = User::factory()->create();
-        $ownEntry = (new CreateGratitudeJournalEntryAction)->handle($viewer, 'My own entry shown read-only.', GratitudeJournalVisibility::Community);
+        $ownEntry = (new CreateGratitudeJournalEntryAction)->handle($viewer, 'My own entry shown read-only.', GratitudeJournalVisibility::Public);
 
         $response = $this->actingAs($viewer)->get(route('inspirational-resources.gratitude-journal'));
 

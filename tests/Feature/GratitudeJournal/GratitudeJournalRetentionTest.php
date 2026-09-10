@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 /**
  * DeleteExpiredGratitudeJournalEntriesCommand — deletes Gratitude Journal
- * entries (source = journal, all three visibility states alike) older than
+ * entries (source = journal, both visibility states alike) older than
  * config('features.gratitude_journal_retention_months')
  * (GRATITUDE_JOURNAL_RETENTION_MONTHS, default 6, ENV-only). Registration
  * Light Posts (source = registration) must never be touched by this
@@ -55,16 +55,6 @@ class GratitudeJournalRetentionTest extends TestCase
     {
         $user = User::factory()->create();
         $entry = $this->journalEntry($user, 'Expired private entry.', GratitudeJournalVisibility::Private, now()->subMonthsNoOverflow(7));
-
-        $this->artisan('gratitude-journal:delete-expired')->assertExitCode(0);
-
-        $this->assertNull(LightPost::query()->find($entry->id));
-    }
-
-    public function test_an_expired_community_journal_entry_is_deleted(): void
-    {
-        $user = User::factory()->create();
-        $entry = $this->journalEntry($user, 'Expired community entry.', GratitudeJournalVisibility::Community, now()->subMonthsNoOverflow(7));
 
         $this->artisan('gratitude-journal:delete-expired')->assertExitCode(0);
 

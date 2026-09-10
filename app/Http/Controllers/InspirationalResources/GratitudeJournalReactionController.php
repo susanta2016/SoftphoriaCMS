@@ -21,13 +21,13 @@ use Illuminate\Http\Request;
  *
  * App\Models\LightPost is shared by registration-time "Leave a Little
  * Light" posts and Gratitude Journal entries (source column), and a journal
- * entry itself can be Public, Private, or Community (visibility column) —
- * only source = journal AND visibility = community rows ever appear on the
- * shared feed this button lives on, so both checks are enforced here
+ * entry itself can be Public or Private (visibility column, simplified from
+ * three states to two, 2026-09-10 — the previous "For Community" state was
+ * removed) — only source = journal AND visibility = public rows ever appear
+ * on the shared feed this button lives on, so both checks are enforced here
  * server-side, not just by what the feed happens to render. A registration
- * post, a Public journal entry (its own exposure is the homepage carousel),
- * and a Private journal entry (owner-only, in Account "Your Entries") all
- * 404 here even when targeted directly by public_id.
+ * post and a Private journal entry (owner-only, in Account "Your Entries")
+ * both 404 here even when targeted directly by public_id.
  *
  * The `auth` + EnsureAccountIsUsable route middleware (see routes/web.php)
  * is the real server-side "guests cannot react" gate — this page itself is
@@ -50,7 +50,7 @@ class GratitudeJournalReactionController extends Controller
     {
         abort_unless(config('features.gratitude_journal_reactions_enabled'), 404);
         abort_unless($lightPost->source === LightPostSource::Journal, 404);
-        abort_unless($lightPost->visibility === GratitudeJournalVisibility::Community, 404);
+        abort_unless($lightPost->visibility === GratitudeJournalVisibility::Public, 404);
 
         /** @var User $user */
         $user = $request->user();

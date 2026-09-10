@@ -17,10 +17,11 @@ use Tests\TestCase;
  * (GratitudeJournalReactionController) — reuses the exact same generic
  * App\Models\Reaction / App\Actions\Reaction\ToggleReactionAction
  * architecture as Tests\Feature\Music\TrackReactionTest, scoped to
- * App\Models\LightPost rows where source = journal AND
- * visibility = community. A registration-sourced Light Post, and a Public
- * or Private journal entry, must never become reactable through this
- * endpoint even when targeted directly by public_id.
+ * App\Models\LightPost rows where source = journal AND visibility = public
+ * (simplified from three states to two, 2026-09-10 — the guard moved from
+ * Community to Public). A registration-sourced Light Post and a Private
+ * journal entry must never become reactable through this endpoint even when
+ * targeted directly by public_id.
  */
 class GratitudeJournalReactionTest extends TestCase
 {
@@ -28,7 +29,7 @@ class GratitudeJournalReactionTest extends TestCase
 
     public function test_a_guest_cannot_react_and_is_redirected_to_login(): void
     {
-        $entry = $this->communityEntry();
+        $entry = $this->publicEntry();
 
         $response = $this->post(route('inspirational-resources.gratitude-journal.reactions.toggle', $entry));
 
@@ -38,7 +39,7 @@ class GratitudeJournalReactionTest extends TestCase
 
     public function test_an_authenticated_member_can_react(): void
     {
-        $entry = $this->communityEntry();
+        $entry = $this->publicEntry();
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('inspirational-resources.gratitude-journal.reactions.toggle', $entry));
@@ -53,7 +54,7 @@ class GratitudeJournalReactionTest extends TestCase
 
     public function test_the_async_endpoint_returns_reacted_true_and_the_correct_count(): void
     {
-        $entry = $this->communityEntry();
+        $entry = $this->publicEntry();
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->postJson(route('inspirational-resources.gratitude-journal.reactions.toggle', $entry));
@@ -64,7 +65,7 @@ class GratitudeJournalReactionTest extends TestCase
 
     public function test_toggling_again_removes_the_reaction_and_reports_reacted_false(): void
     {
-        $entry = $this->communityEntry();
+        $entry = $this->publicEntry();
         $user = User::factory()->create();
 
         $this->actingAs($user)->postJson(route('inspirational-resources.gratitude-journal.reactions.toggle', $entry));
@@ -77,7 +78,7 @@ class GratitudeJournalReactionTest extends TestCase
 
     public function test_the_same_user_cannot_create_a_duplicate_reaction(): void
     {
-        $entry = $this->communityEntry();
+        $entry = $this->publicEntry();
         $user = User::factory()->create();
 
         Reaction::query()->create([
@@ -97,7 +98,7 @@ class GratitudeJournalReactionTest extends TestCase
 
     public function test_two_different_members_can_each_react_to_the_same_entry(): void
     {
-        $entry = $this->communityEntry();
+        $entry = $this->publicEntry();
         $userA = User::factory()->create();
         $userB = User::factory()->create();
 
@@ -107,20 +108,9 @@ class GratitudeJournalReactionTest extends TestCase
         $this->assertSame(2, Reaction::query()->count());
     }
 
-    public function test_a_public_journal_entry_cannot_be_reacted_to(): void
-    {
-        $entry = $this->communityEntry(GratitudeJournalVisibility::Public);
-        $user = User::factory()->create();
-
-        $response = $this->actingAs($user)->post(route('inspirational-resources.gratitude-journal.reactions.toggle', $entry));
-
-        $response->assertNotFound();
-        $this->assertSame(0, Reaction::query()->count());
-    }
-
     public function test_a_private_journal_entry_cannot_be_reacted_to(): void
     {
-        $entry = $this->communityEntry(GratitudeJournalVisibility::Private);
+        $entry = $this->publicEntry(GratitudeJournalVisibility::Private);
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('inspirational-resources.gratitude-journal.reactions.toggle', $entry));
@@ -133,7 +123,7 @@ class GratitudeJournalReactionTest extends TestCase
      * The key regression guard: LightPost is shared with registration-time
      * "Leave a Little Light" posts (source = registration) — this endpoint
      * must reject one outright, even though it shares the exact same
-     * reactable_type string a Journal/Community entry would use.
+     * reactable_type string a Public journal entry would use.
      */
     public function test_a_registration_light_post_cannot_be_reacted_to(): void
     {
@@ -155,7 +145,7 @@ class GratitudeJournalReactionTest extends TestCase
     public function test_reactions_are_disabled_and_the_endpoint_404s_when_the_config_is_off(): void
     {
         config(['features.gratitude_journal_reactions_enabled' => false]);
-        $entry = $this->communityEntry();
+        $entry = $this->publicEntry();
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('inspirational-resources.gratitude-journal.reactions.toggle', $entry));
@@ -167,7 +157,7 @@ class GratitudeJournalReactionTest extends TestCase
     public function test_reactions_are_available_when_the_config_is_on(): void
     {
         config(['features.gratitude_journal_reactions_enabled' => true]);
-        $entry = $this->communityEntry();
+        $entry = $this->publicEntry();
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('inspirational-resources.gratitude-journal.reactions.toggle', $entry));
@@ -181,7 +171,7 @@ class GratitudeJournalReactionTest extends TestCase
     public function test_the_feed_shows_the_reaction_control_when_enabled(): void
     {
         config(['features.gratitude_journal_reactions_enabled' => true]);
-        $entry = $this->communityEntry();
+        $entry = $this->publicEntry();
         $viewer = User::factory()->create();
 
         $response = $this->actingAs($viewer)->get(route('inspirational-resources.gratitude-journal'));
@@ -194,7 +184,7 @@ class GratitudeJournalReactionTest extends TestCase
     public function test_the_feed_hides_the_reaction_control_when_disabled(): void
     {
         config(['features.gratitude_journal_reactions_enabled' => false]);
-        $this->communityEntry();
+        $this->publicEntry();
         $viewer = User::factory()->create();
 
         $response = $this->actingAs($viewer)->get(route('inspirational-resources.gratitude-journal'));
@@ -206,7 +196,7 @@ class GratitudeJournalReactionTest extends TestCase
     public function test_the_feed_shows_the_current_reaction_count(): void
     {
         config(['features.gratitude_journal_reactions_enabled' => true]);
-        $entry = $this->communityEntry();
+        $entry = $this->publicEntry();
         $reactor = User::factory()->create();
         $viewer = User::factory()->create();
         $this->actingAs($reactor)->post(route('inspirational-resources.gratitude-journal.reactions.toggle', $entry));
@@ -221,7 +211,7 @@ class GratitudeJournalReactionTest extends TestCase
     public function test_the_feed_marks_the_button_pressed_when_the_viewer_has_already_reacted(): void
     {
         config(['features.gratitude_journal_reactions_enabled' => true]);
-        $entry = $this->communityEntry();
+        $entry = $this->publicEntry();
         $viewer = User::factory()->create();
         $this->actingAs($viewer)->post(route('inspirational-resources.gratitude-journal.reactions.toggle', $entry));
 
@@ -239,7 +229,7 @@ class GratitudeJournalReactionTest extends TestCase
         $action = new CreateGratitudeJournalEntryAction;
 
         $entries = collect(range(1, 11))->map(
-            fn (int $i) => $action->handle($author, "Reaction pagination entry {$i}.", GratitudeJournalVisibility::Community)
+            fn (int $i) => $action->handle($author, "Reaction pagination entry {$i}.", GratitudeJournalVisibility::Public)
         );
         $this->actingAs($viewer)->post(route('inspirational-resources.gratitude-journal.reactions.toggle', $entries->first()));
 
@@ -250,10 +240,10 @@ class GratitudeJournalReactionTest extends TestCase
         $secondPage->assertOk();
     }
 
-    private function communityEntry(GratitudeJournalVisibility $visibility = GratitudeJournalVisibility::Community): LightPost
+    private function publicEntry(GratitudeJournalVisibility $visibility = GratitudeJournalVisibility::Public): LightPost
     {
         $author = User::factory()->create();
 
-        return (new CreateGratitudeJournalEntryAction)->handle($author, 'A community feed entry for reaction testing.', $visibility);
+        return (new CreateGratitudeJournalEntryAction)->handle($author, 'A public feed entry for reaction testing.', $visibility);
     }
 }

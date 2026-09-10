@@ -16,14 +16,12 @@ use Tests\TestCase;
  * boundary's own regression coverage). No second homepage query/widget was
  * introduced; this is still the same single display slot.
  *
- * Visibility is now the three-state App\Enums\GratitudeJournalVisibility
- * (Gratitude Journal three-state visibility change, 2026-09-05), replacing
- * the previous is_public boolean/checkbox. The old "Private" state — which
- * was actually always the shared-feed-visible state, never truly private —
- * is now App\Enums\GratitudeJournalVisibility::Community; see
- * GratitudeJournalFeedTest for that page's own coverage and
- * GratitudeJournalAuthorizationTest for the new, genuinely owner-only
- * Private state's coverage.
+ * Visibility is the two-state App\Enums\GratitudeJournalVisibility
+ * (simplified from three states to two, 2026-09-10 — the previous
+ * "Community" state was removed entirely; see GratitudeJournalFeedTest for
+ * the shared feed's own coverage, now Public-scoped, and
+ * GratitudeJournalAuthorizationTest for the owner-only Private state's
+ * coverage).
  */
 class GratitudeJournalVisibilityTest extends TestCase
 {
@@ -89,19 +87,34 @@ class GratitudeJournalVisibilityTest extends TestCase
         $this->assertSame(GratitudeJournalVisibility::Private, $entry->visibility);
     }
 
-    public function test_submitting_the_new_entry_form_with_for_community_selected_creates_a_community_entry(): void
+    /**
+     * Community no longer exists at the application level — a request that
+     * still submits the legacy value falls back to Public, the same
+     * behavior as an entirely missing/unrecognized value.
+     */
+    public function test_submitting_the_legacy_community_value_is_no_longer_valid_and_falls_back_to_public(): void
     {
         $user = User::factory()->create();
 
+        $this->assertNull(GratitudeJournalVisibility::tryFrom('community'));
+
         $response = $this->actingAs($user)->post(route('account.gratitude-journal.store'), [
-            'content' => 'Grateful, submitted with For Community selected.',
+            'content' => 'Grateful, submitted with the legacy community value.',
             'visibility' => 'community',
         ]);
 
         $response->assertRedirect(route('account.gratitude-journal.index'));
 
         $entry = $user->lightPosts()->journal()->firstOrFail();
-        $this->assertSame(GratitudeJournalVisibility::Community, $entry->visibility);
+        $this->assertSame(GratitudeJournalVisibility::Public, $entry->visibility);
+    }
+
+    public function test_the_visibility_enum_contains_exactly_public_and_private(): void
+    {
+        $this->assertSame(
+            ['public', 'private'],
+            array_map(fn (GratitudeJournalVisibility $case) => $case->value, GratitudeJournalVisibility::cases()),
+        );
     }
 
     public function test_a_private_journal_entry_does_not_appear_on_the_homepage(): void
@@ -113,17 +126,6 @@ class GratitudeJournalVisibilityTest extends TestCase
 
         $response->assertOk();
         $response->assertDontSee('A private journal thought.');
-    }
-
-    public function test_a_community_journal_entry_does_not_appear_on_the_homepage(): void
-    {
-        $user = User::factory()->create(['name' => 'Community Journaler']);
-        (new CreateGratitudeJournalEntryAction)->handle($user, 'A community journal thought.', GratitudeJournalVisibility::Community);
-
-        $response = $this->get(route('home'));
-
-        $response->assertOk();
-        $response->assertDontSee('A community journal thought.');
     }
 
     public function test_a_public_journal_entry_can_appear_on_the_homepage(): void

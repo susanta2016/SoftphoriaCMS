@@ -2,7 +2,7 @@
     <div class="space-y-6">
         <div class="rounded-2xl bg-white p-6 shadow-xl ring-1 ring-brand-navy/5 sm:p-8">
             <h1 class="font-serif text-2xl text-brand-navy sm:text-3xl">Gratitude Journal</h1>
-            <p class="mt-1 text-sm text-brand-navy/70">A place for our members to share what they're grateful for. Public gratitude may appear on the homepage, For Community gratitude is shared within our member community, and Private gratitude is visible only to you.</p>
+            <p class="mt-1 text-sm text-brand-navy/70">A place for our members to share what they're grateful for. Public gratitude may appear on the homepage and the shared member Gratitude Journal, and Private gratitude is visible only to you.</p>
 
             @if (session('status'))
                 <div class="mt-6 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-4 py-3 text-sm text-brand-navy">
@@ -41,7 +41,7 @@
                             </label>
                         @endforeach
                     </div>
-                    <p class="mt-1.5 text-xs text-brand-navy/50">Public may appear on the homepage. For Community appears in the shared member Gratitude Journal. Private is visible only to you.</p>
+                    <p class="mt-1.5 text-xs text-brand-navy/50">Public may appear on the homepage and the shared member Gratitude Journal. Private is visible only to you.</p>
                 </div>
 
                 <div class="mt-4">
@@ -86,7 +86,6 @@
                                     @php
                                         $visibilityBadgeClass = match ($entry->visibility) {
                                             \App\Enums\GratitudeJournalVisibility::Public => 'border-brand-gold/40 text-brand-gold',
-                                            \App\Enums\GratitudeJournalVisibility::Community => 'border-blue-300 text-blue-600',
                                             \App\Enums\GratitudeJournalVisibility::Private => 'border-brand-navy/20 text-brand-navy/60',
                                         };
                                     @endphp

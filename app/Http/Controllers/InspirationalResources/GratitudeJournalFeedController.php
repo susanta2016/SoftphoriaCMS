@@ -22,19 +22,17 @@ use Illuminate\Support\Facades\Auth;
  * store/update/destroy at all, so there is no duplicate CRUD path to a
  * light_posts row.
  *
- * "For Community" entries only (Gratitude Journal three-state visibility
- * change, 2026-09-05) — this is exactly the behavior the old is_public =
- * false ("Private") state already had; that state was renamed/reused as
- * Community rather than reinterpreted, so this page's actual content is
- * unchanged for every pre-existing row (see the visibility migration's own
- * docblock). A Public journal entry's exposure is the homepage carousel
- * instead (HomeController::latestGratitudeEntries(), untouched by this
- * controller) — it does not also appear here. A genuinely Private entry
- * (the new state) never appears here either — only in its owner's own
- * Account "Your Entries". The public LightPostController::show() detail
- * route still rejects every journal-sourced row regardless of visibility.
- * The route itself (routes/web.php) is what keeps a guest out of this page
- * entirely.
+ * Public journal entries only (visibility simplified from three states to
+ * two, 2026-09-10 — the previous "For Community" state was removed; every
+ * pre-existing `community` row was migrated to `public`, see
+ * database/migrations/2026_09_10_090000_migrate_community_gratitude_journal_entries_to_public.php).
+ * A Public journal entry now appears BOTH here and on the homepage carousel
+ * (HomeController::latestGratitudeEntries()) — the two surfaces are
+ * deliberately no longer mutually exclusive. A Private entry never appears
+ * here — only in its owner's own Account "Your Entries". The public
+ * LightPostController::show() detail route still rejects every
+ * journal-sourced row regardless of visibility. The route itself
+ * (routes/web.php) is what keeps a guest out of this page entirely.
  */
 class GratitudeJournalFeedController extends Controller
 {
@@ -49,7 +47,7 @@ class GratitudeJournalFeedController extends Controller
     {
         $chrome = $this->siteChrome($settings);
 
-        $entries = LightPost::query()->journal()->community()->with('user')->withCount('reactions')->latest()->orderByDesc('id')->paginate(10)->withQueryString();
+        $entries = LightPost::query()->journal()->public()->with('user')->withCount('reactions')->latest()->orderByDesc('id')->paginate(10)->withQueryString();
 
         $this->markReactedEntries($entries->getCollection());
 

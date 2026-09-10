@@ -6,33 +6,32 @@ use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
 /**
- * The three visibility states a light_posts row can have (Gratitude
- * Journal three-state visibility change, 2026-09-05), replacing the
- * previous is_public boolean:
+ * The two visibility states a Gratitude Journal light_posts row can have
+ * (simplified from three states to two, 2026-09-10 — the previous
+ * `Community` case was removed entirely; see
+ * database/migrations/2026_09_10_090000_migrate_community_gratitude_journal_entries_to_public.php
+ * for the one-way data migration that folded every legacy `community` row
+ * into `public`):
  *
- * - Public: unchanged existing behavior — shown on the homepage carousel
- *   (HomeController::latestGratitudeEntries()); a registration-time Light
- *   Post is always this value.
- * - Private: new — visible only to its owner, in their own Account
- *   "Your Entries" list. Never shown anywhere else.
- * - Community: the exact existing behavior the old is_public = false
- *   ("Private") state already had — shown on the shared member feed
- *   (GratitudeJournalFeedController), never the homepage. Only a Gratitude
- *   Journal entry (source = journal) can ever be this value — the
- *   registration flow (CreatesLightPostOnRegistration) never sets it.
+ * - Public: shown on the homepage carousel
+ *   (HomeController::latestGratitudeEntries()) AND on the shared member
+ *   feed (GratitudeJournalFeedController) — the two are no longer mutually
+ *   exclusive surfaces. Can receive the 🙌 reaction on the shared feed. A
+ *   registration-time Light Post is always this value.
+ * - Private: visible only to its owner, in their own Account "Your
+ *   Entries" list. Never shown on the homepage, the shared feed, search, or
+ *   the sitemap, and never reactable.
  */
 enum GratitudeJournalVisibility: string implements HasColor, HasLabel
 {
     case Public = 'public';
     case Private = 'private';
-    case Community = 'community';
 
     public function getLabel(): string
     {
         return match ($this) {
             self::Public => 'Public',
             self::Private => 'Private',
-            self::Community => 'For Community',
         };
     }
 
@@ -41,7 +40,6 @@ enum GratitudeJournalVisibility: string implements HasColor, HasLabel
         return match ($this) {
             self::Public => 'success',
             self::Private => 'gray',
-            self::Community => 'info',
         };
     }
 }
