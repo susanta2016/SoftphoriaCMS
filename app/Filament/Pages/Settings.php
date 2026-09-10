@@ -69,6 +69,8 @@ class Settings extends Page
                 ->tabs([
                     Tab::make('General')
                         ->schema($this->generalTabSchema()),
+                    Tab::make('Home')
+                        ->schema($this->homeTabSchema()),
                     Tab::make('SEO')
                         ->schema($this->seoTabSchema()),
                     Tab::make('Footer')
@@ -134,6 +136,27 @@ class Settings extends Page
                 ->helperText('Only published pages can be selected — reuses the existing Pages/CMS, never a separate maintenance content system.')
                 ->required(fn (Get $get): bool => (bool) $get('general.maintenance_mode'))
                 ->visible(fn (Get $get): bool => (bool) $get('general.maintenance_mode')),
+        ];
+    }
+
+    /**
+     * The "Latest Gratitude" carousel's link on the homepage
+     * (App\Http\Controllers\HomeController) — a single site-wide label,
+     * same shape as Poetry/Prose's submit_cta_label above, since it isn't
+     * tied to any one Gratitude Journal entry. The link target itself
+     * (registered member -> /account/gratitude-journal, guest ->
+     * registration) is unrelated behavior and stays code-driven, never
+     * admin-editable, since it's an access-control decision, not copy.
+     *
+     * @return array<int, Component>
+     */
+    protected function homeTabSchema(): array
+    {
+        return [
+            TextInput::make('home.gratitude_cta_label')
+                ->label('"Latest Gratitude" Link Label')
+                ->maxLength(255)
+                ->helperText('Shown on the homepage next to the Latest Gratitude carousel — links a registered member to their own Gratitude Journal, or a guest to registration.'),
         ];
     }
 
@@ -424,6 +447,9 @@ class Settings extends Page
             $settings->set('general', 'maintenance_page_id', $general['maintenance_page_id'], 'integer');
         }
 
+        $home = $state['home'];
+        $settings->set('home', 'gratitude_cta_label', $home['gratitude_cta_label']);
+
         $footer = $state['footer'];
         $settings->set('footer', 'logo_media_id', $footer['logo_media_id'], 'integer');
         $settings->set('footer', 'subheading', $footer['subheading']);
@@ -471,6 +497,7 @@ class Settings extends Page
         $settings->set('registration', 'pro_confirmation_message', $registration['pro_confirmation_message']);
 
         $this->recordAudit('general', array_keys($general));
+        $this->recordAudit('home', array_keys($home));
         $this->recordAudit('footer', array_keys($footer));
         $this->recordAudit('podcast', array_keys($podcast));
         $this->recordAudit('poetry_prose', array_keys($poetryProse));
@@ -520,6 +547,9 @@ class Settings extends Page
                 'default_share_image_media_id' => $settings->get('general', 'default_share_image_media_id'),
                 'twitter_handle' => $settings->get('general', 'twitter_handle'),
                 'fb_app_id' => $settings->get('general', 'fb_app_id'),
+            ],
+            'home' => [
+                'gratitude_cta_label' => $settings->get('home', 'gratitude_cta_label', 'Share Your Light'),
             ],
             'footer' => [
                 'logo_media_id' => $settings->get('footer', 'logo_media_id'),

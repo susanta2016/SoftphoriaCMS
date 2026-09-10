@@ -29,6 +29,7 @@ class HomeController extends Controller implements Sitemapable
         $hero = null;
         $seo = null;
         $gratitude = collect();
+        $gratitudeCtaLabel = 'Share Your Light';
 
         // A freshly deployed/not-yet-migrated environment has neither table
         // yet — same "fail open onto the approved defaults" reasoning as
@@ -61,6 +62,7 @@ class HomeController extends Controller implements Sitemapable
 
             $hero = $this->heroContent($page);
             $gratitude = $this->latestGratitudeEntries();
+            $gratitudeCtaLabel = $settings->get('home', 'gratitude_cta_label') ?: $gratitudeCtaLabel;
 
             $seo = SeoTagBuilder::build($page?->seo, [
                 'title' => $page?->title ?: $siteName,
@@ -114,6 +116,7 @@ class HomeController extends Controller implements Sitemapable
             'hero' => $hero,
             'community' => $this->communityContent($page),
             'gratitude' => $gratitude,
+            'gratitudeCtaLabel' => $gratitudeCtaLabel,
             'siteName' => $siteName,
             'tagline' => $tagline,
             'logo' => $logo,
@@ -221,12 +224,33 @@ class HomeController extends Controller implements Sitemapable
     }
 
     /**
+     * The "Join Our Community" homepage card. Admin-editable (2026-09-10) —
+     * the section's `enabled` toggle still controls whether the card
+     * renders at all, and its heading/subheading/button label/button URL
+     * now come from the FeaturedContent section's own content_json, the
+     * same defaults-merge pattern heroContent() uses, falling back to the
+     * original approved copy when a field is left blank (e.g. an
+     * already-seeded page that predates this change).
+     *
      * @return array<string, mixed>
      */
     private function communityContent(?Page $page): array
     {
+        $defaults = [
+            'heading' => 'Join Our Community',
+            'subheading' => 'A growing space of hearts and minds united.',
+            'cta_label' => 'Join Now',
+            'cta_url' => route('register.show'),
+        ];
+
+        $section = $page?->sections->firstWhere('section_type', PageSectionType::FeaturedContent->value);
+        $content = $section?->content_json ?? [];
+
+        $merged = [...$defaults, ...array_filter($content, fn (mixed $value): bool => $value !== null && $value !== '')];
+
         return [
-            'enabled' => (bool) $page?->sections->firstWhere('section_type', PageSectionType::FeaturedContent->value),
+            'enabled' => (bool) $section,
+            ...$merged,
         ];
     }
 }

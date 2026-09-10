@@ -89,11 +89,11 @@
                                     <path d="M15 13.3c1.9.4 3.5 1.8 3.5 3.9" stroke-linecap="round"/>
                                 </svg>
                             </span>
-                            <h2 class="text-xs font-semibold tracking-wider text-brand-navy uppercase">Join Our Community</h2>
+                            <h2 class="text-xs font-semibold tracking-wider text-brand-navy uppercase">{{ $community['heading'] }}</h2>
                         </div>
-                        <p class="mt-3 text-sm text-brand-navy/70">A growing space of hearts and minds united.</p>
-                        <a href="{{ route('register.show') }}" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-gold transition hover:text-brand-navy">
-                            Join Now <span aria-hidden="true">→</span>
+                        <p class="mt-3 text-sm text-brand-navy/70">{{ $community['subheading'] }}</p>
+                        <a href="{{ $community['cta_url'] }}" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-gold transition hover:text-brand-navy">
+                            {{ $community['cta_label'] }} <span aria-hidden="true">→</span>
                         </a>
                     </div>
                 </div>
@@ -115,7 +115,7 @@
                         href="{{ auth()->check() ? route('account.gratitude-journal.index') : route('register.show') }}"
                         class="hidden shrink-0 text-sm font-medium text-brand-gold transition hover:text-brand-navy sm:inline-block"
                     >
-                        Join the conversation →
+                        {{ $gratitudeCtaLabel }} <span aria-hidden="true">→</span>
                     </a>
                 </div>
 

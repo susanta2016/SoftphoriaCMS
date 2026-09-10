@@ -203,16 +203,16 @@ class PageForm
                 ->columnSpanFull(),
 
             TextInput::make('content_json.heading')->label('Heading')
-                ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
+                ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value, PageSectionType::FeaturedContent->value], true)),
             Textarea::make('content_json.subheading')->label('Subheading')->rows(2)
-                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
+                ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::FeaturedContent->value], true)),
             MediaPicker::make('content_json.media_id', 'Image')
                 ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::ImageText->value], true)),
             TextInput::make('content_json.cta_label')->label('Button label')
-                ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
+                ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value, PageSectionType::FeaturedContent->value], true)),
             TextInput::make('content_json.cta_url')->label('Button URL')->maxLength(255)
                 ->helperText('An absolute URL, a relative path (e.g. /music), or # while the destination isn\'t built yet.')
-                ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
+                ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value, PageSectionType::FeaturedContent->value], true)),
 
             TextInput::make('content_json.secondary_cta_label')->label('Secondary button label')
                 ->helperText('Optional — a second, outlined button shown next to the primary one.')
@@ -268,7 +268,7 @@ class PageForm
             Select::make('content_json.module_key')
                 ->label('Module')
                 ->options(ModuleKey::options())
-                ->helperText('Shows placeholder content until this module is implemented.')
+                ->helperText('The Community module\'s card on the homepage uses the Heading/Subheading/Button fields above. Any other module shows placeholder content until it is implemented.')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::FeaturedContent->value),
 
             Placeholder::make('inert_notice')

@@ -61,6 +61,27 @@ class WebsiteSetupTest extends TestCase
         $this->assertSame('https://softphoria.test', $settings->get('general', 'site_url'));
     }
 
+    public function test_admin_can_save_the_home_gratitude_cta_label(): void
+    {
+        Livewire::actingAs($this->admin())
+            ->test(Settings::class)
+            ->fillForm([
+                'general' => [
+                    'site_name' => 'Softphoria',
+                    'site_url' => 'https://softphoria.test',
+                    'maintenance_mode' => false,
+                ],
+                'home' => [
+                    'gratitude_cta_label' => 'Share Your Own Light',
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $settings = app(SettingsRepository::class);
+        $this->assertSame('Share Your Own Light', $settings->get('home', 'gratitude_cta_label'));
+    }
+
     public function test_maintenance_page_is_required_when_maintenance_mode_is_enabled(): void
     {
         Livewire::actingAs($this->admin())

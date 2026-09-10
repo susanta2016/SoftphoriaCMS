@@ -63,6 +63,10 @@ class HomePageSeeder extends Seeder
                     'is_enabled' => true,
                     'content_json' => [
                         'module_key' => ModuleKey::Community->value,
+                        'heading' => 'Join Our Community',
+                        'subheading' => 'A growing space of hearts and minds united.',
+                        'cta_label' => 'Join Now',
+                        'cta_url' => '/register',
                     ],
                 ],
             ],
