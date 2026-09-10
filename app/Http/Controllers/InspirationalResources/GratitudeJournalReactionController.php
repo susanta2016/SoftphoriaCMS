@@ -29,10 +29,14 @@ use Illuminate\Http\Request;
  * post and a Private journal entry (owner-only, in Account "Your Entries")
  * both 404 here even when targeted directly by public_id.
  *
- * The `auth` + EnsureAccountIsUsable route middleware (see routes/web.php)
- * is the real server-side "guests cannot react" gate — this page itself is
- * already fully auth-gated (no guest ever reaches the feed to see this
- * button), but the endpoint enforces it independently regardless.
+ * The shared feed itself is open to guests (client-confirmed, 2026-09-10) —
+ * this route carries no `auth` middleware either, so a guest reaches this
+ * action rather than being redirected before it runs. Reacting still
+ * requires an account: a guest is redirected to registration (not login,
+ * per the client's explicit choice — a first-time visitor who wants to
+ * react is a registration prospect, not a returning member), enforced here
+ * so the endpoint is correct even if hit directly, not just via the feed's
+ * own markup.
  *
  * Dual-mode response, same as every other reaction controller: a
  * `wantsJson()` request (the real fetch call in resources/js/app.js,
@@ -51,6 +55,10 @@ class GratitudeJournalReactionController extends Controller
         abort_unless(config('features.gratitude_journal_reactions_enabled'), 404);
         abort_unless($lightPost->source === LightPostSource::Journal, 404);
         abort_unless($lightPost->visibility === GratitudeJournalVisibility::Public, 404);
+
+        if (! $request->user()) {
+            return redirect()->route('register.show');
+        }
 
         /** @var User $user */
         $user = $request->user();

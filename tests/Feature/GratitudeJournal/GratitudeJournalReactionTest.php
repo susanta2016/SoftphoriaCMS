@@ -21,19 +21,24 @@ use Tests\TestCase;
  * (simplified from three states to two, 2026-09-10 — the guard moved from
  * Community to Public). A registration-sourced Light Post and a Private
  * journal entry must never become reactable through this endpoint even when
- * targeted directly by public_id.
+ * targeted directly by public_id. The shared feed itself is open to guests
+ * (client-confirmed, 2026-09-10) — reacting is the one thing on that page
+ * that still requires an account, so a guest hitting this endpoint (whether
+ * via the feed's own register-link markup or a direct POST) is redirected
+ * to registration, not login — a first-time visitor wanting to react is
+ * treated as a registration prospect, not a returning member.
  */
 class GratitudeJournalReactionTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_a_guest_cannot_react_and_is_redirected_to_login(): void
+    public function test_a_guest_cannot_react_and_is_redirected_to_register(): void
     {
         $entry = $this->publicEntry();
 
         $response = $this->post(route('inspirational-resources.gratitude-journal.reactions.toggle', $entry));
 
-        $response->assertRedirect(route('login'));
+        $response->assertRedirect(route('register.show'));
         $this->assertSame(0, Reaction::query()->count());
     }
 
@@ -179,6 +184,24 @@ class GratitudeJournalReactionTest extends TestCase
         $response->assertOk();
         $response->assertSee('data-reaction-form', false);
         $response->assertSee('🙌');
+    }
+
+    /**
+     * A guest sees the 🙌 emoji as a plain link straight to registration
+     * (no interactive form/fetch involved) rather than the authenticated
+     * member's toggle form.
+     */
+    public function test_the_feed_shows_a_register_link_for_guests_when_reactions_are_enabled(): void
+    {
+        config(['features.gratitude_journal_reactions_enabled' => true]);
+        $this->publicEntry();
+
+        $response = $this->get(route('inspirational-resources.gratitude-journal'));
+
+        $response->assertOk();
+        $response->assertSee('🙌');
+        $response->assertSee(route('register.show'), false);
+        $response->assertDontSee('data-reaction-form', false);
     }
 
     public function test_the_feed_hides_the_reaction_control_when_disabled(): void

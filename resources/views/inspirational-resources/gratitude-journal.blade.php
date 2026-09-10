@@ -106,7 +106,15 @@
                                     data-reaction-* markup/JS as Music/Podcast/
                                     Poetry-Prose. Toggled asynchronously via
                                     resources/js/app.js; the real POST submit
-                                    here is the no-JS fallback. --}}
+                                    here is the no-JS fallback. A guest (this
+                                    page is open to guests, 2026-09-10) sees a
+                                    plain link straight to registration
+                                    instead of the interactive form — clicking
+                                    it is a normal navigation, no JS/fetch
+                                    involved, matching
+                                    GratitudeJournalReactionController's own
+                                    server-side guest redirect for anyone who
+                                    POSTs the endpoint directly. --}}
                                 @if (config('features.gratitude_journal_reactions_enabled'))
                                     @auth
                                         <form method="POST" action="{{ route('inspirational-resources.gratitude-journal.reactions.toggle', $entry) }}" data-reaction-form>
@@ -125,7 +133,7 @@
                                             </button>
                                         </form>
                                     @else
-                                        <a href="{{ route('login') }}" class="inline-flex items-center gap-1.5 rounded-full border border-brand-navy/20 px-3 py-1.5 text-sm font-medium text-brand-navy/70 transition hover:border-brand-gold" title="Log in to react">
+                                        <a href="{{ route('register.show') }}" class="inline-flex items-center gap-1.5 rounded-full border border-brand-navy/20 px-3 py-1.5 text-sm font-medium text-brand-navy/70 transition hover:border-brand-gold" title="Register to react">
                                             <span aria-hidden="true">🙌</span> {{ $entry->reactions_count }}
                                         </a>
                                     @endauth

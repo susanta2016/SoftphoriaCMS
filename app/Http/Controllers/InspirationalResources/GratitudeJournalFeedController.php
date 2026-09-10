@@ -31,8 +31,11 @@ use Illuminate\Support\Facades\Auth;
  * deliberately no longer mutually exclusive. A Private entry never appears
  * here — only in its owner's own Account "Your Entries". The public
  * LightPostController::show() detail route still rejects every
- * journal-sourced row regardless of visibility. The route itself
- * (routes/web.php) is what keeps a guest out of this page entirely.
+ * journal-sourced row regardless of visibility. This page itself is open to
+ * guests (client-confirmed, 2026-09-10, routes/web.php carries no `auth`
+ * middleware here) — a guest can read every entry, but reacting still
+ * requires an account (GratitudeJournalReactionController redirects a guest
+ * to registration).
  */
 class GratitudeJournalFeedController extends Controller
 {

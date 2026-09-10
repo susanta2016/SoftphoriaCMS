@@ -23,19 +23,25 @@ use Tests\TestCase;
  * BOTH here and on the homepage carousel (see GratitudeJournalVisibilityTest)
  * — the two surfaces are deliberately no longer mutually exclusive. A
  * Private entry never appears here — only in its owner's own Account "Your
- * Entries" (see GratitudeJournalAuthorizationTest). Every authenticated
- * member sees every OTHER member's (and their own) Public entry here, but
+ * Entries" (see GratitudeJournalAuthorizationTest). Every viewer — guest or
+ * authenticated member (client-confirmed, 2026-09-10: the page itself is
+ * open to guests, only reacting requires an account, see
+ * GratitudeJournalReactionTest) — sees every member's Public entry here, but
  * can never create, edit, or delete anything from this page.
  */
 class GratitudeJournalFeedTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_a_guest_is_redirected_to_login(): void
+    public function test_a_guest_can_view_the_feed(): void
     {
+        $author = User::factory()->create();
+        (new CreateGratitudeJournalEntryAction)->handle($author, 'A guest-visible public entry.', GratitudeJournalVisibility::Public);
+
         $response = $this->get(route('inspirational-resources.gratitude-journal'));
 
-        $response->assertRedirect(route('login'));
+        $response->assertOk();
+        $response->assertSee('A guest-visible public entry.');
     }
 
     /**

@@ -238,11 +238,13 @@ Route::post('/inspirational-resources/submit', [InspirationalResourceSubmissionC
 // GratitudeJournalFeedController's own docblock. Registered before the
 // {resourceSubmission:slug} wildcard below for the same reason /submit is:
 // an exact "/inspirational-resources/gratitude-journal" request must always
-// match here first, never fall through to a slug lookup. Still behind
-// auth + EnsureAccountIsUsable (guests, and any blocked-status member, are
-// denied).
+// match here first, never fall through to a slug lookup. Open to guests
+// (client-confirmed, 2026-09-10) — only EnsureAccountIsUsable remains, which
+// is a no-op for a guest and only acts on an already-authenticated
+// blocked/admin member; reacting still requires an account (see the
+// reactions route below).
 Route::get('/inspirational-resources/gratitude-journal', [GratitudeJournalFeedController::class, 'index'])
-    ->middleware(['auth', EnsureAccountIsUsable::class])
+    ->middleware([EnsureAccountIsUsable::class])
     ->name('inspirational-resources.gratitude-journal');
 
 // The 🙌 reaction (client-confirmed, 2026-09-05) — same generic
@@ -250,14 +252,16 @@ Route::get('/inspirational-resources/gratitude-journal', [GratitudeJournalFeedCo
 // above, scoped to this shared feed's own entries. Registered immediately
 // after the feed's own GET route, still ahead of the
 // {resourceSubmission:slug} wildcard below, for the same routing-order
-// reason. Same auth + EnsureAccountIsUsable gate as the feed itself, plus
-// the same throttle:10,1 the other reaction routes use.
+// reason. Open to guests at the route level (matching the feed above) so
+// GratitudeJournalReactionController::toggle() itself can redirect a guest
+// to registration rather than login (client-confirmed, 2026-09-10) — same
+// throttle:10,1 the other reaction routes use.
 // GratitudeJournalReactionController::toggle() is what actually enforces
-// source = journal AND visibility = community on the bound LightPost —
-// this route alone does not distinguish it from a registration post or a
-// Public/Private journal entry.
+// source = journal AND visibility = public on the bound LightPost — this
+// route alone does not distinguish it from a registration post or a
+// Private journal entry.
 Route::post('/inspirational-resources/gratitude-journal/{lightPost:public_id}/reactions', [GratitudeJournalReactionController::class, 'toggle'])
-    ->middleware(['auth', EnsureAccountIsUsable::class, 'throttle:10,1'])
+    ->middleware([EnsureAccountIsUsable::class, 'throttle:10,1'])
     ->name('inspirational-resources.gratitude-journal.reactions.toggle');
 
 Route::get('/inspirational-resources/{resourceSubmission:slug}', [InspirationalResourceController::class, 'show'])->name('inspirational-resources.show');
