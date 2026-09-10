@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\BetaAccess;
 
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -122,14 +124,45 @@ class BetaAccessGateTest extends TestCase
         $response->assertRedirect(url('/music'));
     }
 
-    public function test_login_register_and_admin_remain_reachable_once_authorized(): void
+    public function test_login_and_register_remain_reachable_once_authorized(): void
     {
         $this->enableGate();
         $this->withSession(['beta_access_granted' => true]);
 
         $this->get(route('login'))->assertOk();
         $this->get(route('register.show'))->assertOk();
+    }
+
+    public function test_the_admin_panel_bypasses_the_gate_without_any_beta_session(): void
+    {
+        $this->enableGate();
+
         $this->get('/admin/login')->assertOk();
+        $this->get('/admin')->assertRedirect('/admin/login');
+    }
+
+    public function test_a_signed_in_admin_bypasses_the_gate_everywhere_on_the_site(): void
+    {
+        $this->enableGate();
+
+        $user = User::factory()->create(['status' => 'active']);
+        $adminRole = Role::create(['name' => 'Administrator', 'slug' => 'admin']);
+        $user->roles()->attach($adminRole);
+
+        $response = $this->actingAs($user)->get('/music');
+
+        $response->assertOk();
+    }
+
+    public function test_a_signed_in_non_admin_member_still_hits_the_gate(): void
+    {
+        $this->enableGate();
+
+        $user = User::factory()->create(['status' => 'active']);
+
+        $response = $this->actingAs($user)->get('/music');
+
+        $response->assertRedirect(route('beta.show'));
     }
 
     public function test_the_internal_auth_check_reflects_session_state(): void

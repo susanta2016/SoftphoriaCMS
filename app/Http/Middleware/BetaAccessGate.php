@@ -23,10 +23,15 @@ use Symfony\Component\HttpFoundation\Response;
  * so flipping the gate on/off or changing the password is a production
  * .env edit, never a source file.
  *
- * /admin, /login, /register are intentionally NOT excluded — the client
- * explicitly requires the entire site, including those, to sit behind the
- * gate. Once a visitor's session has beta_access_granted = true, every one
- * of those routes works completely normally again.
+ * /login and /register are intentionally NOT excluded — the client
+ * explicitly requires the public site to sit behind the gate. Once a
+ * visitor's session has beta_access_granted = true, every one of those
+ * routes works completely normally again.
+ *
+ * /admin (the whole Filament panel, including its own /admin/login) IS
+ * excluded below, and a signed-in admin (User::hasAdminRole()) also bypasses
+ * the gate everywhere else on the site — per client update 2026-09-10, beta
+ * access must never block the admin panel or an admin account.
  *
  * A visitor-uploaded file under /storage/... is served directly by Nginx
  * (public/storage is a symlink to the storage disk) and never reaches this
@@ -59,6 +64,8 @@ class BetaAccessGate
         'beta-access/*',
         'robots.txt',
         'internal/beta-auth-check',
+        'admin',
+        'admin/*',
     ];
 
     public function handle(Request $request, Closure $next): Response
@@ -72,6 +79,10 @@ class BetaAccessGate
         }
 
         if ($request->session()->get('beta_access_granted') === true) {
+            return $next($request);
+        }
+
+        if ($request->user()?->hasAdminRole()) {
             return $next($request);
         }
 
