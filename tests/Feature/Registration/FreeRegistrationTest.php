@@ -116,7 +116,7 @@ class FreeRegistrationTest extends TestCase
         $response->assertOk();
         $response->assertSee('Leave a Little Light');
         $response->assertSee('What words of light would you like to share with the gathering?');
-        $response->assertSee('This Light Post will be shared publicly.');
+        $response->assertSee('This light will be shared on homepage');
         $response->assertSee('Leave a little light...');
         $response->assertSee('Share My Light');
         $response->assertSee('Share Another Time');

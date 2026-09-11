@@ -120,7 +120,7 @@
                 <h2 class="font-serif text-lg text-brand-navy">Leave a Little Light <span aria-hidden="true">✨</span></h2>
                 <p class="mt-2 text-sm text-brand-navy/70">What words of light would you like to share with the gathering?</p>
                 <p class="mt-1 text-sm text-brand-navy/60">A thought. A hope. A word of encouragement. A moment of gratitude. Whatever comes to heart.</p>
-                <p class="mt-1 text-xs font-medium tracking-wide text-brand-gold uppercase">This Light Post will be shared publicly.</p>
+                <p class="mt-1 text-xs font-medium tracking-wide text-brand-gold uppercase">This light will be shared on homepage</p>
 
                 <textarea
                     id="light_message" name="light_message" rows="3" maxlength="{{ $lightPostMaxLength }}"

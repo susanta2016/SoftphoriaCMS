@@ -157,6 +157,15 @@
                         </button>
                     @endif
                 </div>
+
+                <div class="mt-5 text-center">
+                    <a
+                        href="{{ route('inspirational-resources.gratitude-journal') }}"
+                        class="inline-flex items-center gap-1 text-sm font-medium text-brand-gold transition hover:text-brand-navy"
+                    >
+                        All Gratitude Journal <span aria-hidden="true">→</span>
+                    </a>
+                </div>
             </div>
         </div>
     @endif

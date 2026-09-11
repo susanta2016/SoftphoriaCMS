@@ -59,30 +59,30 @@
 
     <div class="bg-white py-12">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 gap-10 lg:grid-cols-12">
+            @if (session('download_error'))
+                <p class="mb-6 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">{{ session('download_error') }}</p>
+            @endif
+
+            @if ($embedUrl)
+                <div class="aspect-video overflow-hidden rounded-2xl bg-brand-navy shadow-xl ring-1 ring-brand-navy/5">
+                    <iframe
+                        src="{{ $embedUrl }}"
+                        class="h-full w-full"
+                        title="{{ $episode->title }}"
+                        allow="autoplay; fullscreen; picture-in-picture"
+                        allowfullscreen
+                        frameborder="0"
+                    ></iframe>
+                </div>
+            @elseif ($artworkUrl)
+                <div class="aspect-video overflow-hidden rounded-2xl bg-brand-navy/10 shadow-xl ring-1 ring-brand-navy/5">
+                    <img src="{{ $artworkUrl }}" alt="{{ $episode->title }}" class="h-full w-full object-cover">
+                </div>
+            @endif
+
+            <div class="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-12">
                 <div class="lg:col-span-8">
-                    @if (session('download_error'))
-                        <p class="mb-6 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">{{ session('download_error') }}</p>
-                    @endif
-
-                    @if ($embedUrl)
-                        <div class="aspect-video overflow-hidden rounded-2xl bg-brand-navy shadow-xl ring-1 ring-brand-navy/5">
-                            <iframe
-                                src="{{ $embedUrl }}"
-                                class="h-full w-full"
-                                title="{{ $episode->title }}"
-                                allow="autoplay; fullscreen; picture-in-picture"
-                                allowfullscreen
-                                frameborder="0"
-                            ></iframe>
-                        </div>
-                    @elseif ($artworkUrl)
-                        <div class="aspect-video overflow-hidden rounded-2xl bg-brand-navy/10 shadow-xl ring-1 ring-brand-navy/5">
-                            <img src="{{ $artworkUrl }}" alt="{{ $episode->title }}" class="h-full w-full object-cover">
-                        </div>
-                    @endif
-
-                    <div class="mt-6 flex flex-wrap items-center gap-3">
+                    <div class="flex flex-wrap items-center gap-3">
                         <div class="inline-flex items-center gap-2">
                             <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(route('podcast.episodes.show', $episode)) }}" target="_blank" rel="noopener" aria-label="Share on Facebook" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12Z"/></svg>
