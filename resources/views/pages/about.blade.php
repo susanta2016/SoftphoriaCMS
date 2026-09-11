@@ -19,11 +19,9 @@
     $sections = $page->sections->where('is_enabled', true)->sortBy('sort_order')->values();
 
     // Presentation-only split of the "About All the Things Light" rich-text
-    // body into paragraphs, so the opening line, the three central ideas,
-    // and the closing line can each get their own visual treatment. The
-    // supplied copy itself is never altered — a paragraph that doesn't
-    // match one of the known lines below simply renders as a normal
-    // paragraph, so future edits degrade gracefully instead of breaking.
+    // body into paragraphs, so the opening line, the central ideas, and the
+    // closing line can each get their own visual treatment. The supplied
+    // copy itself is never altered.
     $splitParagraphs = function (string $html): array {
         if (trim($html) === '') {
             return [];
@@ -47,20 +45,53 @@
         return $paragraphs;
     };
 
-    $lede = 'All the Things Light is a place to come and gather.';
-    $ideaStatements = [
-        'Love is creation’s greatest idea.',
-        'We are one.',
-        'The closer we move toward the light, the more we begin to look like the light.',
-    ];
-    $closing = 'Come and Gather. ✨';
+    // The first paragraph is always the lede and the last is always the
+    // closing line — purely positional, so editing their wording never
+    // breaks anything. The idea boxes in between are found by two fixed
+    // marker paragraphs that bracket them ($ideasIntro / $ideasOutro)
+    // rather than by matching the idea sentences' own wording — an earlier
+    // version matched each idea paragraph against its exact original text,
+    // which meant editing an idea's copy to anything else made that box
+    // (and its text) disappear from the "ideas" treatment entirely. Editing
+    // the intro/outro marker sentences themselves still falls back to no
+    // idea-box grouping (paragraphs render normally) rather than breaking.
+    $ideasIntro = 'At the heart of it all are a few ideas:';
+    $ideasOutro = 'All the Things Light is an invitation to experience those ideas—not only through words, but through music, conversation, gratitude, creativity, and connection.';
 
-    $buildChunks = function (array $paragraphs) use ($ideaStatements, $lede, $closing): array {
+    $buildChunks = function (array $paragraphs) use ($ideasIntro, $ideasOutro): array {
+        $count = count($paragraphs);
+
+        if ($count === 0) {
+            return [];
+        }
+
+        $roles = array_fill(0, $count, 'normal');
+        $roles[0] = 'lede';
+        if ($count > 1) {
+            $roles[$count - 1] = 'closing';
+        }
+
+        $introIndex = null;
+        $outroIndex = null;
+        foreach ($paragraphs as $i => $paragraph) {
+            if ($paragraph['text'] === $ideasIntro) {
+                $introIndex = $i;
+            } elseif ($paragraph['text'] === $ideasOutro) {
+                $outroIndex = $i;
+            }
+        }
+
+        if ($introIndex !== null && $outroIndex !== null && $outroIndex > $introIndex + 1) {
+            for ($i = $introIndex + 1; $i < $outroIndex; $i++) {
+                $roles[$i] = 'idea';
+            }
+        }
+
         $chunks = [];
         $ideaBuffer = [];
 
-        foreach ($paragraphs as $paragraph) {
-            if (in_array($paragraph['text'], $ideaStatements, true)) {
+        foreach ($paragraphs as $i => $paragraph) {
+            if ($roles[$i] === 'idea') {
                 $ideaBuffer[] = $paragraph;
 
                 continue;
@@ -71,13 +102,7 @@
                 $ideaBuffer = [];
             }
 
-            $type = match ($paragraph['text']) {
-                $lede => 'lede',
-                $closing => 'closing',
-                default => 'normal',
-            };
-
-            $chunks[] = ['type' => $type, 'item' => $paragraph];
+            $chunks[] = ['type' => $roles[$i], 'item' => $paragraph];
         }
 
         if ($ideaBuffer) {
