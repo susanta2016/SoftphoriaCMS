@@ -51,6 +51,7 @@
             @foreach ($navItems as $item)
                 <a
                     href="{{ $item->resolvedUrl() ?? '#' }}"
+                    @if ($item->target === '_blank') target="_blank" rel="noopener" @endif
                     class="text-sm font-medium whitespace-nowrap text-brand-navy transition hover:text-brand-gold"
                 >
                     {{ $item->label }}
@@ -213,7 +214,7 @@
     <div id="mobile-menu" data-mobile-menu class="hidden border-t border-brand-navy/10 bg-white lg:hidden">
         <nav aria-label="Primary" class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 sm:px-6">
             @foreach ($navItems as $item)
-                <a href="{{ $item->resolvedUrl() ?? '#' }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
+                <a href="{{ $item->resolvedUrl() ?? '#' }}" @if ($item->target === '_blank') target="_blank" rel="noopener" @endif class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
                     {{ $item->label }}
                 </a>
             @endforeach

@@ -84,7 +84,7 @@
                     <h3 class="text-xs font-semibold tracking-wider text-brand-navy uppercase">{{ $section->label }} <span class="text-brand-gold" aria-hidden="true">✦</span></h3>
                     <ul class="mt-4 space-y-2.5">
                         @foreach ($section->children as $link)
-                            <li><a href="{{ $link->resolvedUrl() ?? '#' }}" class="text-sm text-brand-navy/75 transition hover:text-brand-gold">{{ $link->label }}</a></li>
+                            <li><a href="{{ $link->resolvedUrl() ?? '#' }}" @if ($link->target === '_blank') target="_blank" rel="noopener" @endif class="text-sm text-brand-navy/75 transition hover:text-brand-gold">{{ $link->label }}</a></li>
                         @endforeach
                     </ul>
                 </div>
