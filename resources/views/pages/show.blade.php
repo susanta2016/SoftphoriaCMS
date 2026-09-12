@@ -40,6 +40,21 @@
         .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; }
         .gallery img { width: 100%; height: 140px; object-fit: cover; border-radius: 0.375rem; }
         .section-title { font-size: 1.5rem; margin: 0 0 1rem; }
+        .rich-text { line-height: 1.7; }
+        .rich-text p { margin: 0 0 1.25rem; }
+        .rich-text h2 { font-size: 1.375rem; font-weight: 700; color: #16324f; margin: 2rem 0 1rem; }
+        .rich-text h3 { font-size: 1.125rem; font-weight: 600; color: #16324f; margin: 1.5rem 0 0.75rem; }
+        .rich-text ul, .rich-text ol { margin: 0 0 1.25rem; padding-left: 1.5rem; }
+        .rich-text ul { list-style: disc; }
+        .rich-text ol { list-style: decimal; }
+        .rich-text li { margin-bottom: 0.5rem; }
+        .rich-text li p { margin: 0; }
+        .rich-text hr { border: none; border-top: 1px solid #e5e7eb; margin: 2rem 0; }
+        .rich-text a { color: #d99a3d; text-decoration: underline; }
+        .rich-text a:hover { color: #16324f; }
+        .rich-text strong { font-weight: 600; }
+        .rich-text > *:first-child { margin-top: 0; }
+        .rich-text > *:last-child { margin-bottom: 0; }
         .rich-text video { width: 100%; max-width: 640px; border-radius: 0.5rem; margin-top: 1rem; display: block; }
         .inert-notice { color: #9ca3af; font-size: 0.875rem; border: 1px dashed #d1d5db; padding: 1rem; border-radius: 0.375rem; }
         .disabled-badge { display: inline-block; margin-left: 0.5rem; font-size: 0.75rem; color: #9ca3af; }
