@@ -122,6 +122,20 @@
                         </div>
                     @endif
 
+                    @if ($podcast)
+                        <div class="mt-8 rounded-2xl bg-brand-ivory p-6 ring-1 ring-brand-navy/5">
+                            <h2 class="font-serif text-lg text-brand-navy">About the Podcast</h2>
+                            @if ($podcast->description)
+                                <div class="mt-3 max-h-48 overflow-y-auto pr-2">
+                                    <p class="text-sm leading-relaxed text-brand-navy/70">{{ str($podcast->description)->stripTags() }}</p>
+                                </div>
+                            @endif
+                            <a href="{{ route('podcast.episodes.index') }}" class="mt-4 inline-flex items-center gap-1.5 rounded-md border border-brand-gold/40 px-4 py-2 text-sm font-semibold text-brand-gold transition hover:bg-brand-gold hover:text-white">
+                                View All Episodes <span aria-hidden="true">→</span>
+                            </a>
+                        </div>
+                    @endif
+
                     @if ($episode->tags->isNotEmpty())
                         <div class="mt-8">
                             <h2 class="font-serif text-xl text-brand-navy">Key Themes</h2>
@@ -250,20 +264,6 @@
 
                 <div class="lg:col-span-4">
                     <div class="space-y-6 lg:sticky lg:top-28">
-                        @if ($podcast)
-                            <div class="rounded-2xl bg-brand-ivory p-6 ring-1 ring-brand-navy/5">
-                                <h2 class="font-serif text-lg text-brand-navy">About the Podcast</h2>
-                                @if ($podcast->description)
-                                    <div class="mt-3 max-h-48 overflow-y-auto pr-2">
-                                        <p class="text-sm leading-relaxed text-brand-navy/70">{{ str($podcast->description)->stripTags() }}</p>
-                                    </div>
-                                @endif
-                                <a href="{{ route('podcast.episodes.index') }}" class="mt-4 inline-flex items-center gap-1.5 rounded-md border border-brand-gold/40 px-4 py-2 text-sm font-semibold text-brand-gold transition hover:bg-brand-gold hover:text-white">
-                                    View All Episodes <span aria-hidden="true">→</span>
-                                </a>
-                            </div>
-                        @endif
-
                         @if ($latest->isNotEmpty())
                             <div class="rounded-2xl border border-brand-navy/10 p-6">
                                 <h2 class="text-xs font-semibold tracking-wider text-brand-navy uppercase">Latest Episodes</h2>
