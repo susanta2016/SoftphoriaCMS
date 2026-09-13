@@ -34,7 +34,7 @@ trait ReadsFileMetadataReliably
         for ($attempt = 1; $attempt <= $attempts; $attempt++) {
             try {
                 return [
-                    'mimeType' => Storage::disk($disk)->mimeType($path),
+                    'mimeType' => $this->normalizeMimeType(Storage::disk($disk)->mimeType($path), $path),
                     'size' => Storage::disk($disk)->size($path),
                 ];
             } catch (UnableToRetrieveMetadata $exception) {
@@ -47,5 +47,27 @@ trait ReadsFileMetadataReliably
         }
 
         throw $lastException;
+    }
+
+    /**
+     * .m4a is an MP4-family container, and depending on the encoder's ftyp
+     * atom, PHP's fileinfo/finfo sniffs it as `video/mp4` rather than any
+     * `audio/*` type (confirmed 2026-09-13 against a real upload) — even
+     * though config('media.categories.audio.accepted_mime_types') now
+     * allows `video/mp4` through Filament's upload validation so these
+     * files aren't rejected outright. Left unnormalized, the stored
+     * mime_type would make MediaCategory::fromMimeType() classify the file
+     * as Video everywhere downstream (admin preview player, the Media
+     * Library grid's category filter), despite it being genuine audio. Only
+     * the specific video/mp4-sniffed-as-.m4a case is remapped — a real
+     * .mp4 video keeps its correct mime_type.
+     */
+    private function normalizeMimeType(string $mimeType, string $path): string
+    {
+        if ($mimeType === 'video/mp4' && strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'm4a') {
+            return 'audio/mp4';
+        }
+
+        return $mimeType;
     }
 }

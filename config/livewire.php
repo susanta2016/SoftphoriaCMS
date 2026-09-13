@@ -130,7 +130,18 @@ return [
 
     'temporary_file_upload' => [
         'disk' => env('LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK'), // Example: 'local', 's3'             | Default: 'default'
-        'rules' => null,                                      // Example: ['file', 'mimes:png,jpg'] | Default: ['required', 'file', 'max:12288'] (12MB)
+        // Livewire's own default here is ['required', 'file', 'max:12288']
+        // (12MB) — a hard global ceiling applied to every temporary upload
+        // BEFORE Filament's own per-field MediaPicker::maxSize() ever runs
+        // (see config/media.php's per-category max_size). Left at the
+        // default, it silently rejected the Audio category's 50MB uploads
+        // (and would reject Video's 512MB too), producing a 302 redirect
+        // that Livewire's JS tries to JSON.parse — the "Unexpected token
+        // '<'" browser error. Raised to match Video, the largest category
+        // (512MB = 524288 KB); each field's own maxSize() still enforces
+        // its tighter real limit on top of this.
+        'rules' => ['required', 'file', 'max:524288'],
+
         'directory' => null,                                  // Example: 'tmp'                     | Default: 'livewire-tmp'
         'middleware' => null,                                 // Example: 'throttle:5,1'            | Default: 'throttle:60,1'
         'preview_mimes' => [                                  // Supported file types for temporary pre-signed file URLs...

@@ -38,7 +38,22 @@ return [
         ],
         MediaCategory::Audio->value => [
             'mimes' => ['mp3', 'wav', 'm4a'],
-            'accepted_mime_types' => ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/mp4', 'audio/m4a', 'audio/x-m4a'],
+            // video/mp4 is included deliberately: .m4a is an MP4-family
+            // container, and depending on the encoder its ftyp atom is
+            // sniffed by PHP's fileinfo/finfo as video/mp4 rather than any
+            // audio/* type (confirmed 2026-09-13 against a real .m4a
+            // upload) — Filament's FileUpload validates the real sniffed
+            // content type (mimetypes: rule), not the .m4a extension
+            // ('mimes' above isn't actually wired into that check), so
+            // without this every such file fails with "must be a file of
+            // type" despite being valid audio. This does mean a genuine
+            // .mp4 video could technically be accepted through this field
+            // too — MediaPicker's own action() only stores what's picked,
+            // it doesn't gate by intent beyond this list. The stored
+            // mime_type is normalized back to audio/mp4 for the .m4a case
+            // (see ReadsFileMetadataReliably::normalizeMimeType()), so
+            // MediaCategory::fromMimeType() still classifies it as Audio.
+            'accepted_mime_types' => ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/mp4', 'audio/m4a', 'audio/x-m4a', 'video/mp4'],
             'max_size' => 50 * 1024,
             'disk' => 'local',
             'directory' => 'media/audio',
