@@ -113,17 +113,8 @@
                         </div>
                     @endif
 
-                    @if ($episode->description)
-                        <div class="mt-10">
-                            <h2 class="font-serif text-2xl text-brand-navy">About This Episode</h2>
-                            <div class="mt-4 text-sm leading-relaxed text-brand-navy/75 [&_p]:mb-4 [&_p]:last:mb-0">
-                                {!! $episode->description !!}
-                            </div>
-                        </div>
-                    @endif
-
                     @if ($podcast)
-                        <div class="mt-8 rounded-2xl bg-brand-ivory p-6 ring-1 ring-brand-navy/5">
+                        <div class="mt-10 rounded-2xl bg-brand-ivory p-6 ring-1 ring-brand-navy/5">
                             <h2 class="font-serif text-lg text-brand-navy">About the Podcast</h2>
                             @if ($podcast->description)
                                 <div class="mt-3 max-h-48 overflow-y-auto pr-2">
@@ -133,6 +124,15 @@
                             <a href="{{ route('podcast.episodes.index') }}" class="mt-4 inline-flex items-center gap-1.5 rounded-md border border-brand-gold/40 px-4 py-2 text-sm font-semibold text-brand-gold transition hover:bg-brand-gold hover:text-white">
                                 View All Episodes <span aria-hidden="true">→</span>
                             </a>
+                        </div>
+                    @endif
+
+                    @if ($episode->description)
+                        <div class="mt-8">
+                            <h2 class="font-serif text-2xl text-brand-navy">About This Episode</h2>
+                            <div class="mt-4 text-sm leading-relaxed text-brand-navy/75 [&_p]:mb-4 [&_p]:last:mb-0">
+                                {!! $episode->description !!}
+                            </div>
                         </div>
                     @endif
 
