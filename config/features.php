@@ -158,4 +158,25 @@ return [
 
     'gratitude_journal_reactions_enabled' => env('GRATITUDE_JOURNAL_REACTIONS_ENABLED', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Music Landing Page Autoplay
+    |--------------------------------------------------------------------------
+    |
+    | Master switch for the Music landing page's autoplay enhancement
+    | (App\Http\Controllers\Music\MusicController::resolveAutoplayTrack()).
+    | When false, the public landing page never attempts autoplay regardless
+    | of what Track an admin has configured, and the admin's own "Landing
+    | Page Autoplay" settings page (App\Modules\Music\Filament\Pages\
+    | MusicLandingAutoplaySettings) is hidden from navigation — same
+    | config-gated-admin-surface pattern member_subscription_enabled already
+    | uses for the Subscriptions resource. The configured Track id itself
+    | (settings table, group "music") is left untouched either way, so
+    | flipping this back to true (or unsetting the env var, which defaults
+    | to false) restores autoplay with no reconfiguration needed.
+    |
+    */
+
+    'music_landing_autoplay_enabled' => env('MUSIC_LANDING_AUTOPLAY_ENABLED', false),
+
 ];

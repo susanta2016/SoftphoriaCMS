@@ -772,6 +772,79 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTrack(currentIndex, false);
 });
 
+// Music landing page autoplay enhancement — an admin-selected single Track
+// (music/index.blade.php's [data-music-autoplay-audio], never the multi-
+// track player above, which that page does not render at all: no visible
+// play/pause/seek controls, no track rows). Deliberately its own small,
+// separate engine rather than reusing the player block's loadTrack()/rows
+// machinery, since that machinery is inherently built around visible
+// per-track UI elements this page intentionally never shows.
+//
+// Attempts one direct, unmuted audio.play() call on load — no fake clicks,
+// no muted-then-unmute trick — and lets the browser decide. The Now Playing
+// / Stop banner and the Play Music prompt are driven purely by the real
+// <audio> element's own 'play'/'pause' events, so they can never drift from
+// actual playback state and never re-show themselves after Stop Music is
+// clicked, since nothing here calls play() again afterward.
+document.addEventListener('DOMContentLoaded', () => {
+    const audio = document.querySelector('[data-music-autoplay-audio]');
+    if (!audio || !audio.getAttribute('src')) return;
+
+    const banner = document.querySelector('[data-music-autoplay-banner]');
+    const stopButton = banner?.querySelector('[data-music-autoplay-stop]');
+    const prompt = document.querySelector('[data-music-autoplay-prompt]');
+    const promptPlayButton = prompt?.querySelector('[data-music-autoplay-play]');
+    const completeUrl = document.querySelector('[data-music-autoplay-complete-url]')?.getAttribute('content');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    const hideStatus = () => {
+        banner?.classList.add('hidden');
+        prompt?.classList.add('hidden');
+    };
+
+    audio.addEventListener('play', () => {
+        hideStatus();
+        banner?.classList.remove('hidden');
+    });
+
+    audio.addEventListener('pause', hideStatus);
+
+    // Same client-reported completion signal listening.blade.php's player
+    // already sends on natural end-of-track (never on pause/seek) — the
+    // sole writer of track_listens (see TrackListenController), so a
+    // registered visitor's autoplay listen counts toward their existing
+    // daily quota exactly as a manual listen would. Never sent for a guest
+    // (no complete_url rendered for one — see MusicController::
+    // autoplayTrackPlayback()), since guest playback is never quota-tracked.
+    audio.addEventListener('ended', () => {
+        if (!completeUrl || !csrfToken) return;
+
+        fetch(completeUrl, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+        }).catch(() => {
+            // Recording the listen failed over the network — TrackStreamController
+            // remains the real quota authority on any subsequent stream request
+            // either way, so nothing is bypassed by this failing silently.
+        });
+    });
+
+    stopButton?.addEventListener('click', () => audio.pause());
+
+    // A real user gesture on this prompt's own button calling audio.play()
+    // directly — not a synthetic click routed through another control, since
+    // (unlike the visible player) there is no other Play button here to
+    // delegate to.
+    promptPlayButton?.addEventListener('click', () => audio.play().catch(() => {}));
+
+    audio.play().catch(() => {
+        // Autoplay was blocked by the browser — never retried automatically;
+        // show the one-time prompt so the visitor can start playback with a
+        // single real click.
+        prompt?.classList.remove('hidden');
+    });
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const buttons = Array.from(document.querySelectorAll('[data-music-save-toggle]'));
 

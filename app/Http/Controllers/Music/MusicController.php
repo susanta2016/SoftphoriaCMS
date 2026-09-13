@@ -69,6 +69,7 @@ class MusicController extends Controller implements Sitemapable
         $featured = $this->featuredRelease();
         $songStories = $this->latestSongStories();
         $storyBanner = $this->storyBannerContent($page);
+        $autoplayTrack = $this->resolveAutoplayTrack($settings);
 
         $seo = SeoTagBuilder::build($page?->seo, [
             'title' => "Music — {$chrome['siteName']}",
@@ -86,6 +87,14 @@ class MusicController extends Controller implements Sitemapable
             'songStories' => $songStories,
             'storyBanner' => $storyBanner,
             'filters' => $filters,
+            // Landing page autoplay enhancement — a single admin-picked Track
+            // (Website Setup > Music > Landing Page Autoplay), completely
+            // independent of $featured above (never the Featured Album/
+            // Single). See resolveAutoplayTrack()/autoplayTrackPlayback().
+            'autoplayTrack' => $autoplayTrack,
+            'autoplayPlayback' => $autoplayTrack
+                ? $this->autoplayTrackPlayback($autoplayTrack, $this->listeningAccessState())
+                : null,
         ]);
     }
 
@@ -314,6 +323,82 @@ class MusicController extends Controller implements Sitemapable
         return $top->release_type === 'album'
             ? Album::query()->with(['cover', 'streamingLinks', 'tracks' => fn ($q) => $q->published()->with('lyrics')])->find($top->id)
             : Single::query()->with(['cover', 'streamingLinks', 'track.lyrics'])->find($top->id);
+    }
+
+    /**
+     * The Music landing page's autoplay enhancement — an admin picks exactly
+     * one Track (Website Setup > Music > Landing Page Autoplay, see
+     * MusicLandingAutoplaySettings), stored by ID only via the existing
+     * generic settings table (SettingsRepository, group "music"). Never the
+     * Featured Album/Single ($featured in index() above) — the two are
+     * completely independent, by design.
+     *
+     * Fails safe: a null/never-configured setting, a deleted Track, or a
+     * Track that is no longer Published (or whose parent Album/Single is no
+     * longer Published — a Track's own status doesn't guarantee its release
+     * is still publicly reachable, the same double-check showTrack() already
+     * makes) all resolve to null here, and the landing page simply attempts
+     * no autoplay at all rather than erroring. config('features.
+     * music_landing_autoplay_enabled') is the master switch — off entirely
+     * disables autoplay regardless of what Track is configured, without
+     * touching the stored setting itself.
+     */
+    private function resolveAutoplayTrack(SettingsRepository $settings): ?Track
+    {
+        if (! config('features.music_landing_autoplay_enabled')) {
+            return null;
+        }
+
+        $trackId = $settings->get('music', 'landing_autoplay_track_id');
+
+        if (! $trackId) {
+            return null;
+        }
+
+        $track = Track::query()->published()->with(['album', 'single'])->find($trackId);
+
+        if (! $track) {
+            return null;
+        }
+
+        $parentPublished = $track->album?->status === ReleaseStatus::Published
+            || $track->single?->status === ReleaseStatus::Published;
+
+        return $parentPublished ? $track : null;
+    }
+
+    /**
+     * The exact same guest/quota rules music/listening.blade.php's own
+     * trackPlayback() closure already enforces for every track row there —
+     * ported here (not shared code, to avoid touching that already-tested
+     * view's behavior) purely because the landing page's autoplay needs this
+     * for a single Track computed in the controller, not per-row in a blade
+     * loop. No new rule, no new route: same music.tracks.stream/
+     * music.tracks.listen-complete endpoints, same TrackStreamController/
+     * DailyListenQuota enforcement.
+     *
+     * @return array{src: ?string, guest_limited: bool, limit_reached: bool, complete_url: ?string}
+     */
+    private function autoplayTrackPlayback(Track $track, array $listening): array
+    {
+        if (! $track->audio_media_id) {
+            return ['src' => null, 'guest_limited' => false, 'limit_reached' => false, 'complete_url' => null];
+        }
+
+        if (! $listening['is_guest'] && $listening['daily_limit_reached']) {
+            return ['src' => null, 'guest_limited' => false, 'limit_reached' => true, 'complete_url' => null];
+        }
+
+        $guestLimited = $listening['is_guest']
+            && $track->duration_seconds
+            && $track->duration_seconds > $listening['guest_limit_seconds'];
+
+        return [
+            'src' => route('music.tracks.stream', $track),
+            'guest_limited' => $guestLimited,
+            'limit_reached' => false,
+            'complete_url' => $listening['is_guest'] ? null : route('music.tracks.listen-complete', $track),
+        ];
     }
 
     /**
