@@ -7,6 +7,7 @@ use App\Models\Media;
 use App\Models\SeoMetadata;
 use App\Models\User;
 use App\Modules\Music\Enums\ReleaseStatus;
+use App\Modules\Podcast\Models\PodcastEpisode;
 use App\Shared\Support\Search\SearchResultRepresentable;
 use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -62,6 +64,27 @@ class Album extends Model implements SearchResultRepresentable, Sitemapable
     public function streamingLinks(): HasMany
     {
         return $this->hasMany(MusicStreamingLink::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Admin-curated "You May Also Like — Podcast Episodes" suggestions for
+     * this album's own detail page (music/listening.blade.php's existing
+     * "You may also like" area) — never automatic/algorithmic. Raw/
+     * unfiltered on purpose: publish-status filtering for the public
+     * frontend happens in MusicController (so a since-unpublished episode
+     * stays visible/editable here in admin rather than silently vanishing
+     * from the stored selection), and the config('features.
+     * podcast_suggestions_enabled') flag never deletes these rows, only
+     * gates whether they're read/rendered. sort_order (this relation's own
+     * orderBy) is the admin's chosen display order, written by
+     * PodcastSuggestionsField's saveRelationshipsUsing().
+     */
+    public function podcastSuggestions(): MorphToMany
+    {
+        return $this->morphToMany(PodcastEpisode::class, 'suggestable', 'music_podcast_suggestions')
+            ->withPivot('sort_order')
+            ->withTimestamps()
+            ->orderBy('music_podcast_suggestions.sort_order');
     }
 
     public function seo(): MorphOne

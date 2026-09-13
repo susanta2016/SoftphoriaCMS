@@ -3,6 +3,12 @@
     use Illuminate\Support\Facades\Storage;
     use Illuminate\Support\Str;
 
+    // Cross-content suggestion cards reuse podcast.partials.episode-card
+    // verbatim (App\Http\Controllers\Music\MusicController::
+    // podcastSuggestionsFor()) — same duration-label shape that partial
+    // already expects, defined identically to podcast/index.blade.php's own.
+    $episodeDurationLabel = fn (?int $seconds): ?string => $seconds ? intdiv($seconds, 60).' min' : null;
+
     $coverUrl = $release['cover'] ? Storage::disk($release['cover']->disk)->url($release['cover']->path) : null;
     $topBannerUrl = $topBanner ? Storage::disk($topBanner->disk)->url($topBanner->path) : null;
     $isSingleTrack = in_array($release['type'], ['single', 'track'], true);
@@ -574,6 +580,25 @@
                                 <span class="mt-3 block text-xs font-semibold tracking-wide text-brand-gold uppercase">{{ $item->release_type === 'album' ? 'Album' : 'Single' }}</span>
                                 <h3 class="mt-1 truncate font-serif text-base text-brand-navy transition group-hover:text-brand-gold">{{ $item->title }}</h3>
                             </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            {{--
+                Cross-content suggestions (admin-curated only — never
+                automatic) — App\Http\Controllers\Music\MusicController::
+                podcastSuggestionsFor(), gated by config('features.
+                podcast_suggestions_enabled'). Reuses the exact same episode
+                card partial the Podcast pages already render, per the
+                site's existing card visual language.
+            --}}
+            @if ($podcastSuggestions->isNotEmpty())
+                <div class="mt-16">
+                    <h2 class="font-serif text-2xl text-brand-navy">You May Also Like — Podcast Episodes</h2>
+                    <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach ($podcastSuggestions as $episode)
+                            @include('podcast.partials.episode-card', ['episode' => $episode, 'durationLabel' => $episodeDurationLabel])
                         @endforeach
                     </div>
                 </div>

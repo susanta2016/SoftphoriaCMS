@@ -10,6 +10,7 @@ use App\Models\Review;
 use App\Models\SeoMetadata;
 use App\Models\Tag;
 use App\Models\User;
+use App\Modules\Music\Models\Track;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
 use App\Modules\Podcast\Enums\PodcastStatus;
 use App\Shared\Support\Reviews\Reviewable;
@@ -92,6 +93,23 @@ class PodcastEpisode extends Model implements Reviewable, SearchResultRepresenta
     public function links(): HasMany
     {
         return $this->hasMany(PodcastLink::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Admin-curated "You May Also Like — Music Tracks" suggestions for this
+     * episode's own detail page — mirrors App\Modules\Music\Models\Album::
+     * podcastSuggestions() exactly (same raw/unfiltered-here, filtered-at-
+     * read-time-in-the-controller reasoning; same sort_order pivot column
+     * written by MusicTrackSuggestionsField's saveRelationshipsUsing()).
+     * Never automatic/algorithmic, never deleted by the config('features.
+     * music_track_suggestions_enabled') flag being off.
+     */
+    public function trackSuggestions(): BelongsToMany
+    {
+        return $this->belongsToMany(Track::class, 'podcast_track_suggestions')
+            ->withPivot('sort_order')
+            ->withTimestamps()
+            ->orderBy('podcast_track_suggestions.sort_order');
     }
 
     public function categories(): BelongsToMany

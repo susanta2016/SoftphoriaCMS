@@ -18,6 +18,9 @@ use App\Modules\Music\Models\Single;
 use App\Modules\Music\Models\SongStory;
 use App\Modules\Music\Models\Track;
 use App\Modules\Music\Support\DailyListenQuota;
+use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
+use App\Modules\Podcast\Enums\PodcastStatus;
+use App\Modules\Podcast\Models\PodcastEpisode;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use App\Shared\Support\Seo\Sitemapable;
@@ -125,6 +128,7 @@ class MusicController extends Controller implements Sitemapable
             'release' => $this->albumViewModel($album),
             'related' => $this->relatedReleases($album->id, 'album'),
             'topBanner' => $this->topBannerMedia(),
+            'podcastSuggestions' => $this->podcastSuggestionsFor($album),
         ]);
     }
 
@@ -151,6 +155,7 @@ class MusicController extends Controller implements Sitemapable
             'release' => $this->singleViewModel($single),
             'related' => $this->relatedReleases($single->id, 'single'),
             'topBanner' => $this->topBannerMedia(),
+            'podcastSuggestions' => $this->podcastSuggestionsFor($single),
             ...$this->reviewSummary($single->track),
             ...$this->reactionSummary($single->track),
         ]);
@@ -196,6 +201,7 @@ class MusicController extends Controller implements Sitemapable
             'release' => $this->trackViewModel($track, $album),
             'related' => $this->relatedReleases($album->id, 'album'),
             'topBanner' => $this->topBannerMedia(),
+            'podcastSuggestions' => $this->podcastSuggestionsFor($album),
             ...$this->reviewSummary($track),
             ...$this->reactionSummary($track),
         ]);
@@ -484,6 +490,32 @@ class MusicController extends Controller implements Sitemapable
             ->get();
 
         return $this->attachCovers($rows);
+    }
+
+    /**
+     * The cross-content "You May Also Like — Podcast Episodes" suggestions
+     * for this Album/Single's own detail page — admin-curated only, never
+     * $featured/relatedReleases()'s own automatic-by-recency logic. Master-
+     * switched off entirely (config('features.podcast_suggestions_enabled'))
+     * means no query at all, not just an empty render. The stored
+     * podcastSuggestions() relationship itself is intentionally unfiltered
+     * (see that relation's own docblock) — validity (episode AND its parent
+     * Podcast both still Published) is checked here, on the one already-
+     * eager-loaded collection, so a since-unpublished/deleted episode fails
+     * safe without ever hitting the database again per suggestion.
+     *
+     * @return Collection<int, PodcastEpisode>
+     */
+    private function podcastSuggestionsFor(Album|Single $release): Collection
+    {
+        if (! config('features.podcast_suggestions_enabled')) {
+            return collect();
+        }
+
+        return $release->podcastSuggestions()->with(['artwork', 'podcast', 'categories'])->get()
+            ->filter(fn (PodcastEpisode $episode): bool => $episode->status === PodcastEpisodeStatus::Published
+                && $episode->podcast?->status === PodcastStatus::Published)
+            ->values();
     }
 
     private function hydrateCovers(LengthAwarePaginator $paginator): LengthAwarePaginator

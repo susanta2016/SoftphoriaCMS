@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Podcast;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Media;
+use App\Modules\Music\Enums\ReleaseStatus;
+use App\Modules\Music\Enums\TrackStatus;
+use App\Modules\Music\Models\Track;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
 use App\Modules\Podcast\Enums\PodcastStatus;
 use App\Modules\Podcast\Models\Podcast;
@@ -182,6 +185,7 @@ class PodcastController extends Controller implements Sitemapable
             'embedUrl' => $embedUrl,
             'reviews' => $reviews,
             'reviewCount' => $reviews->count(),
+            'trackSuggestions' => $this->trackSuggestionsFor($episode),
             // The separate 🙌 reaction (client-confirmed, 2026-09-02) —
             // never moderated, so this counts every row, not just an
             // "approved" subset (App\Models\Reaction has no status column
@@ -190,6 +194,31 @@ class PodcastController extends Controller implements Sitemapable
             'userReacted' => Auth::check() && $episode->reactions()->where('user_id', Auth::id())->exists(),
             'heroBanner' => $this->heroBanner($settings),
         ]);
+    }
+
+    /**
+     * The cross-content "You May Also Like — Music Tracks" suggestions for
+     * this episode's own detail page — admin-curated only, mirrors
+     * MusicController::podcastSuggestionsFor() exactly (same master-switch-
+     * skips-the-query-entirely behavior, same filter-the-one-already-
+     * fetched-collection-in-PHP approach to fail safely on a since-
+     * unpublished/deleted Track without an extra query per suggestion). A
+     * Track's own status doesn't guarantee its parent Album/Single is still
+     * Published — checked here via Track::release(), same double-check
+     * MusicController::resolveAutoplayTrack() already makes.
+     *
+     * @return Collection<int, Track>
+     */
+    private function trackSuggestionsFor(PodcastEpisode $episode): Collection
+    {
+        if (! config('features.music_track_suggestions_enabled')) {
+            return collect();
+        }
+
+        return $episode->trackSuggestions()->with(['album.cover', 'single.cover'])->get()
+            ->filter(fn (Track $track): bool => $track->status === TrackStatus::Published
+                && $track->release()?->status === ReleaseStatus::Published)
+            ->values();
     }
 
     private function heroBanner(SettingsRepository $settings): ?Media

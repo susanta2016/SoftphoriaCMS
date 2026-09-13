@@ -7,6 +7,7 @@ use App\Models\Media;
 use App\Models\SeoMetadata;
 use App\Models\User;
 use App\Modules\Music\Enums\ReleaseStatus;
+use App\Modules\Podcast\Models\PodcastEpisode;
 use App\Shared\Support\Search\SearchResultRepresentable;
 use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -65,6 +67,18 @@ class Single extends Model implements SearchResultRepresentable, Sitemapable
     public function streamingLinks(): HasMany
     {
         return $this->hasMany(MusicStreamingLink::class)->orderBy('sort_order');
+    }
+
+    /**
+     * See Album::podcastSuggestions() — identical shape/reasoning, this
+     * single's own detail page's "You may also like" area.
+     */
+    public function podcastSuggestions(): MorphToMany
+    {
+        return $this->morphToMany(PodcastEpisode::class, 'suggestable', 'music_podcast_suggestions')
+            ->withPivot('sort_order')
+            ->withTimestamps()
+            ->orderBy('music_podcast_suggestions.sort_order');
     }
 
     public function seo(): MorphOne

@@ -179,4 +179,26 @@ return [
 
     'music_landing_autoplay_enabled' => env('MUSIC_LANDING_AUTOPLAY_ENABLED', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Cross-Content "You May Also Like" Suggestions (Music <-> Podcast)
+    |--------------------------------------------------------------------------
+    |
+    | Two independent master switches for the admin-curated suggestion
+    | feature between Music (Album/Single::podcastSuggestions()) and Podcast
+    | (PodcastEpisode::trackSuggestions()) — manually selected by an admin,
+    | never automatic/algorithmic. Each flag gates BOTH its own admin
+    | configuration UI (Filament Section ->visible()) AND its own frontend
+    | rendering; turning either off never deletes the stored
+    | music_podcast_suggestions/podcast_track_suggestions pivot rows, it only
+    | stops them from being read/displayed. Turning a flag back on makes the
+    | previously configured relationships available again immediately, with
+    | no reconfiguration needed.
+    |
+    */
+
+    'podcast_suggestions_enabled' => env('PODCAST_SUGGESTIONS_ENABLED', false),
+
+    'music_track_suggestions_enabled' => env('MUSIC_TRACK_SUGGESTIONS_ENABLED', false),
+
 ];

@@ -9,6 +9,7 @@ use App\Filament\Support\Seo\SeoFields;
 use App\Modules\Commerce\Actions\PurchaseReadiness\CheckSingleReadinessAction;
 use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
 use App\Modules\Music\Enums\ReleaseStatus;
+use App\Modules\Music\Filament\Support\PodcastSuggestionsField;
 use App\Modules\Music\Models\Single;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
@@ -78,6 +79,8 @@ class SingleForm
                             Section::make('Song')
                                 ->description('Add this single\'s song — lyrics, song story, credits, and its own uploaded audio file — under Music > Tracks once it\'s saved. Playback uses that uploaded audio file, not an external link.')
                                 ->schema([]),
+
+                            PodcastSuggestionsField::make(),
 
                             Section::make('SEO')
                                 ->description('Independent per-single metadata (title, description, canonical, Open Graph, Twitter card, structured data).')

@@ -9,6 +9,7 @@ use App\Filament\Support\Seo\SeoFields;
 use App\Models\Category;
 use App\Models\Tag;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
+use App\Modules\Podcast\Filament\Support\MusicTrackSuggestionsField;
 use App\Modules\Podcast\Models\Podcast;
 use App\Modules\Podcast\Models\PodcastEpisode;
 use Filament\Forms\Components\DatePicker;
@@ -119,6 +120,8 @@ class PodcastEpisodeForm
                                         ->createOptionUsing(fn (array $data): int => Tag::query()->create($data)->getKey())
                                         ->dehydrated(),
                                 ]),
+
+                            MusicTrackSuggestionsField::make(),
 
                             Section::make('SEO')
                                 ->description('Independent per-episode metadata (title, description, canonical, Open Graph, Twitter card, structured data).')

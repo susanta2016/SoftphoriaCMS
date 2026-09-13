@@ -291,6 +291,26 @@
                     </div>
                 </div>
             </div>
+
+            {{--
+                Cross-content suggestions (admin-curated only — never
+                automatic) — App\Http\Controllers\Podcast\PodcastController::
+                trackSuggestionsFor(), gated by config('features.
+                music_track_suggestions_enabled'). No "You may also like"
+                section existed on Podcast pages before this — new here,
+                using the same card visual language as podcast episode cards
+                (see resources/views/music/partials/track-suggestion-card.blade.php).
+            --}}
+            @if ($trackSuggestions->isNotEmpty())
+                <div class="mt-16">
+                    <h2 class="font-serif text-2xl text-brand-navy">You May Also Like — Music Tracks</h2>
+                    <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach ($trackSuggestions as $track)
+                            @include('music.partials.track-suggestion-card', ['track' => $track])
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 

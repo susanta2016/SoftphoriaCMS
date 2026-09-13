@@ -9,6 +9,7 @@ use App\Filament\Support\Seo\SeoFields;
 use App\Modules\Commerce\Actions\PurchaseReadiness\CheckAlbumReadinessAction;
 use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
 use App\Modules\Music\Enums\ReleaseStatus;
+use App\Modules\Music\Filament\Support\PodcastSuggestionsField;
 use App\Modules\Music\Models\Album;
 use App\Shared\Support\Media\YoutubeUrl;
 use Closure;
@@ -100,6 +101,8 @@ class AlbumForm
                             Section::make('Tracks')
                                 ->description('Manage this album\'s tracks — including reordering — below once it\'s saved. Full song editing (lyrics, story, credits, and each song\'s own uploaded audio file) is under Music > Tracks. Playback uses each track\'s own uploaded audio file, not an external link.')
                                 ->schema([]),
+
+                            PodcastSuggestionsField::make(),
 
                             Section::make('SEO')
                                 ->description('Independent per-album metadata (title, description, canonical, Open Graph, Twitter card, structured data).')
