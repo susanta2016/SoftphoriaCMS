@@ -93,4 +93,27 @@ class ResendVerificationTest extends TestCase
 
         $response->assertStatus(429);
     }
+
+    /**
+     * Regression guard: the free/thank-you page's "Didn't get the email?"
+     * form flashed 'resend_notice' to the session but no view ever read it
+     * back — a user submitting the form saw the exact same page reload with
+     * no feedback at all, indistinguishable from the feature doing nothing.
+     * Fixed by rendering session('resend_notice') on that page.
+     */
+    public function test_the_resend_notice_actually_renders_on_the_free_thank_you_page(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+
+        $user = User::factory()->unverified()->create(['status' => UserStatus::PendingVerification->value]);
+
+        $redirect = $this->from(route('register.free.thank-you'))
+            ->post(route('verification.resend'), ['email' => $user->email]);
+
+        $redirect->assertRedirect(route('register.free.thank-you'));
+
+        $this->followRedirects($redirect)
+            ->assertSee("If that email address has a pending registration, we've sent a new verification link.");
+    }
 }

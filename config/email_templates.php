@@ -23,6 +23,25 @@ return [
         'label' => 'Verify Email',
         'recipients' => ['user'],
         'variables' => ['user_name', 'verification_url', 'site_name'],
+        'default_subject' => '{{site_name}} — Verify Your Email Address',
+        'default_html_body' => <<<'HTML'
+            Hi {{user_name}},
+
+            Thanks for joining {{site_name}}. Please verify your email address to activate your account.
+
+            <a href="{{verification_url}}">Verify My Email</a>
+
+            This link will expire in 24 hours. If you didn't create this account, you can safely ignore this email.
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{user_name}},
+
+            Thanks for joining {{site_name}}. Please verify your email address to activate your account.
+
+            Verify my email: {{verification_url}}
+
+            This link will expire in 24 hours. If you didn't create this account, you can safely ignore this email.
+            TEXT,
     ],
 
     'user_registered' => [
@@ -67,6 +86,25 @@ return [
         'label' => 'Password Reset / Generate New Password',
         'recipients' => ['user'],
         'variables' => ['user_name', 'reset_url', 'site_name'],
+        'default_subject' => '{{site_name}} — Reset Your Password',
+        'default_html_body' => <<<'HTML'
+            Hi {{user_name}},
+
+            We received a request to reset your password on {{site_name}}. Click the link below to choose a new password.
+
+            <a href="{{reset_url}}">Reset My Password</a>
+
+            This link will expire in 60 minutes. If you didn't request this, you can safely ignore this email — your password will remain unchanged.
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{user_name}},
+
+            We received a request to reset your password on {{site_name}}. Use the link below to choose a new password.
+
+            Reset my password: {{reset_url}}
+
+            This link will expire in 60 minutes. If you didn't request this, you can safely ignore this email — your password will remain unchanged.
+            TEXT,
     ],
 
     'profile_updated' => [
@@ -108,12 +146,81 @@ return [
         'label' => 'Contact Form',
         'recipients' => ['user', 'admin'],
         'variables' => ['name', 'email', 'phone', 'message', 'site_name'],
+        // Per-recipient content (EmailTemplateSeeder supports a
+        // recipient-keyed array here) — the submitter gets a plain
+        // acknowledgement, the admin gets the actual submitted details so
+        // they can act on it; a single shared body can't serve both.
+        'default_subject' => [
+            'user' => '{{site_name}} — We Received Your Message',
+            'admin' => '[{{site_name}}] New Contact Form Submission',
+        ],
+        'default_html_body' => [
+            'user' => <<<'HTML'
+                Hi {{name}},
+
+                Thank you for reaching out to {{site_name}}. We've received your message and will get back to you as soon as we can.
+
+                Here's a copy of what you sent:
+
+                "{{message}}"
+                HTML,
+            'admin' => <<<'HTML'
+                A new contact form submission was received on {{site_name}}.
+
+                Name: {{name}}
+                Email: {{email}}
+                Phone: {{phone}}
+
+                Message:
+                {{message}}
+                HTML,
+        ],
+        'default_text_body' => [
+            'user' => <<<'TEXT'
+                Hi {{name}},
+
+                Thank you for reaching out to {{site_name}}. We've received your message and will get back to you as soon as we can.
+
+                Here's a copy of what you sent:
+
+                "{{message}}"
+                TEXT,
+            'admin' => <<<'TEXT'
+                A new contact form submission was received on {{site_name}}.
+
+                Name: {{name}}
+                Email: {{email}}
+                Phone: {{phone}}
+
+                Message:
+                {{message}}
+                TEXT,
+        ],
     ],
 
     'inspirational_resource_submitted' => [
         'label' => 'Inspirational Resource Submission',
         'recipients' => ['admin'],
         'variables' => ['submitter_name', 'submitter_email', 'subject', 'category', 'site_name'],
+        'default_subject' => '[{{site_name}}] New Inspirational Resource Submission',
+        'default_html_body' => <<<'HTML'
+            A new inspirational resource submission was received on {{site_name}}.
+
+            Submitted by: {{submitter_name}} ({{submitter_email}})
+            Category: {{category}}
+            Subject: {{subject}}
+
+            Please review it in the admin panel.
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            A new inspirational resource submission was received on {{site_name}}.
+
+            Submitted by: {{submitter_name}} ({{submitter_email}})
+            Category: {{category}}
+            Subject: {{subject}}
+
+            Please review it in the admin panel.
+            TEXT,
     ],
 
     // Sent to the submitter alongside (never instead of)
@@ -174,6 +281,21 @@ return [
         // Confirmed safe: no EmailTemplate row existed yet for this key in
         // this environment, so no admin-customized copy referenced it.
         'variables' => ['user_name', 'title', 'review_url', 'site_name'],
+        'default_subject' => '{{site_name}} — Your Review Has Been Published',
+        'default_html_body' => <<<'HTML'
+            Hi {{user_name}},
+
+            Good news — your review of "{{title}}" has been published on {{site_name}}.
+
+            <a href="{{review_url}}">View it now</a>
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{user_name}},
+
+            Good news — your review of "{{title}}" has been published on {{site_name}}.
+
+            View it now: {{review_url}}
+            TEXT,
     ],
 
     // Sent from CreateGratitudeJournalEntryAction on every successful save,
@@ -211,6 +333,21 @@ return [
         // docblock and App\Actions\GratitudeJournal\
         // UpdateGratitudeReminderFrequencyAction.
         'variables' => ['user_name', 'journal_url', 'frequency_label', 'site_name'],
+        'default_subject' => '{{site_name}} — A Gentle Reminder for Your Gratitude Journal',
+        'default_html_body' => <<<'HTML'
+            Hi {{user_name}},
+
+            This is your {{frequency_label}} reminder to take a moment for gratitude. Even a few words can help you reflect on the good in your day.
+
+            <a href="{{journal_url}}">Write in your Gratitude Journal</a>
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{user_name}},
+
+            This is your {{frequency_label}} reminder to take a moment for gratitude. Even a few words can help you reflect on the good in your day.
+
+            Write in your Gratitude Journal: {{journal_url}}
+            TEXT,
     ],
 
 ];

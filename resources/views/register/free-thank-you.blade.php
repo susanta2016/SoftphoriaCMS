@@ -18,12 +18,28 @@
 
         <p class="text-base leading-relaxed text-brand-navy/80">{{ $message }}</p>
 
+        @if (session('resend_notice'))
+            <div class="mt-6 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-4 py-3 text-sm text-brand-navy">
+                {{ session('resend_notice') }}
+            </div>
+        @endif
+
+        @if ($errors->any())
+            <div class="mt-6 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <ul class="list-inside list-disc space-y-1">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="mt-8 text-xs text-brand-navy/60">
             <p class="mb-2">Didn't get the email?</p>
             <form method="POST" action="{{ route('verification.resend') }}" class="flex items-center justify-center gap-2">
                 @csrf
                 <input
-                    type="email" name="email" placeholder="Your email address" required
+                    type="email" name="email" value="{{ old('email') }}" placeholder="Your email address" required
                     class="rounded-md border border-brand-navy/20 px-3 py-1.5 text-xs text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
                 >
                 <button type="submit" class="rounded-md border border-brand-navy/20 px-3 py-1.5 font-semibold text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
