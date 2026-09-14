@@ -183,7 +183,7 @@ class EditEmailTemplate extends EditRecord
     private function renderPreviewBody(Get $get, string $prefix): HtmlString
     {
         $html = (string) ($get("{$prefix}html_body") ?? '');
-        $rendered = TemplatedMailer::substitute($html, $this->sampleVariables());
+        $rendered = TemplatedMailer::formatHtmlBody(TemplatedMailer::substitute($html, $this->sampleVariables()));
 
         return new HtmlString(
             '<div style="border:1px solid #e5e7eb;border-radius:0.375rem;padding:1rem;background:#fff;max-height:24rem;overflow-y:auto">'

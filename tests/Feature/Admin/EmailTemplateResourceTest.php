@@ -193,6 +193,127 @@ class EmailTemplateResourceTest extends TestCase
         $this->assertStringContainsString('<?php echo "unsafe"; ?>', $rendered);
     }
 
+    /**
+     * TemplatedMailer::formatHtmlBody() — the "HTML Body" field
+     * (EditEmailTemplate) is a plain Textarea, not a rich-text editor, so an
+     * admin's ordinary blank-line-separated paragraphs are literal newlines
+     * with no markup around them; inserted directly as HTML those collapse
+     * to one run-together block per the HTML whitespace spec. These tests
+     * cover the fix at the TemplatedMailer level (what a real send
+     * produces); test_the_filament_preview_renders_the_same_paragraph_formatting
+     * below covers the admin-facing preview going through the identical
+     * function.
+     */
+    public function test_multiple_paragraphs_are_rendered_as_separate_paragraph_tags(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+        $template = EmailTemplate::query()->where('notification_key', 'email_verification')->where('recipient_type', 'user')->firstOrFail();
+        $template->update(['html_body' => "Paragraph one.\n\nParagraph two.\n\nParagraph three."]);
+
+        $mailable = app(TemplatedMailer::class)->renderAsMailable('email_verification', EmailRecipientType::User, ['user_name' => 'Jane']);
+        $rendered = $mailable->render();
+
+        $this->assertStringNotContainsString('Paragraph one. Paragraph two. Paragraph three.', $rendered);
+        $this->assertStringContainsString('<p style="margin:0 0 1em 0;">Paragraph one.</p>', $rendered);
+        $this->assertStringContainsString('<p style="margin:0 0 1em 0;">Paragraph two.</p>', $rendered);
+        $this->assertStringContainsString('<p style="margin:0 0 1em 0;">Paragraph three.</p>', $rendered);
+    }
+
+    public function test_a_single_line_break_within_a_paragraph_becomes_a_br_tag(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+        $template = EmailTemplate::query()->where('notification_key', 'email_verification')->where('recipient_type', 'user')->firstOrFail();
+        $template->update(['html_body' => "Line one\nLine two"]);
+
+        $mailable = app(TemplatedMailer::class)->renderAsMailable('email_verification', EmailRecipientType::User, ['user_name' => 'Jane']);
+        $rendered = $mailable->render();
+
+        $this->assertStringContainsString("Line one<br />\nLine two", $rendered);
+    }
+
+    public function test_multiple_blank_lines_between_paragraphs_still_produce_two_paragraphs(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+        $template = EmailTemplate::query()->where('notification_key', 'email_verification')->where('recipient_type', 'user')->firstOrFail();
+        $template->update(['html_body' => "First.\n\n\n\nSecond."]);
+
+        $mailable = app(TemplatedMailer::class)->renderAsMailable('email_verification', EmailRecipientType::User, ['user_name' => 'Jane']);
+        $rendered = $mailable->render();
+
+        $this->assertStringContainsString('<p style="margin:0 0 1em 0;">First.</p>', $rendered);
+        $this->assertStringContainsString('<p style="margin:0 0 1em 0;">Second.</p>', $rendered);
+    }
+
+    public function test_empty_html_body_is_handled_safely(): void
+    {
+        $this->assertSame('', TemplatedMailer::formatHtmlBody(''));
+        $this->assertSame('', TemplatedMailer::formatHtmlBody("\n\n   \n"));
+    }
+
+    /**
+     * The exact string EmailTemplateSeeder::defaultHtmlBody() produces for
+     * every key's initial seeded row — proves a freshly seeded, never-yet-
+     * admin-edited template is not touched/double-wrapped by this fix.
+     */
+    public function test_the_seeders_own_default_html_body_is_not_double_wrapped(): void
+    {
+        $seededDefault = '<p>Verify Email — {{site_name}}.</p>';
+
+        $this->assertSame($seededDefault, TemplatedMailer::formatHtmlBody($seededDefault));
+    }
+
+    public function test_existing_block_level_html_is_left_completely_untouched(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+        $template = EmailTemplate::query()->where('notification_key', 'email_verification')->where('recipient_type', 'user')->firstOrFail();
+        $handAuthored = '<div><p>Already structured.</p><p>Second paragraph.</p></div>';
+        $template->update(['html_body' => $handAuthored]);
+
+        $mailable = app(TemplatedMailer::class)->renderAsMailable('email_verification', EmailRecipientType::User, ['user_name' => 'Jane']);
+        $rendered = $mailable->render();
+
+        $this->assertStringContainsString($handAuthored, $rendered);
+    }
+
+    public function test_an_inline_link_inside_a_paragraph_still_gets_paragraph_formatting(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+        $template = EmailTemplate::query()->where('notification_key', 'email_verification')->where('recipient_type', 'user')->firstOrFail();
+        $template->update(['html_body' => 'Please <a href="{{verification_url}}">click here</a> to verify.']);
+
+        $mailable = app(TemplatedMailer::class)->renderAsMailable('email_verification', EmailRecipientType::User, [
+            'user_name' => 'Jane',
+            'verification_url' => 'https://example.com/verify',
+        ]);
+        $rendered = $mailable->render();
+
+        $this->assertStringContainsString('<p style="margin:0 0 1em 0;">Please <a href="https://example.com/verify">click here</a> to verify.</p>', $rendered);
+    }
+
+    public function test_the_plain_text_fallback_keeps_its_own_line_breaks_with_no_html_inserted(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+        $template = EmailTemplate::query()->where('notification_key', 'email_verification')->where('recipient_type', 'user')->firstOrFail();
+        $template->update(['text_body' => "Paragraph one.\n\nParagraph two."]);
+
+        $mailable = app(TemplatedMailer::class)->renderAsMailable('email_verification', EmailRecipientType::User, ['user_name' => 'Jane']);
+        $mailable->build();
+
+        $this->assertSame("Paragraph one.\n\nParagraph two.", (string) $mailable->textView);
+    }
+
+    public function test_the_filament_preview_renders_the_same_paragraph_formatting_as_a_real_send(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+        $template = EmailTemplate::query()->where('notification_key', 'email_verification')->where('recipient_type', 'user')->firstOrFail();
+
+        Livewire::actingAs($this->admin())
+            ->test(EditEmailTemplate::class, ['record' => $template->getRouteKey()])
+            ->fillForm(['html_body' => "First paragraph.\n\nSecond paragraph."])
+            ->assertSeeHtml('<p style="margin:0 0 1em 0;">First paragraph.</p>')
+            ->assertSeeHtml('<p style="margin:0 0 1em 0;">Second paragraph.</p>');
+    }
+
     public function test_render_as_mailable_returns_null_when_disabled(): void
     {
         $this->seed(EmailTemplateSeeder::class);

@@ -70,7 +70,7 @@ class TemplatedMailer
 
         return new TemplatedNotificationMail(
             $this->substitute($template->subject, $variables),
-            $this->substitute($template->html_body, $variables),
+            self::formatHtmlBody($this->substitute($template->html_body, $variables)),
             filled($template->text_body) ? $this->substitute($template->text_body, $variables) : null,
             $this->settings->get('email', 'reply_to_email'),
             $this->settings->get('email', 'reply_to_name'),
@@ -98,5 +98,43 @@ class TemplatedMailer
             array_values($variables),
             $content,
         );
+    }
+
+    /**
+     * Converts an admin-authored body's plain-text line breaks into real
+     * HTML structure — the "HTML Body" field (EditEmailTemplate) is a plain
+     * Textarea, not a rich-text editor, so an admin typing ordinary
+     * paragraphs separated by a blank line produces literal newline
+     * characters with no markup around them. Inserted directly as HTML,
+     * consecutive whitespace collapses per the HTML spec and every
+     * paragraph runs together as one block — this is that fix, applied once
+     * here so every current and future template gets it automatically.
+     *
+     * Skipped entirely when the content already contains block-level HTML
+     * (<p>, <div>, <br>, a list/table/heading, etc.) — that's the signal an
+     * admin already hand-structured the markup themselves (or it's one of
+     * the seeder's own "<p>{label} — {{site_name}}.</p>" defaults), and
+     * wrapping it again would nest invalid markup rather than fix anything.
+     * A plain inline tag like <a>/<strong> does NOT count as already
+     * structured — a paragraph containing a link still needs its line
+     * breaks converted the same as any other paragraph.
+     *
+     * Public + static for the same reason substitute() is: EditEmailTemplate's
+     * live preview must render through this exact function, never a second
+     * reimplementation that could drift out of sync with real sends.
+     */
+    public static function formatHtmlBody(string $html): string
+    {
+        if (preg_match('/<(p|div|br|table|tr|td|th|ul|ol|li|h[1-6]|blockquote|hr)\b/i', $html)) {
+            return $html;
+        }
+
+        $paragraphs = preg_split('/\n{2,}/', trim($html));
+
+        return collect($paragraphs)
+            ->map(fn (string $paragraph): string => trim($paragraph))
+            ->filter(fn (string $paragraph): bool => $paragraph !== '')
+            ->map(fn (string $paragraph): string => '<p style="margin:0 0 1em 0;">'.nl2br($paragraph).'</p>')
+            ->implode("\n");
     }
 }
