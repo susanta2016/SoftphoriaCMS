@@ -275,6 +275,29 @@ class EmailTemplateResourceTest extends TestCase
         $this->assertStringContainsString($handAuthored, $rendered);
     }
 
+    /**
+     * Reproduces the exact production bug: the "New Registration / Welcome"
+     * template's real content had its first two paragraphs hand-wrapped in
+     * <p> but the rest of the body (a plain-text bullet list and closing
+     * paragraphs) was still plain text relying on formatHtmlBody(). The
+     * original all-or-nothing bypass ("skip everything if a <p> appears
+     * anywhere") meant that one pre-wrapped paragraph silently disabled
+     * formatting for every plain-text paragraph after it, collapsing the
+     * rest of the email into one unreadable block. formatHtmlBody() now
+     * judges each paragraph independently.
+     */
+    public function test_a_mix_of_pre_wrapped_and_plain_text_paragraphs_are_each_formatted_correctly(): void
+    {
+        $mixed = "<p>Already wrapped paragraph.</p>\n\nA second, plain-text paragraph that should also get wrapped.\n\nA third plain paragraph.";
+
+        $result = TemplatedMailer::formatHtmlBody($mixed);
+
+        $this->assertStringContainsString('<p>Already wrapped paragraph.</p>', $result);
+        $this->assertStringContainsString('<p style="margin:0 0 1em 0;">A second, plain-text paragraph that should also get wrapped.</p>', $result);
+        $this->assertStringContainsString('<p style="margin:0 0 1em 0;">A third plain paragraph.</p>', $result);
+        $this->assertStringNotContainsString('A second, plain-text paragraph that should also get wrapped. A third plain paragraph.', $result);
+    }
+
     public function test_an_inline_link_inside_a_paragraph_still_gets_paragraph_formatting(): void
     {
         $this->seed(EmailTemplateSeeder::class);

@@ -110,14 +110,25 @@ class TemplatedMailer
      * paragraph runs together as one block — this is that fix, applied once
      * here so every current and future template gets it automatically.
      *
-     * Skipped entirely when the content already contains block-level HTML
-     * (<p>, <div>, <br>, a list/table/heading, etc.) — that's the signal an
-     * admin already hand-structured the markup themselves (or it's one of
-     * the seeder's own "<p>{label} — {{site_name}}.</p>" defaults), and
-     * wrapping it again would nest invalid markup rather than fix anything.
-     * A plain inline tag like <a>/<strong> does NOT count as already
-     * structured — a paragraph containing a link still needs its line
-     * breaks converted the same as any other paragraph.
+     * Works paragraph-by-paragraph (split on blank lines first, then
+     * checked individually) rather than an all-or-nothing check on the
+     * whole body — real admin-authored content is often a *mix*: some
+     * paragraphs already hand-wrapped in <p> (e.g. from an earlier partial
+     * edit), others still plain text relying on this conversion. An
+     * all-or-nothing "skip everything if a <p> appears anywhere" check
+     * (the original version of this method) meant a single already-wrapped
+     * paragraph anywhere in the body silently disabled formatting for
+     * every plain-text paragraph after it — confirmed in production on the
+     * "New Registration / Welcome" template, whose first two paragraphs
+     * were hand-wrapped in <p> but the rest of the body (a plain-text
+     * bullet list and closing paragraphs) was not, and rendered as one
+     * collapsed block. Each paragraph is now judged independently: one
+     * already containing block-level HTML (<p>, <div>, <br>, a
+     * list/table/heading, etc.) is left completely untouched; a plain-text
+     * paragraph is wrapped in <p> with its own single line breaks
+     * converted to <br>. A plain inline tag like <a>/<strong> does NOT
+     * count as already structured — a paragraph containing a link still
+     * gets wrapped the same as any other plain paragraph.
      *
      * Public + static for the same reason substitute() is: EditEmailTemplate's
      * live preview must render through this exact function, never a second
@@ -125,16 +136,18 @@ class TemplatedMailer
      */
     public static function formatHtmlBody(string $html): string
     {
-        if (preg_match('/<(p|div|br|table|tr|td|th|ul|ol|li|h[1-6]|blockquote|hr)\b/i', $html)) {
-            return $html;
-        }
-
         $paragraphs = preg_split('/\n{2,}/', trim($html));
 
         return collect($paragraphs)
             ->map(fn (string $paragraph): string => trim($paragraph))
             ->filter(fn (string $paragraph): bool => $paragraph !== '')
-            ->map(fn (string $paragraph): string => '<p style="margin:0 0 1em 0;">'.nl2br($paragraph).'</p>')
+            ->map(function (string $paragraph): string {
+                if (preg_match('/<(p|div|br|table|tr|td|th|ul|ol|li|h[1-6]|blockquote|hr)\b/i', $paragraph)) {
+                    return $paragraph;
+                }
+
+                return '<p style="margin:0 0 1em 0;">'.nl2br($paragraph).'</p>';
+            })
             ->implode("\n");
     }
 
