@@ -9,9 +9,9 @@ use App\Http\Controllers\Account\ProfileController as AccountProfileController;
 use App\Http\Controllers\Account\SubscriptionController as AccountSubscriptionController;
 use App\Http\Controllers\Account\TransactionController as AccountTransactionController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\BetaAccessController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\BetaAccessController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\HomeController;
@@ -31,6 +31,7 @@ use App\Http\Controllers\Music\TrackListenController;
 use App\Http\Controllers\Music\TrackReactionController;
 use App\Http\Controllers\Music\TrackReviewController;
 use App\Http\Controllers\Music\TrackStreamController;
+use App\Http\Controllers\Newsletter\SesWebhookController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\Page\PageController;
 use App\Http\Controllers\Page\PreviewPageController;
@@ -65,11 +66,28 @@ Route::post('/beta-access', [BetaAccessController::class, 'attempt'])
     ->name('beta.attempt');
 Route::get('/internal/beta-auth-check', [BetaAccessController::class, 'authCheck'])->name('beta.auth-check');
 
-// Public newsletter signup (footer form) — sends the "newsletter_subscribed"
-// Email Template (docs/ARCHITECTURE.md §16.5/§16.6) via TemplatedMailer.
+// Public newsletter signup (footer form) — double opt-in: this saves the
+// subscriber as `pending` and sends the "newsletter_confirmation" Email
+// Template (docs/ARCHITECTURE.md §16.5/§16.6) via TemplatedMailer; the
+// confirm link below is what actually subscribes them. Throttled the same
+// as contact/registration — the honeypot in newsletter-form.blade.php is the
+// other spam defense (see NewsletterController's own docblock).
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
-    ->middleware('web')
+    ->middleware(['web', 'throttle:6,1'])
     ->name('newsletter.subscribe');
+
+Route::get('/newsletter/confirm/{token}', [NewsletterController::class, 'confirm'])
+    ->middleware(['web', 'throttle:10,1'])
+    ->name('newsletter.confirm');
+
+// SES/SNS bounce+complaint feedback loop (docs/SES-SNS-SETUP.md) — a
+// technical, backend-only webhook called by Amazon SNS, not a visitor-facing
+// route. Authenticated by SNS message signature rather than CSRF (see
+// bootstrap/app.php's validateCsrfTokens exclusion), the same way the
+// existing Stripe webhook works.
+Route::post('/webhooks/ses', SesWebhookController::class)
+    ->middleware('web')
+    ->name('newsletter.webhooks.ses');
 
 // Public Contact Us — info (admin-configured email/address, Settings'
 // Contact tab) plus a submission form. Throttled the same as

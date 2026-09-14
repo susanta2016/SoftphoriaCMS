@@ -26,6 +26,14 @@ return [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+
+        // App\Http\Controllers\Newsletter\SesWebhookController — checked
+        // against an already-signature-verified SNS message's TopicArn so a
+        // different AWS account's own SNS topic (which would also pass
+        // signature verification, since it's genuinely signed by AWS) can't
+        // feed fake bounce/complaint events into this webhook. Optional:
+        // unset in local/testing, where there's no real topic to compare.
+        'sns_topic_arn' => env('SES_SNS_TOPIC_ARN'),
     ],
 
     'slack' => [

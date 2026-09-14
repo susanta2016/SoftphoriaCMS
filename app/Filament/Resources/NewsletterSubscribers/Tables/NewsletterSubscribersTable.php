@@ -26,7 +26,7 @@ class NewsletterSubscribersTable
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'subscribed' => 'success',
-                        'unsubscribed' => 'danger',
+                        'unsubscribed', 'bounced', 'complained' => 'danger',
                         default => 'gray',
                     })
                     ->sortable(),
@@ -46,6 +46,8 @@ class NewsletterSubscribersTable
                         'pending' => 'Pending',
                         'subscribed' => 'Subscribed',
                         'unsubscribed' => 'Unsubscribed',
+                        'bounced' => 'Bounced',
+                        'complained' => 'Complained',
                     ]),
             ])
             ->recordActions([

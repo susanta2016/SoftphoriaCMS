@@ -35,8 +35,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // ADMIN-008: Stripe cannot supply a CSRF token — the webhook's own
         // signature verification (StripeWebhookController) is its actual
         // authenticity guarantee, the same way any webhook endpoint works.
+        // webhooks/ses is the same situation for Amazon SNS (see
+        // SesWebhookController).
         $middleware->validateCsrfTokens(except: [
             'commerce/webhooks/stripe',
+            'webhooks/ses',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

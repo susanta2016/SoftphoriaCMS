@@ -49,8 +49,19 @@ return [
         'variables' => ['user_name', 'site_name'],
     ],
 
+    // Double opt-in (docs/SES-SNS-SETUP.md): sent from
+    // SubscribeToNewsletterAction on every new/re-subscribing signup, before
+    // the subscriber is actually subscribed. 'newsletter_subscribed' below
+    // is sent only once ConfirmNewsletterSubscriptionAction verifies the
+    // link this email contains — never at signup time.
+    'newsletter_confirmation' => [
+        'label' => 'Newsletter Confirmation (Double Opt-In)',
+        'recipients' => ['user'],
+        'variables' => ['confirmation_url', 'site_name'],
+    ],
+
     'newsletter_subscribed' => [
-        'label' => 'Newsletter Confirmation/Registration',
+        'label' => 'Newsletter Subscribed',
         'recipients' => ['user'],
         'variables' => ['subscriber_email', 'site_name'],
     ],

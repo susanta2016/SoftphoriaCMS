@@ -29,6 +29,16 @@ class EditNewsletterSubscriber extends EditRecord
         } elseif ($data['status'] === 'subscribed' && $this->record?->status !== 'subscribed') {
             $data['consented_at'] = now();
             $data['unsubscribed_at'] = null;
+
+            // An admin explicitly picking "Subscribed" is the only way a
+            // bounced/complained suppression is ever lifted (never an
+            // automatic newsletter-signup resubmission) — clear the stale
+            // SES event once it no longer applies.
+            if (in_array($this->record?->status, ['bounced', 'complained'], true)) {
+                $data['ses_event_at'] = null;
+                $data['ses_event_type'] = null;
+                $data['ses_event_reason'] = null;
+            }
         }
 
         return $data;
