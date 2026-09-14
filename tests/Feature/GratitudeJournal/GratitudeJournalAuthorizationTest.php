@@ -33,7 +33,7 @@ class GratitudeJournalAuthorizationTest extends TestCase
         $owner = User::factory()->create();
         $other = User::factory()->create();
 
-        $action = new CreateGratitudeJournalEntryAction;
+        $action = app(CreateGratitudeJournalEntryAction::class);
         $action->handle($owner, 'My own gratitude entry.');
         $action->handle($other, 'Someone elses gratitude entry.');
 
@@ -47,7 +47,7 @@ class GratitudeJournalAuthorizationTest extends TestCase
     public function test_a_members_own_private_entry_is_visible_to_them_on_their_journal_page(): void
     {
         $owner = User::factory()->create();
-        (new CreateGratitudeJournalEntryAction)->handle($owner, 'A private reflection.', GratitudeJournalVisibility::Private);
+        app(CreateGratitudeJournalEntryAction::class)->handle($owner, 'A private reflection.', GratitudeJournalVisibility::Private);
 
         $response = $this->actingAs($owner)->get(route('account.gratitude-journal.index'));
 
@@ -59,7 +59,7 @@ class GratitudeJournalAuthorizationTest extends TestCase
     {
         $owner = User::factory()->create();
         $attacker = User::factory()->create();
-        $entry = (new CreateGratitudeJournalEntryAction)->handle($owner, 'Original content.');
+        $entry = app(CreateGratitudeJournalEntryAction::class)->handle($owner, 'Original content.');
 
         $response = $this->actingAs($attacker)->put(route('account.gratitude-journal.update', $entry), [
             'content' => 'Hijacked content.',
@@ -73,7 +73,7 @@ class GratitudeJournalAuthorizationTest extends TestCase
     {
         $owner = User::factory()->create();
         $attacker = User::factory()->create();
-        $entry = (new CreateGratitudeJournalEntryAction)->handle($owner, 'Should survive.');
+        $entry = app(CreateGratitudeJournalEntryAction::class)->handle($owner, 'Should survive.');
 
         $response = $this->actingAs($attacker)->delete(route('account.gratitude-journal.destroy', $entry));
 
@@ -84,7 +84,7 @@ class GratitudeJournalAuthorizationTest extends TestCase
     public function test_a_member_can_change_their_own_entrys_visibility(): void
     {
         $owner = User::factory()->create();
-        $entry = (new CreateGratitudeJournalEntryAction)->handle($owner, 'Flexible visibility.', GratitudeJournalVisibility::Public);
+        $entry = app(CreateGratitudeJournalEntryAction::class)->handle($owner, 'Flexible visibility.', GratitudeJournalVisibility::Public);
 
         $response = $this->actingAs($owner)->put(route('account.gratitude-journal.update', $entry), [
             'content' => 'Flexible visibility.',
@@ -103,7 +103,7 @@ class GratitudeJournalAuthorizationTest extends TestCase
     public function test_updating_an_entry_with_the_legacy_community_value_falls_back_to_public(): void
     {
         $owner = User::factory()->create();
-        $entry = (new CreateGratitudeJournalEntryAction)->handle($owner, 'Flexible visibility.', GratitudeJournalVisibility::Private);
+        $entry = app(CreateGratitudeJournalEntryAction::class)->handle($owner, 'Flexible visibility.', GratitudeJournalVisibility::Private);
 
         $response = $this->actingAs($owner)->put(route('account.gratitude-journal.update', $entry), [
             'content' => 'Flexible visibility.',
@@ -117,7 +117,7 @@ class GratitudeJournalAuthorizationTest extends TestCase
     public function test_a_member_can_edit_and_delete_their_own_entry(): void
     {
         $owner = User::factory()->create();
-        $entry = (new CreateGratitudeJournalEntryAction)->handle($owner, 'Old content.');
+        $entry = app(CreateGratitudeJournalEntryAction::class)->handle($owner, 'Old content.');
 
         $this->actingAs($owner)->put(route('account.gratitude-journal.update', $entry), [
             'content' => 'New content.',

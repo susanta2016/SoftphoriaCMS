@@ -37,6 +37,32 @@ return [
         'variables' => ['user_name', 'user_email', 'site_name'],
     ],
 
+    // Sent from CreatesLightPostOnRegistration (App\Actions\Registration\
+    // Concerns) only when a registrant chose "Share My Light" and their
+    // post was actually created — never on "Share Another Time"/a blank
+    // message, and never for a Gratitude Journal entry (see
+    // gratitude_journal_submitted below).
+    'light_post_submitted' => [
+        'label' => 'Light Post Shared',
+        'recipients' => ['user'],
+        'variables' => ['user_name', 'light_post_url', 'site_name'],
+        'default_subject' => '{{site_name}} — Your Light Post Has Been Shared',
+        'default_html_body' => <<<'HTML'
+            Hi {{user_name}},
+
+            Thank you for sharing your light. Your Light Post has been posted successfully and is now live on {{site_name}}.
+
+            <a href="{{light_post_url}}">View your Light Post</a>
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{user_name}},
+
+            Thank you for sharing your light. Your Light Post has been posted successfully and is now live on {{site_name}}.
+
+            View your Light Post: {{light_post_url}}
+            TEXT,
+    ],
+
     'password_reset' => [
         'label' => 'Password Reset / Generate New Password',
         'recipients' => ['user'],
@@ -90,6 +116,56 @@ return [
         'variables' => ['submitter_name', 'submitter_email', 'subject', 'category', 'site_name'],
     ],
 
+    // Sent to the submitter alongside (never instead of)
+    // inspirational_resource_submitted above — CreateResourceSubmissionAction
+    // sends both on every submission. Deliberately says "pending review",
+    // never "published" — see inspirational_resource_published below for
+    // the only email that says that.
+    'inspirational_resource_pending' => [
+        'label' => 'Inspirational Resource Received (Pending Review)',
+        'recipients' => ['user'],
+        'variables' => ['submitter_name', 'subject', 'site_name'],
+        'default_subject' => '{{site_name}} — We Received Your Submission',
+        'default_html_body' => <<<'HTML'
+            Hi {{submitter_name}},
+
+            Thank you for submitting "{{subject}}" to {{site_name}}. Your submission has been received and is currently awaiting review.
+
+            We'll let you know as soon as it has been reviewed.
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{submitter_name}},
+
+            Thank you for submitting "{{subject}}" to {{site_name}}. Your submission has been received and is currently awaiting review.
+
+            We'll let you know as soon as it has been reviewed.
+            TEXT,
+    ],
+
+    // Sent only from ApproveResourceSubmissionAction, the single exclusive
+    // writer of ResourceSubmissionStatus::Approved — never sent for
+    // Submitted/InReview.
+    'inspirational_resource_published' => [
+        'label' => 'Inspirational Resource Published',
+        'recipients' => ['user'],
+        'variables' => ['submitter_name', 'subject', 'resource_url', 'site_name'],
+        'default_subject' => '{{site_name}} — Your Submission Has Been Published',
+        'default_html_body' => <<<'HTML'
+            Hi {{submitter_name}},
+
+            Good news — "{{subject}}" has been approved and is now published on {{site_name}}.
+
+            <a href="{{resource_url}}">View your published submission</a>
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{submitter_name}},
+
+            Good news — "{{subject}}" has been approved and is now published on {{site_name}}.
+
+            View your published submission: {{resource_url}}
+            TEXT,
+    ],
+
     'review_published' => [
         'label' => 'Review Published',
         'recipients' => ['user'],
@@ -98,6 +174,32 @@ return [
         // Confirmed safe: no EmailTemplate row existed yet for this key in
         // this environment, so no admin-customized copy referenced it.
         'variables' => ['user_name', 'title', 'review_url', 'site_name'],
+    ],
+
+    // Sent from CreateGratitudeJournalEntryAction on every successful save,
+    // regardless of visibility (Public or Private) — an acknowledgement,
+    // never the journal content itself. Distinct from
+    // gratitude_journal_reminder below (a scheduled nudge to write an
+    // entry, not a response to one).
+    'gratitude_journal_submitted' => [
+        'label' => 'Gratitude Journal Entry Submitted',
+        'recipients' => ['user'],
+        'variables' => ['user_name', 'visibility_label', 'journal_url', 'site_name'],
+        'default_subject' => '{{site_name}} — Your Gratitude Journal Entry Was Saved',
+        'default_html_body' => <<<'HTML'
+            Hi {{user_name}},
+
+            Thank you for taking a moment to reflect. Your Gratitude Journal entry has been saved successfully as {{visibility_label}}.
+
+            <a href="{{journal_url}}">View your Gratitude Journal</a>
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{user_name}},
+
+            Thank you for taking a moment to reflect. Your Gratitude Journal entry has been saved successfully as {{visibility_label}}.
+
+            View your Gratitude Journal: {{journal_url}}
+            TEXT,
     ],
 
     'gratitude_journal_reminder' => [

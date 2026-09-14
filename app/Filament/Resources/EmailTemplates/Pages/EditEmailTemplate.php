@@ -180,14 +180,52 @@ class EditEmailTemplate extends EditRecord
         return TemplatedMailer::substitute($subject, $this->sampleVariables());
     }
 
+    /**
+     * Renders through TemplatedMailer::renderEmailHtml() — the exact same
+     * function a real send uses — so the preview can never drift from what
+     * actually gets delivered. That function returns a full HTML document
+     * (doctype/html/head/body), which can't be validly nested inside this
+     * Filament page's own DOM; it's embedded in a sandboxed iframe instead
+     * of a plain <div> specifically so it renders using only the email
+     * layout's own CSS, never inheriting Filament's admin/Tailwind styles.
+     *
+     * The iframe itself is given a fixed width matching the email layout's
+     * own design width (resources/views/emails/layout.blade.php's 600px
+     * container, plus a little breathing room) rather than width:100% —
+     * a 100%-wide iframe inside this admin column is narrower than 600px,
+     * which prematurely triggers the layout's own @media(max-width:600px)
+     * mobile styles even though no real mobile client is involved. Fixing
+     * the iframe's width means it always renders the true desktop layout;
+     * the surrounding div's overflow-x:auto lets an admin scroll
+     * horizontally to see all of it when the column is narrower, instead
+     * of silently showing the wrong (mobile) presentation.
+     *
+     * Only the OUTER div scrolls horizontally — the layout's own <body>
+     * sets overflow-x:hidden specifically so the iframe never grows a
+     * second, internal horizontal scrollbar of its own. Without that, a
+     * fixed iframe height (needed so the preview has a sane, bounded size)
+     * forces a *vertical* scrollbar inside the iframe's document on any
+     * email longer than one screen, which eats into the available width
+     * and was tipping the 632px-wide email content past the iframe's own
+     * viewport — two overlapping, confusing scrollbars for what should be
+     * one. 660px (600px content + 32px outer padding + real margin) keeps
+     * that from happening even with a vertical scrollbar present.
+     *
+     * Every other bit of styling here (border, rounded corners, background,
+     * fixed height) is preview chrome only — genuine email-safe
+     * presentation (container width, padding, typography) all lives inside
+     * the iframe's own document.
+     */
     private function renderPreviewBody(Get $get, string $prefix): HtmlString
     {
         $html = (string) ($get("{$prefix}html_body") ?? '');
-        $rendered = TemplatedMailer::formatHtmlBody(TemplatedMailer::substitute($html, $this->sampleVariables()));
+        $substituted = TemplatedMailer::substitute($html, $this->sampleVariables());
+        $rendered = TemplatedMailer::renderEmailHtml($substituted);
 
         return new HtmlString(
-            '<div style="border:1px solid #e5e7eb;border-radius:0.375rem;padding:1rem;background:#fff;max-height:24rem;overflow-y:auto">'
-            .$rendered
+            '<div style="overflow-x:auto;overflow-y:hidden;border:1px solid #e5e7eb;border-radius:0.375rem;background:#f4f4f5;">'
+            .'<iframe srcdoc="'.e($rendered).'" sandbox="" '
+            .'style="width:660px;min-width:660px;height:28rem;border:0;display:block;background:#fff;"></iframe>'
             .'</div>'
         );
     }

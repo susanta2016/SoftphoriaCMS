@@ -57,7 +57,7 @@ class HomeAdminEditableContentTest extends TestCase
     private function createPublicGratitudeEntry(): void
     {
         $user = User::factory()->create();
-        (new CreateGratitudeJournalEntryAction)->handle($user, 'Grateful for this test entry.', GratitudeJournalVisibility::Public);
+        app(CreateGratitudeJournalEntryAction::class)->handle($user, 'Grateful for this test entry.', GratitudeJournalVisibility::Public);
     }
 
     public function test_the_community_card_shows_the_original_default_copy_when_the_section_has_no_overrides(): void

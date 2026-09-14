@@ -36,7 +36,7 @@ class GratitudeJournalFeedTest extends TestCase
     public function test_a_guest_can_view_the_feed(): void
     {
         $author = User::factory()->create();
-        (new CreateGratitudeJournalEntryAction)->handle($author, 'A guest-visible public entry.', GratitudeJournalVisibility::Public);
+        app(CreateGratitudeJournalEntryAction::class)->handle($author, 'A guest-visible public entry.', GratitudeJournalVisibility::Public);
 
         $response = $this->get(route('inspirational-resources.gratitude-journal'));
 
@@ -53,7 +53,7 @@ class GratitudeJournalFeedTest extends TestCase
     {
         $author = User::factory()->create();
         $viewer = User::factory()->create();
-        (new CreateGratitudeJournalEntryAction)->handle($author, 'A public feed entry.', GratitudeJournalVisibility::Public);
+        app(CreateGratitudeJournalEntryAction::class)->handle($author, 'A public feed entry.', GratitudeJournalVisibility::Public);
 
         $response = $this->actingAs($viewer)->get(route('inspirational-resources.gratitude-journal'));
 
@@ -69,7 +69,7 @@ class GratitudeJournalFeedTest extends TestCase
     public function test_a_public_journal_entry_also_appears_on_the_homepage(): void
     {
         $author = User::factory()->create(['name' => 'Dual Surface Journaler']);
-        (new CreateGratitudeJournalEntryAction)->handle($author, 'A dual-surface public entry.', GratitudeJournalVisibility::Public);
+        app(CreateGratitudeJournalEntryAction::class)->handle($author, 'A dual-surface public entry.', GratitudeJournalVisibility::Public);
 
         $feedResponse = $this->actingAs($author)->get(route('inspirational-resources.gratitude-journal'));
         $homeResponse = $this->get(route('home'));
@@ -86,7 +86,7 @@ class GratitudeJournalFeedTest extends TestCase
     public function test_a_private_journal_entry_does_not_appear_on_this_feed_even_for_its_own_author(): void
     {
         $author = User::factory()->create();
-        (new CreateGratitudeJournalEntryAction)->handle($author, 'A truly private entry.', GratitudeJournalVisibility::Private);
+        app(CreateGratitudeJournalEntryAction::class)->handle($author, 'A truly private entry.', GratitudeJournalVisibility::Private);
 
         $response = $this->actingAs($author)->get(route('inspirational-resources.gratitude-journal'));
 
@@ -115,7 +115,7 @@ class GratitudeJournalFeedTest extends TestCase
     {
         $author = User::factory()->create();
         $viewer = User::factory()->create();
-        $action = new CreateGratitudeJournalEntryAction;
+        $action = app(CreateGratitudeJournalEntryAction::class);
 
         foreach (range(1, 11) as $i) {
             $action->handle($author, "Feed gratitude entry number {$i}.", GratitudeJournalVisibility::Public);
@@ -146,7 +146,7 @@ class GratitudeJournalFeedTest extends TestCase
     public function test_the_feed_has_no_create_edit_or_delete_controls(): void
     {
         $viewer = User::factory()->create();
-        $ownEntry = (new CreateGratitudeJournalEntryAction)->handle($viewer, 'My own entry shown read-only.', GratitudeJournalVisibility::Public);
+        $ownEntry = app(CreateGratitudeJournalEntryAction::class)->handle($viewer, 'My own entry shown read-only.', GratitudeJournalVisibility::Public);
 
         $response = $this->actingAs($viewer)->get(route('inspirational-resources.gratitude-journal'));
 

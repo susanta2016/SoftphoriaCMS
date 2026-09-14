@@ -249,7 +249,7 @@ class GratitudeJournalReactionTest extends TestCase
         config(['features.gratitude_journal_reactions_enabled' => true]);
         $author = User::factory()->create();
         $viewer = User::factory()->create();
-        $action = new CreateGratitudeJournalEntryAction;
+        $action = app(CreateGratitudeJournalEntryAction::class);
 
         $entries = collect(range(1, 11))->map(
             fn (int $i) => $action->handle($author, "Reaction pagination entry {$i}.", GratitudeJournalVisibility::Public)
@@ -267,6 +267,6 @@ class GratitudeJournalReactionTest extends TestCase
     {
         $author = User::factory()->create();
 
-        return (new CreateGratitudeJournalEntryAction)->handle($author, 'A public feed entry for reaction testing.', $visibility);
+        return app(CreateGratitudeJournalEntryAction::class)->handle($author, 'A public feed entry for reaction testing.', $visibility);
     }
 }

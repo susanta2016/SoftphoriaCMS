@@ -8,6 +8,7 @@ use App\Enums\GratitudeJournalVisibility;
 use App\Enums\LightPostSource;
 use App\Models\LightPost;
 use App\Models\User;
+use App\Shared\Services\Notifications\TemplatedMailer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -25,7 +26,7 @@ class GratitudeJournalDatabaseTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $entry = (new CreateGratitudeJournalEntryAction)->handle($user, 'Grateful for quiet mornings.');
+        $entry = app(CreateGratitudeJournalEntryAction::class)->handle($user, 'Grateful for quiet mornings.');
 
         $this->assertSame(LightPostSource::Journal, $entry->source);
         $this->assertSame($user->id, $entry->user_id);
@@ -39,13 +40,13 @@ class GratitudeJournalDatabaseTest extends TestCase
         {
             use CreatesLightPostOnRegistration;
 
-            public function create(User $user, array $data): void
+            public function create(User $user, array $data, TemplatedMailer $mailer): void
             {
-                $this->createLightPostIfRequested($user, $data);
+                $this->createLightPostIfRequested($user, $data, $mailer);
             }
         };
 
-        $trait->create($user, ['light_post_action' => 'share', 'light_message' => 'Grateful for this community.']);
+        $trait->create($user, ['light_post_action' => 'share', 'light_message' => 'Grateful for this community.'], app(TemplatedMailer::class));
 
         $post = $user->lightPosts()->firstOrFail();
         $this->assertSame(LightPostSource::Registration, $post->source);

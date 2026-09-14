@@ -9,6 +9,7 @@ use App\Enums\UserStatus;
 use App\Models\User;
 use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
 use App\Modules\Commerce\Services\Stripe\StripeGatewayContract;
+use App\Shared\Services\Notifications\TemplatedMailer;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
@@ -39,6 +40,7 @@ class RegisterProUserAction
     public function __construct(
         private readonly GlobalPricingResolver $pricing,
         private readonly StripeGatewayContract $stripe,
+        private readonly TemplatedMailer $mailer,
     ) {}
 
     /**
@@ -72,7 +74,7 @@ class RegisterProUserAction
             $user->save();
 
             $this->saveOptionalProfile($user, $data);
-            $this->createLightPostIfRequested($user, $data);
+            $this->createLightPostIfRequested($user, $data, $this->mailer);
         }
 
         $clientSecret = $this->stripe->createEmbeddedSubscriptionCheckoutSession(

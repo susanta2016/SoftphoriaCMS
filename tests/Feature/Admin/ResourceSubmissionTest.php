@@ -9,8 +9,13 @@ use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
 use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Pages\ListResourceSubmissions;
 use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Pages\ViewResourceSubmission;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
+use App\Shared\Mail\TemplatedNotificationMail;
+use App\Shared\Services\Notifications\TemplatedMailer;
+use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
+use Mockery;
 use Tests\TestCase;
 
 /**
@@ -52,6 +57,44 @@ class ResourceSubmissionTest extends TestCase
     {
         $submission = $this->createSubmission();
         $admin = $this->admin();
+
+        app(ApproveResourceSubmissionAction::class)->handle($submission, $admin);
+
+        $submission->refresh();
+        $this->assertSame(ResourceSubmissionStatus::Approved, $submission->status);
+    }
+
+    public function test_approving_a_submission_sends_the_published_email(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+        $submission = $this->createSubmission(['slug' => 'my-story']);
+        $admin = $this->admin();
+
+        app(ApproveResourceSubmissionAction::class)->handle($submission, $admin);
+
+        Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo('jane@example.com')
+            && str_contains($mail->subjectLine, 'Your Submission Has Been Published'));
+    }
+
+    public function test_a_merely_submitted_or_in_review_submission_never_gets_the_published_email(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+        $this->createSubmission(['slug' => 'still-pending']);
+
+        Mail::assertNotSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => str_contains($mail->subjectLine, 'Your Submission Has Been Published'));
+    }
+
+    public function test_a_failed_published_email_does_not_break_the_approval(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+        $submission = $this->createSubmission(['slug' => 'my-story']);
+        $admin = $this->admin();
+
+        $mailer = Mockery::mock(TemplatedMailer::class);
+        $mailer->shouldReceive('send')->andThrow(new \RuntimeException('SMTP unavailable'));
+        $this->app->instance(TemplatedMailer::class, $mailer);
 
         app(ApproveResourceSubmissionAction::class)->handle($submission, $admin);
 

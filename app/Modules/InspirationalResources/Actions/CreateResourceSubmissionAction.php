@@ -46,6 +46,7 @@ class CreateResourceSubmissionAction
         $submission->save();
 
         $this->notifyAdmins($submission);
+        $this->notifySubmitter($submission);
 
         return $submission;
     }
@@ -94,6 +95,27 @@ class CreateResourceSubmissionAction
                     'exception' => $exception->getMessage(),
                 ]);
             }
+        }
+    }
+
+    /**
+     * Sent to the submitter in addition to notifyAdmins() above, never
+     * instead of it — deliberately says "pending review", never
+     * "published"; ApproveResourceSubmissionAction is the only place that
+     * ever sends a "published" email, and only once Approved.
+     */
+    private function notifySubmitter(ResourceSubmission $submission): void
+    {
+        try {
+            $this->mailer->send('inspirational_resource_pending', EmailRecipientType::User, $submission->email, [
+                'submitter_name' => $submission->name,
+                'subject' => $submission->subject ?? '',
+            ]);
+        } catch (Throwable $exception) {
+            Log::warning('Inspirational resource submission acknowledgement email failed to send', [
+                'submission_id' => $submission->id,
+                'exception' => $exception->getMessage(),
+            ]);
         }
     }
 }

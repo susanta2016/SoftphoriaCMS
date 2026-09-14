@@ -26,7 +26,7 @@ class GratitudeJournalPublicAccessTest extends TestCase
     public function test_a_public_journal_entry_cannot_be_accessed_through_the_public_light_post_detail_route(): void
     {
         $user = User::factory()->create();
-        $entry = (new CreateGratitudeJournalEntryAction)->handle($user, 'A public journal entry.', GratitudeJournalVisibility::Public);
+        $entry = app(CreateGratitudeJournalEntryAction::class)->handle($user, 'A public journal entry.', GratitudeJournalVisibility::Public);
 
         $response = $this->get(route('light-posts.show', $entry));
 
@@ -36,7 +36,7 @@ class GratitudeJournalPublicAccessTest extends TestCase
     public function test_a_public_journal_entry_is_absent_from_the_sitemap(): void
     {
         $user = User::factory()->create();
-        $entry = (new CreateGratitudeJournalEntryAction)->handle($user, 'A public journal entry for sitemap check.', GratitudeJournalVisibility::Public);
+        $entry = app(CreateGratitudeJournalEntryAction::class)->handle($user, 'A public journal entry for sitemap check.', GratitudeJournalVisibility::Public);
 
         $response = $this->get('/sitemap.xml');
 

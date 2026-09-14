@@ -6,9 +6,11 @@ use App\Models\Role;
 use App\Models\User;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use App\Shared\Mail\TemplatedNotificationMail;
+use App\Shared\Services\Notifications\TemplatedMailer;
 use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Mockery;
 use Tests\TestCase;
 
 /**
@@ -178,6 +180,46 @@ class InspirationalResourceSubmissionTest extends TestCase
         ]);
 
         Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo($admin->email));
+    }
+
+    public function test_submitting_sends_both_the_submitter_acknowledgement_and_the_admin_notification(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+        $admin = $this->admin();
+
+        $this->post(route('inspirational-resources.submit'), [
+            'name' => 'Jane Doe',
+            'email' => 'jane@example.com',
+            'subject' => 'My Story',
+            'category' => 'Testimony',
+            'message' => 'Something meaningful happened.',
+        ]);
+
+        Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo($admin->email)
+            && str_contains($mail->subjectLine, 'Inspirational Resource Submission'));
+
+        Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo('jane@example.com')
+            && str_contains($mail->subjectLine, 'We Received Your Submission'));
+    }
+
+    public function test_a_failed_submitter_acknowledgement_email_does_not_break_the_submission(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+
+        $mailer = Mockery::mock(TemplatedMailer::class);
+        $mailer->shouldReceive('send')->andThrow(new \RuntimeException('SMTP unavailable'));
+        $this->app->instance(TemplatedMailer::class, $mailer);
+
+        $response = $this->post(route('inspirational-resources.submit'), [
+            'name' => 'Jane Doe',
+            'email' => 'jane.resilient@example.com',
+            'category' => 'Testimony',
+            'message' => 'Something meaningful happened even when email is down.',
+        ]);
+
+        $response->assertRedirect(route('inspirational-resources.create'));
+        $this->assertSame(1, ResourceSubmission::query()->where('email', 'jane.resilient@example.com')->count());
     }
 
     public function test_an_unapproved_submission_has_no_public_detail_page(): void

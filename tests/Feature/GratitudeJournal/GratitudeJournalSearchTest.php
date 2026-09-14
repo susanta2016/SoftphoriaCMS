@@ -45,7 +45,7 @@ class GratitudeJournalSearchTest extends TestCase
     {
         $user = User::factory()->create();
         $phrase = 'A wholly distinctive journal phrase '.uniqid();
-        (new CreateGratitudeJournalEntryAction)->handle($user, $phrase, GratitudeJournalVisibility::Public);
+        app(CreateGratitudeJournalEntryAction::class)->handle($user, $phrase, GratitudeJournalVisibility::Public);
 
         $response = $this->get(route('search.index', ['q' => 'wholly distinctive journal']));
 

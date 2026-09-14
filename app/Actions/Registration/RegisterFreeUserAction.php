@@ -43,7 +43,7 @@ class RegisterFreeUserAction
         $user->save();
 
         $this->saveOptionalProfile($user, $data);
-        $this->createLightPostIfRequested($user, $data);
+        $this->createLightPostIfRequested($user, $data, $this->mailer);
 
         $rawToken = $this->issueVerificationToken($user);
 

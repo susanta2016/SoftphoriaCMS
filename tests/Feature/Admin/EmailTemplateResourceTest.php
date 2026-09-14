@@ -302,16 +302,52 @@ class EmailTemplateResourceTest extends TestCase
         $this->assertSame("Paragraph one.\n\nParagraph two.", (string) $mailable->textView);
     }
 
+    /**
+     * The preview is now embedded in a sandboxed iframe (srcdoc) so it
+     * renders using only TemplatedMailer::renderEmailHtml()'s own layout
+     * CSS, never Filament's admin/Tailwind styles (see EditEmailTemplate::
+     * renderPreviewBody()'s own docblock) — the srcdoc attribute value is
+     * necessarily HTML-escaped, so this asserts against the escaped form
+     * rather than literal unescaped markup.
+     */
     public function test_the_filament_preview_renders_the_same_paragraph_formatting_as_a_real_send(): void
     {
         $this->seed(EmailTemplateSeeder::class);
         $template = EmailTemplate::query()->where('notification_key', 'email_verification')->where('recipient_type', 'user')->firstOrFail();
 
-        Livewire::actingAs($this->admin())
+        $component = Livewire::actingAs($this->admin())
             ->test(EditEmailTemplate::class, ['record' => $template->getRouteKey()])
-            ->fillForm(['html_body' => "First paragraph.\n\nSecond paragraph."])
-            ->assertSeeHtml('<p style="margin:0 0 1em 0;">First paragraph.</p>')
-            ->assertSeeHtml('<p style="margin:0 0 1em 0;">Second paragraph.</p>');
+            ->fillForm(['html_body' => "First paragraph.\n\nSecond paragraph."]);
+
+        $component->assertSeeHtml('<iframe srcdoc="');
+
+        $html = $component->html();
+        $this->assertStringContainsString(e('<p style="margin:0 0 1em 0;">First paragraph.</p>'), $html);
+        $this->assertStringContainsString(e('<p style="margin:0 0 1em 0;">Second paragraph.</p>'), $html);
+    }
+
+    /**
+     * Proves the preview and a real send share the exact same
+     * TemplatedMailer::renderEmailHtml() output — the shared email layout
+     * (background, centered container, typography) appears in the preview,
+     * not just the paragraph formatting.
+     */
+    public function test_the_filament_preview_uses_the_same_shared_layout_as_a_real_send(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+        $template = EmailTemplate::query()->where('notification_key', 'email_verification')->where('recipient_type', 'user')->firstOrFail();
+        $template->update(['html_body' => 'Hello there.']);
+
+        $component = Livewire::actingAs($this->admin())->test(EditEmailTemplate::class, ['record' => $template->getRouteKey()]);
+        $previewHtml = $component->html();
+
+        $mailable = app(TemplatedMailer::class)->renderAsMailable('email_verification', EmailRecipientType::User, ['user_name' => 'Jane']);
+        $sentHtml = $mailable->render();
+
+        foreach (['<!DOCTYPE html>', 'class="email-container"', 'email-padding'] as $layoutMarker) {
+            $this->assertStringContainsString(e($layoutMarker), $previewHtml, "Preview is missing layout marker: {$layoutMarker}");
+            $this->assertStringContainsString($layoutMarker, $sentHtml, "Sent email is missing layout marker: {$layoutMarker}");
+        }
     }
 
     public function test_render_as_mailable_returns_null_when_disabled(): void

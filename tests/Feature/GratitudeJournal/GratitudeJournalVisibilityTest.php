@@ -31,7 +31,7 @@ class GratitudeJournalVisibilityTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $entry = (new CreateGratitudeJournalEntryAction)->handle($user, 'Grateful, unspecified visibility.');
+        $entry = app(CreateGratitudeJournalEntryAction::class)->handle($user, 'Grateful, unspecified visibility.');
 
         $this->assertSame(GratitudeJournalVisibility::Public, $entry->visibility);
     }
@@ -120,7 +120,7 @@ class GratitudeJournalVisibilityTest extends TestCase
     public function test_a_private_journal_entry_does_not_appear_on_the_homepage(): void
     {
         $user = User::factory()->create(['name' => 'Quiet Journaler']);
-        (new CreateGratitudeJournalEntryAction)->handle($user, 'A private journal thought.', GratitudeJournalVisibility::Private);
+        app(CreateGratitudeJournalEntryAction::class)->handle($user, 'A private journal thought.', GratitudeJournalVisibility::Private);
 
         $response = $this->get(route('home'));
 
@@ -131,7 +131,7 @@ class GratitudeJournalVisibilityTest extends TestCase
     public function test_a_public_journal_entry_can_appear_on_the_homepage(): void
     {
         $user = User::factory()->create(['name' => 'Open Journaler']);
-        (new CreateGratitudeJournalEntryAction)->handle($user, 'A public journal thought.', GratitudeJournalVisibility::Public);
+        app(CreateGratitudeJournalEntryAction::class)->handle($user, 'A public journal thought.', GratitudeJournalVisibility::Public);
 
         $response = $this->get(route('home'));
 
@@ -143,7 +143,7 @@ class GratitudeJournalVisibilityTest extends TestCase
     public function test_a_public_journal_entry_shares_the_homepages_existing_eight_entry_limit(): void
     {
         $user = User::factory()->create();
-        $action = new CreateGratitudeJournalEntryAction;
+        $action = app(CreateGratitudeJournalEntryAction::class);
 
         foreach (range(1, 9) as $i) {
             $action->handle($user, "Journal gratitude number {$i}.", GratitudeJournalVisibility::Public);

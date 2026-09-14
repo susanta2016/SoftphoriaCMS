@@ -70,7 +70,7 @@ class TemplatedMailer
 
         return new TemplatedNotificationMail(
             $this->substitute($template->subject, $variables),
-            self::formatHtmlBody($this->substitute($template->html_body, $variables)),
+            self::renderEmailHtml($this->substitute($template->html_body, $variables)),
             filled($template->text_body) ? $this->substitute($template->text_body, $variables) : null,
             $this->settings->get('email', 'reply_to_email'),
             $this->settings->get('email', 'reply_to_name'),
@@ -136,5 +136,32 @@ class TemplatedMailer
             ->filter(fn (string $paragraph): bool => $paragraph !== '')
             ->map(fn (string $paragraph): string => '<p style="margin:0 0 1em 0;">'.nl2br($paragraph).'</p>')
             ->implode("\n");
+    }
+
+    /**
+     * The one shared email-rendering path — resources/views/emails/layout.blade.php
+     * provides the surrounding email-safe presentation (background, centered
+     * table-based container, max width, padding, font stack, heading/link
+     * defaults) around whatever the admin authored in `html_body`. Both a
+     * real send (renderAsMailable() above) and EditEmailTemplate's admin
+     * preview call this exact function, so the two can never drift apart —
+     * the only difference between them is the Filament chrome (border,
+     * "Preview" label, scroll container) wrapped *around* this function's
+     * output, never inside it.
+     *
+     * Always runs the content through formatHtmlBody() first — composed
+     * here rather than left to each caller, so it's structurally impossible
+     * to reach the layout with unformatted (collapsed-paragraph) content.
+     *
+     * The layout view never receives raw admin content as Blade source —
+     * $content is a plain, already-substituted PHP string interpolated via
+     * {!! !!}, never compiled as a second Blade template (see substitute()'s
+     * own docblock on why admin content is never passed to Blade::render()).
+     */
+    public static function renderEmailHtml(string $rawHtmlBody): string
+    {
+        return view('emails.layout', [
+            'content' => self::formatHtmlBody($rawHtmlBody),
+        ])->render();
     }
 }
