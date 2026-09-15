@@ -53,6 +53,13 @@ use UnitEnum;
  * and an authorized admin who navigates to /admin/reviews directly still
  * reaches it regardless of the toggle — Filament's navigation visibility is
  * independent of route registration/access control.
+ *
+ * A second, finer-grained toggle was added alongside the 🚩-reported-comment
+ * feature: config('admin_ui.show_light_posts_comments_menu') /
+ * ADMIN_SHOW_LIGHT_POSTS_COMMENTS_MENU hides only this entry, independent of
+ * show_community_menu — so "Admin Reviews" (App\Filament\Resources\
+ * ReviewFlags\ReviewFlagResource, the other member of the Community group)
+ * can stay visible even when this one is switched off.
  */
 class ReviewResource extends Resource
 {
@@ -64,7 +71,7 @@ class ReviewResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        return config('admin_ui.show_community_menu');
+        return config('admin_ui.show_community_menu') && config('admin_ui.show_light_posts_comments_menu');
     }
 
     protected static ?string $modelLabel = 'Light Post / Comment';

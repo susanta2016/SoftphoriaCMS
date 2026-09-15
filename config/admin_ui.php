@@ -55,4 +55,24 @@ return [
 
     'show_community_menu' => env('ADMIN_SHOW_COMMUNITY_MENU', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Show Light Posts & Comments Menu (Admin)
+    |--------------------------------------------------------------------------
+    |
+    | A finer-grained presentation-mode switch than show_community_menu above
+    | — that one hides the entire "Community" sidebar group (both Light
+    | Posts & Comments and Admin Reviews); this one hides only the "Light
+    | Posts & Comments" entry (App\Filament\Resources\Reviews\ReviewResource)
+    | while leaving "Admin Reviews" (App\Filament\Resources\ReviewFlags\
+    | ReviewFlagResource) visible whenever the Community group itself is
+    | shown. When false, that one entry is not rendered in the admin left
+    | sidebar — UI visibility only. The resource, its routes, and all
+    | review/comment data stay fully intact; flip this back to true (or
+    | unset the env var) to restore it, no rebuild required.
+    |
+    */
+
+    'show_light_posts_comments_menu' => env('ADMIN_SHOW_LIGHT_POSTS_COMMENTS_MENU', true),
+
 ];

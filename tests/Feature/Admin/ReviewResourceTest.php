@@ -289,6 +289,48 @@ class ReviewResourceTest extends TestCase
     }
 
     /**
+     * The finer-grained toggle added alongside the 🚩-reported-comment
+     * feature: config('admin_ui.show_light_posts_comments_menu') /
+     * ADMIN_SHOW_LIGHT_POSTS_COMMENTS_MENU hides only this one entry,
+     * independent of show_community_menu — "Admin Reviews" (the Community
+     * group's other member) stays visible.
+     */
+    public function test_light_posts_and_comments_entry_is_hidden_when_its_own_toggle_is_off(): void
+    {
+        config(['admin_ui.show_community_menu' => true]);
+        config(['admin_ui.show_light_posts_comments_menu' => false]);
+
+        $response = $this->actingAs($this->admin())->get('/admin');
+
+        $response->assertOk();
+        $response->assertSee('Community');
+        $response->assertSee('Admin Reviews');
+        $response->assertDontSee('Light Posts &amp; Comments', false);
+    }
+
+    public function test_light_posts_and_comments_entry_appears_when_both_toggles_are_on(): void
+    {
+        config(['admin_ui.show_community_menu' => true]);
+        config(['admin_ui.show_light_posts_comments_menu' => true]);
+
+        $response = $this->actingAs($this->admin())->get('/admin');
+
+        $response->assertOk();
+        $response->assertSee('Light Posts &amp; Comments', false);
+    }
+
+    public function test_light_posts_and_comments_entry_stays_hidden_when_the_community_group_itself_is_off(): void
+    {
+        config(['admin_ui.show_community_menu' => false]);
+        config(['admin_ui.show_light_posts_comments_menu' => true]);
+
+        $response = $this->actingAs($this->admin())->get('/admin');
+
+        $response->assertOk();
+        $response->assertDontSee('Light Posts &amp; Comments', false);
+    }
+
+    /**
      * Hiding the navigation entry must never gate direct access — an
      * authorized admin who already knows/bookmarks the URL (or follows a
      * deep link) still reaches the resource and its data exactly as before.
