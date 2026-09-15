@@ -82,72 +82,7 @@
 
             <div class="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-12">
                 <div class="lg:col-span-8">
-                    <div class="flex flex-wrap items-center gap-3">
-                        <div class="inline-flex items-center gap-2">
-                            <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(route('podcast.episodes.show', $episode)) }}" target="_blank" rel="noopener" aria-label="Share on Facebook" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12Z"/></svg>
-                            </a>
-                            <a href="https://twitter.com/intent/tweet?url={{ urlencode(route('podcast.episodes.show', $episode)) }}&text={{ urlencode($episode->title) }}" target="_blank" rel="noopener" aria-label="Share on X" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M18.9 3H21l-6.6 7.5L22 21h-6.8l-4.7-6.2L5 21H3l7.1-8-8-10h6.9l4.3 5.7L18.9 3Z"/></svg>
-                            </a>
-                        </div>
-                    </div>
-
-                    {{--
-                        Play-only audio player (replaces the removed "Download
-                        Audio" link, client-confirmed 2026-09-05) — streams the
-                        episode's existing uploaded audio via the public
-                        PodcastEpisodeStreamController, open to guests and
-                        members alike (same "unrestricted" precedent as the
-                        YouTube embed above). controlsList="nodownload" hides
-                        the browser's built-in download affordance in
-                        Chromium/Safari; Firefox has no equivalent and this
-                        cannot fully prevent it there — an inherent native
-                        <audio> limitation, not something app code can close.
-                    --}}
-                    @if ($episode->audio)
-                        <div class="mt-4">
-                            <audio controls controlslist="nodownload" preload="none" class="w-full" data-podcast-audio-player src="{{ route('podcast.episodes.stream', $episode) }}">
-                                Your browser does not support the audio element.
-                            </audio>
-                        </div>
-                    @endif
-
-                    @if ($podcast)
-                        <div class="mt-10 rounded-2xl bg-brand-ivory p-6 ring-1 ring-brand-navy/5">
-                            <h2 class="font-serif text-lg text-brand-navy">About the Podcast</h2>
-                            @if ($podcast->description)
-                                <div class="mt-3 max-h-48 overflow-y-auto pr-2">
-                                    <p class="text-sm leading-relaxed text-brand-navy/70">{{ str($podcast->description)->stripTags() }}</p>
-                                </div>
-                            @endif
-                            <a href="{{ route('podcast.episodes.index') }}" class="mt-4 inline-flex items-center gap-1.5 rounded-md border border-brand-gold/40 px-4 py-2 text-sm font-semibold text-brand-gold transition hover:bg-brand-gold hover:text-white">
-                                View All Episodes <span aria-hidden="true">→</span>
-                            </a>
-                        </div>
-                    @endif
-
-                    @if ($episode->description)
-                        <div class="mt-8">
-                            <h2 class="font-serif text-2xl text-brand-navy">About This Episode</h2>
-                            <div class="mt-4 text-sm leading-relaxed text-brand-navy/75 [&_p]:mb-4 [&_p]:last:mb-0">
-                                {!! $episode->description !!}
-                            </div>
-                        </div>
-                    @endif
-
-                    @if ($episode->tags->isNotEmpty())
-                        <div class="mt-8">
-                            <h2 class="font-serif text-xl text-brand-navy">Key Themes</h2>
-                            <div class="mt-3 flex flex-wrap gap-2">
-                                @foreach ($episode->tags as $tag)
-                                    <span class="rounded-full border border-brand-navy/15 px-3 py-1 text-xs text-brand-navy/70">{{ $tag->name }}</span>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-
-                    <div class="mt-14 border-t border-brand-navy/10 pt-10">
+                    <div class="border-b border-brand-navy/10 pb-10">
                         <div class="flex flex-wrap items-center justify-between gap-3">
                             <h2 class="font-serif text-2xl text-brand-navy">What Listeners Are Saying</h2>
                             <div class="flex items-center gap-3">
@@ -260,6 +195,62 @@
                             </div>
                         @endif
                     </div>
+
+                    <div class="mt-10 flex flex-wrap items-center gap-3">
+                        <div class="inline-flex items-center gap-2">
+                            <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(route('podcast.episodes.show', $episode)) }}" target="_blank" rel="noopener" aria-label="Share on Facebook" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12Z"/></svg>
+                            </a>
+                            <a href="https://twitter.com/intent/tweet?url={{ urlencode(route('podcast.episodes.show', $episode)) }}&text={{ urlencode($episode->title) }}" target="_blank" rel="noopener" aria-label="Share on X" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M18.9 3H21l-6.6 7.5L22 21h-6.8l-4.7-6.2L5 21H3l7.1-8-8-10h6.9l4.3 5.7L18.9 3Z"/></svg>
+                            </a>
+                        </div>
+                    </div>
+
+                    {{--
+                        Play-only audio player (replaces the removed "Download
+                        Audio" link, client-confirmed 2026-09-05) — streams the
+                        episode's existing uploaded audio via the public
+                        PodcastEpisodeStreamController, open to guests and
+                        members alike (same "unrestricted" precedent as the
+                        YouTube embed above). controlsList="nodownload" hides
+                        the browser's built-in download affordance in
+                        Chromium/Safari; Firefox has no equivalent and this
+                        cannot fully prevent it there — an inherent native
+                        <audio> limitation, not something app code can close.
+                    --}}
+                    @if ($episode->audio)
+                        <div class="mt-4">
+                            <audio controls controlslist="nodownload" preload="none" class="w-full" data-podcast-audio-player src="{{ route('podcast.episodes.stream', $episode) }}">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                    @endif
+
+                    @if ($episode->description)
+                        <div class="mt-10 rounded-2xl bg-brand-ivory p-6 ring-1 ring-brand-navy/5">
+                            <h2 class="font-serif text-lg text-brand-navy">About This Episode</h2>
+                            <div class="mt-3 text-sm leading-relaxed text-brand-navy/70 [&_p]:mb-4 [&_p]:last:mb-0">
+                                {!! $episode->description !!}
+                            </div>
+                            @if ($podcast)
+                                <a href="{{ route('podcast.episodes.index') }}" class="mt-4 inline-flex items-center gap-1.5 rounded-md border border-brand-gold/40 px-4 py-2 text-sm font-semibold text-brand-gold transition hover:bg-brand-gold hover:text-white">
+                                    View All Episodes <span aria-hidden="true">→</span>
+                                </a>
+                            @endif
+                        </div>
+                    @endif
+
+                    @if ($episode->tags->isNotEmpty())
+                        <div class="mt-8">
+                            <h2 class="font-serif text-xl text-brand-navy">Key Themes</h2>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                @foreach ($episode->tags as $tag)
+                                    <span class="rounded-full border border-brand-navy/15 px-3 py-1 text-xs text-brand-navy/70">{{ $tag->name }}</span>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="lg:col-span-4">
