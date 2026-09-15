@@ -41,14 +41,18 @@ use UnitEnum;
  * be updated in place — every submission is its own independently-
  * moderated Review row.
  *
- * **Client-confirmed (2026-09-04):** the "Community" navigation group is
- * hidden from the Filament sidebar entirely (shouldRegisterNavigation()
- * below) — nothing else uses this group, so hiding it fully removes it from
- * the menu. This is a pure navigation/UI change: the resource, its routes,
+ * **Client-confirmed (2026-09-04):** the "Community" navigation group was
+ * hidden from the Filament sidebar entirely — nothing else uses this group,
+ * so hiding it fully removed it from the menu. As of 2026-09-16 that's a
+ * runtime toggle rather than a hardcoded `false` (shouldRegisterNavigation()
+ * below) — see config/admin_ui.php's show_community_menu /
+ * ADMIN_SHOW_COMMUNITY_MENU, same presentation-mode pattern the Commerce
+ * module's Order/Entitlement/Subscription/DownloadLog resources already use.
+ * This is a pure navigation/UI change either way: the resource, its routes,
  * the Review model, the reviews table, and all existing data are untouched,
  * and an authorized admin who navigates to /admin/reviews directly still
- * reaches it — Filament's navigation visibility is independent of route
- * registration/access control.
+ * reaches it regardless of the toggle — Filament's navigation visibility is
+ * independent of route registration/access control.
  */
 class ReviewResource extends Resource
 {
@@ -60,7 +64,7 @@ class ReviewResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        return false;
+        return config('admin_ui.show_community_menu');
     }
 
     protected static ?string $modelLabel = 'Light Post / Comment';

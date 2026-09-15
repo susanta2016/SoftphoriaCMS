@@ -256,22 +256,36 @@ class ReviewResourceTest extends TestCase
     }
 
     /**
-     * Client-confirmed (2026-09-04): the "Community" navigation group (the
-     * only group ReviewResource belongs to) is hidden from the Filament
-     * sidebar entirely (ReviewResource::shouldRegisterNavigation() ===
-     * false) — checked from the dashboard, a different admin page, so an
-     * active-page highlight on /admin/reviews itself can't mask a still-
-     * present sidebar link. This is a pure navigation change: the resource,
+     * The "Community" navigation group (the only group ReviewResource
+     * belongs to) is gated by config('admin_ui.show_community_menu') /
+     * ADMIN_SHOW_COMMUNITY_MENU (ReviewResource::shouldRegisterNavigation())
+     * — the same presentation-mode toggle pattern as show_commerce_menu.
+     * Checked from the dashboard, a different admin page, so an active-page
+     * highlight on /admin/reviews itself can't mask a still-present sidebar
+     * link. This is a pure navigation change either way: the resource,
      * routes, model, table, and data are untouched — see the direct-access
      * test right below.
      */
-    public function test_community_navigation_group_does_not_appear_in_the_admin_sidebar(): void
+    public function test_community_navigation_group_is_hidden_when_the_menu_toggle_is_off(): void
     {
+        config(['admin_ui.show_community_menu' => false]);
+
         $response = $this->actingAs($this->admin())->get('/admin');
 
         $response->assertOk();
         $response->assertDontSee('Community');
         $response->assertDontSee('Light Posts &amp; Comments', false);
+    }
+
+    public function test_community_navigation_group_appears_when_the_menu_toggle_is_on(): void
+    {
+        config(['admin_ui.show_community_menu' => true]);
+
+        $response = $this->actingAs($this->admin())->get('/admin');
+
+        $response->assertOk();
+        $response->assertSee('Community');
+        $response->assertSee('Light Posts &amp; Comments', false);
     }
 
     /**

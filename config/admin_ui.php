@@ -38,4 +38,21 @@ return [
 
     'show_commerce_menu' => env('ADMIN_SHOW_COMMERCE_MENU', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Show Community Menu (Admin)
+    |--------------------------------------------------------------------------
+    |
+    | Same presentation-mode switch as show_commerce_menu above, for the
+    | "Community" navigation group (Light Posts & Comments —
+    | App\Filament\Resources\Reviews\ReviewResource). When false, the group
+    | is not rendered in the admin left sidebar — UI visibility only. The
+    | resource, its routes, and all review/comment data stay fully intact;
+    | flip this back to true (or unset the env var) to restore the sidebar
+    | menu, no rebuild required.
+    |
+    */
+
+    'show_community_menu' => env('ADMIN_SHOW_COMMUNITY_MENU', false),
+
 ];
