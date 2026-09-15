@@ -45,6 +45,35 @@ class PasswordResetTest extends TestCase
         Notification::assertSentTo($user, ResetPassword::class);
     }
 
+    /**
+     * Notification::fake() (the test above) intercepts before toMail() ever
+     * runs, so it can't catch a mailable that would fail to actually send —
+     * exactly what happened here: AppServiceProvider::
+     * routeResetPasswordThroughEmailTemplates() returned the rendered
+     * TemplatedNotificationMail without addressing it, and
+     * Illuminate\Notifications\Channels\MailChannel only auto-addresses a
+     * MailMessage return value, never a plain Mailable — it calls
+     * $mailable->send($mailer) directly, which relies entirely on the
+     * mailable's own $to property (Mailable::buildRecipients()). Without an
+     * explicit ->to() call there, $to stays empty and Symfony Mailer rejects
+     * the send outright ("An email must have a 'To', 'Cc', or 'Bcc'
+     * header."). Asserted directly against the returned mailable rather than
+     * via Mail::fake(): MailFake::send() only records an object passed to it
+     * that is `instanceof Mailable`, but Mailable::send($mailer) itself
+     * calls $mailer->send($this->buildView(), ...) — a rendered view array,
+     * not the mailable — so this exact dispatch path is invisible to
+     * Mail::assertSent() no matter how it's addressed.
+     */
+    public function test_the_reset_mailable_is_addressed_to_the_user(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+        $user = User::factory()->create();
+
+        $mailable = (new ResetPassword('a-raw-token'))->toMail($user);
+
+        $this->assertTrue($mailable->hasTo($user->email));
+    }
+
     public function test_an_unknown_email_gets_the_identical_generic_response_and_sends_no_notification(): void
     {
         Notification::fake();

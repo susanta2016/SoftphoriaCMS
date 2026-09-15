@@ -114,7 +114,15 @@ class AppServiceProvider extends ServiceProvider
             ]);
 
             if ($mailable !== null) {
-                return $mailable;
+                // Illuminate\Notifications\Channels\MailChannel only auto-
+                // addresses the message when toMail() returns a MailMessage
+                // (see its addressMessage()) — when a plain Mailable is
+                // returned instead, as here, it calls $mailable->send($mailer)
+                // directly with no recipient of its own, and Symfony Mailer
+                // rejects the send outright ("An email must have a 'To',
+                // 'Cc', or 'Bcc' header."). The recipient must be set on the
+                // Mailable itself.
+                return $mailable->to($notifiable->getEmailForPasswordReset());
             }
 
             return (new MailMessage)
