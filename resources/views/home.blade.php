@@ -56,6 +56,10 @@
                             {{ $hero['secondary_cta_label'] }}
                         </a>
                     @endif
+
+                    <a href="{{ route('register.show') }}" class="inline-flex items-center rounded-md border border-brand-navy/40 px-6 py-3.5 text-sm font-semibold tracking-wide text-brand-navy uppercase transition hover:border-brand-navy hover:bg-white/40">
+                        Gather Live
+                    </a>
                 </div>
 
                 @if ($hero['tertiary_label'])
