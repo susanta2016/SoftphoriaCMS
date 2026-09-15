@@ -26,6 +26,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Password;
 
 /**
  * ADMIN-003: Users & Roles Management — "Users: Manage" scope, plus basic
@@ -131,11 +132,25 @@ class UserResource extends Resource
                 /** @var User $actor */
                 $actor = Auth::user();
 
-                app(SendUserPasswordResetLinkAction::class)->handle($record, $actor);
+                $status = app(SendUserPasswordResetLinkAction::class)->handle($record, $actor);
+
+                if ($status === Password::RESET_LINK_SENT) {
+                    Notification::make()
+                        ->title('Password reset link sent')
+                        ->success()
+                        ->send();
+
+                    return;
+                }
 
                 Notification::make()
-                    ->title('Password reset link sent')
-                    ->success()
+                    ->title('Password reset link could not be sent')
+                    ->body(match ($status) {
+                        Password::RESET_THROTTLED => 'A reset link was already sent recently — please wait a minute and try again.',
+                        Password::INVALID_USER => "No account was found for {$record->email}.",
+                        default => 'The email failed to send. Check Website Setup → Email settings, or the server logs, for the underlying error.',
+                    })
+                    ->danger()
                     ->send();
             });
     }
@@ -256,11 +271,21 @@ class UserResource extends Resource
                 $actor = Auth::user();
 
                 try {
-                    app(GenerateNewPasswordAction::class)->handle($record, $actor);
+                    $status = app(GenerateNewPasswordAction::class)->handle($record, $actor);
+
+                    if ($status === Password::RESET_LINK_SENT) {
+                        Notification::make()
+                            ->title('New password generated and reset link sent')
+                            ->success()
+                            ->send();
+
+                        return;
+                    }
 
                     Notification::make()
-                        ->title('New password generated and reset link sent')
-                        ->success()
+                        ->title('New password generated, but the reset link could not be emailed')
+                        ->body("Their old password no longer works and they don't yet have a way to sign in — check Website Setup → Email settings or the server logs, then resend a reset link.")
+                        ->danger()
                         ->send();
                 } catch (CannotModifySelfException $exception) {
                     Notification::make()
