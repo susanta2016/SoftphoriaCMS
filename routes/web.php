@@ -43,6 +43,7 @@ use App\Http\Controllers\Podcast\PodcastEpisodeStreamController;
 use App\Http\Controllers\PoetryProse\PoetryProseController;
 use App\Http\Controllers\PoetryProse\PoetryProseReactionController;
 use App\Http\Controllers\PoetryProse\PoetryProseReviewController;
+use App\Http\Controllers\PoetryProse\PoetryProseReviewFlagController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\Search\SearchController;
@@ -229,6 +230,12 @@ Route::post('/poetry-prose/{poetryProse:slug}/reviews', [PoetryProseReviewContro
 Route::post('/poetry-prose/{poetryProse:slug}/reactions', [PoetryProseReactionController::class, 'toggle'])
     ->middleware(['auth', 'throttle:10,1'])
     ->name('poetry-prose.reactions.toggle');
+// The 🚩 "report this comment" action — targets a specific Review (comment)
+// row, not the entry itself. Same auth/throttle gate as the comment/
+// reaction routes above.
+Route::post('/poetry-prose/{poetryProse:slug}/reviews/{review}/flag', [PoetryProseReviewFlagController::class, 'store'])
+    ->middleware(['auth', 'throttle:10,1'])
+    ->name('poetry-prose.reviews.flag');
 
 // Public Inspirational Resources — listing + detail for Approved
 // submissions (client-confirmed reversal, 2026-09-02: previously a single

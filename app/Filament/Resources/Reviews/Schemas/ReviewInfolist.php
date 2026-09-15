@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Reviews\Schemas;
 
 use App\Models\Review;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -44,6 +45,19 @@ class ReviewInfolist
                     ->schema([
                         TextEntry::make('content')->hiddenLabel()->columnSpanFull(),
                     ]),
+
+                Section::make('Reports')
+                    ->description('Members who 🚩 reported this comment. Resolve reports from Community → Admin Reviews.')
+                    ->schema([
+                        RepeatableEntry::make('flags')
+                            ->hiddenLabel()
+                            ->schema([
+                                TextEntry::make('user.name')->label('Reported By'),
+                                TextEntry::make('created_at')->label('Reported')->dateTime(),
+                            ])
+                            ->columns(2),
+                    ])
+                    ->visible(fn (Review $record): bool => $record->flags->isNotEmpty()),
 
                 Section::make('Legacy Rating')
                     ->description('Collected before this became a comment-only feature. Shown for historical reference only — no longer part of the active submission form.')

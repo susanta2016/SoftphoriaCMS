@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
@@ -44,6 +45,31 @@ class Review extends Model
     public function scopeApproved(Builder $query): Builder
     {
         return $query->where('status', ReviewStatus::Approved);
+    }
+
+    /**
+     * The admin moderation queue for 🚩-reported comments (App\Filament\
+     * Resources\ReviewFlags\ReviewFlagResource, "Admin Reviews") scopes to
+     * this — never a hardcoded module list, so it works for any Review
+     * regardless of which module's item it's attached to.
+     */
+    public function scopeFlagged(Builder $query): Builder
+    {
+        return $query->whereHas('flags');
+    }
+
+    public function flags(): HasMany
+    {
+        return $this->hasMany(ReviewFlag::class);
+    }
+
+    public function isFlaggedBy(?User $user): bool
+    {
+        if ($user === null) {
+            return false;
+        }
+
+        return $this->flags->contains('user_id', $user->getKey());
     }
 
     /**

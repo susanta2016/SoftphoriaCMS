@@ -324,6 +324,68 @@ return [
             TEXT,
     ],
 
+    // Sent from App\Actions\Review\FlagReviewAction whenever a member 🚩
+    // reports a comment for the first time (a repeat report from the same
+    // user is a silent no-op, never re-sent) — to both the comment's author
+    // and every admin-role user, per-recipient content like
+    // contact_form_submitted above (the author gets a neutral notice, the
+    // admin gets the actual report details so they can act on it).
+    'review_comment_flagged' => [
+        'label' => 'Comment Flagged',
+        'recipients' => ['user', 'admin'],
+        'variables' => ['commenter_name', 'commenter_email', 'comment_content', 'content_title', 'content_url', 'flagged_by_name', 'flagged_by_email', 'site_name'],
+        'default_subject' => [
+            'user' => '{{site_name}} — Your Comment Has Been Reported for Review',
+            'admin' => '[{{site_name}}] A Comment Was Reported',
+        ],
+        'default_html_body' => [
+            'user' => <<<'HTML'
+                Hi {{commenter_name}},
+
+                A member has reported your comment on "{{content_title}}" for review. Our team will take a look and follow up if any action is needed.
+
+                Your comment:
+
+                "{{comment_content}}"
+                HTML,
+            'admin' => <<<'HTML'
+                A comment was reported on {{site_name}}.
+
+                Reported by: {{flagged_by_name}} ({{flagged_by_email}})
+                Comment by: {{commenter_name}} ({{commenter_email}})
+                On: {{content_title}}
+
+                Comment:
+                "{{comment_content}}"
+
+                Please review it in the admin panel under Community &rarr; Admin Reviews.
+                HTML,
+        ],
+        'default_text_body' => [
+            'user' => <<<'TEXT'
+                Hi {{commenter_name}},
+
+                A member has reported your comment on "{{content_title}}" for review. Our team will take a look and follow up if any action is needed.
+
+                Your comment:
+
+                "{{comment_content}}"
+                TEXT,
+            'admin' => <<<'TEXT'
+                A comment was reported on {{site_name}}.
+
+                Reported by: {{flagged_by_name}} ({{flagged_by_email}})
+                Comment by: {{commenter_name}} ({{commenter_email}})
+                On: {{content_title}}
+
+                Comment:
+                "{{comment_content}}"
+
+                Please review it in the admin panel under Community -> Admin Reviews.
+                TEXT,
+        ],
+    ],
+
     'gratitude_journal_reminder' => [
         'label' => 'Gratitude Journal Reminder',
         'recipients' => ['user'],

@@ -167,6 +167,34 @@
                                                     {{ $review->user?->name ?? 'A Member' }} &middot; {{ $review->created_at->format('M j, Y') }}
                                                 </p>
                                             </div>
+
+                                            {{--
+                                                🚩 Report — independent of the 🙌 reaction above; a
+                                                member can react, comment, and/or report a comment, all
+                                                independently. One report per user per comment (no
+                                                un-report), toggled asynchronously via
+                                                resources/js/app.js (data-flag-*); the real POST submit
+                                                here is the no-JS fallback. Notifies the comment's author
+                                                and every admin (App\Actions\Review\FlagReviewAction).
+                                            --}}
+                                            @auth
+                                                @if ($review->isFlaggedBy(auth()->user()))
+                                                    <span class="inline-flex shrink-0 items-center gap-1 self-start text-xs text-brand-navy/40" title="You reported this comment">
+                                                        <span aria-hidden="true">🚩</span> Reported
+                                                    </span>
+                                                @else
+                                                    <form method="POST" action="{{ route('poetry-prose.reviews.flag', [$entry, $review]) }}" data-flag-form class="shrink-0 self-start">
+                                                        @csrf
+                                                        <button type="submit" data-flag-button aria-pressed="false" class="inline-flex items-center gap-1 text-xs text-brand-navy/40 transition hover:text-red-600" title="Report this comment">
+                                                            <span aria-hidden="true">🚩</span> <span data-flag-label>Report</span>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            @else
+                                                <a href="{{ route('login') }}" class="inline-flex shrink-0 items-center self-start text-xs text-brand-navy/40 transition hover:text-red-600" title="Log in to report this comment">
+                                                    <span aria-hidden="true">🚩</span>
+                                                </a>
+                                            @endauth
                                         </div>
                                     @endforeach
                                 </div>

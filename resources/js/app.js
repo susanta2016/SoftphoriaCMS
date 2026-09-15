@@ -1131,6 +1131,47 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// The 🚩 "report this comment" action — one-shot, not a toggle like the 🙌
+// reaction above: a user reports a comment at most once (server-enforced by
+// `review_flags`' unique index), after which it shows a "Reported" state and
+// the form is gone. Async fetch with the same real-<form> no-JS/error
+// fallback as the reaction handler above.
+document.addEventListener('DOMContentLoaded', () => {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    if (!csrfToken) return;
+
+    document.querySelectorAll('[data-flag-form]').forEach((form) => {
+        const button = form.querySelector('[data-flag-button]');
+        const label = form.querySelector('[data-flag-label]');
+        if (!button) return;
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            if (button.disabled) return;
+            button.disabled = true;
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                });
+
+                if (!response.ok) throw new Error(`Unexpected status ${response.status}`);
+
+                await response.json();
+                button.setAttribute('aria-pressed', 'true');
+                if (label) label.textContent = 'Reported';
+            } catch (error) {
+                // Network/server error, or a non-JSON response — fall back
+                // to a real form submit so the report still completes via
+                // the no-JS path instead of silently doing nothing.
+                form.submit();
+            }
+        });
+    });
+});
+
 // The All Episodes page's search/topic/duration/release-date/sort/list-grid
 // controls, all fetched asynchronously — mirrors Music's own
 // [data-catalogue-region] pattern above exactly, just with its own markers

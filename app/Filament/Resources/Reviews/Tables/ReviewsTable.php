@@ -6,6 +6,7 @@ use App\Enums\ReviewStatus;
 use App\Models\Review;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
@@ -29,13 +30,20 @@ class ReviewsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['user', 'reviewable']))
+            ->modifyQueryUsing(fn ($query) => $query->with(['user', 'reviewable'])->withCount('flags'))
             ->columns([
                 TextColumn::make('reviewableType')->label('Content Type')->badge()->state(fn (Review $record): string => $record->reviewableType()),
                 TextColumn::make('reviewableLabel')->label('Reviewed Item')->state(fn (Review $record): string => $record->reviewableLabel()),
                 TextColumn::make('user.name')->label('Submitted By')->searchable(),
                 TextColumn::make('content')->limit(60)->wrap(),
                 TextColumn::make('status')->badge()->sortable(),
+                // 🚩 report count — see App\Models\ReviewFlag and the
+                // dedicated "Admin Reviews" resource
+                // (App\Filament\Resources\ReviewFlags\ReviewFlagResource)
+                // for actually resolving a report; this column just surfaces
+                // it here too so a flagged comment is visible while browsing
+                // every Light Post/Comment, not only in that filtered queue.
+                TextColumn::make('flags_count')->label('Reports')->badge()->color(fn (int $state): string => $state > 0 ? 'danger' : 'gray')->sortable(),
                 TextColumn::make('created_at')->label('Submitted')->dateTime()->sortable(),
             ])
             ->filters([
@@ -51,6 +59,7 @@ class ReviewsTable
                         ->pluck('reviewable_type')
                         ->mapWithKeys(fn (string $type): array => [$type => str(class_basename($type))->headline()->toString()])
                         ->all()),
+                Filter::make('flagged')->label('Reported Only')->query(fn ($query) => $query->flagged())->toggle(),
             ])
             ->recordActions([
                 ViewAction::make(),
