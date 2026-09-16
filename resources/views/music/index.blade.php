@@ -164,13 +164,16 @@
         [data-music-autoplay-*] block in resources/js/app.js (separate from
         the visible multi-track player's own JS, which this page does not
         use at all).
+
+        Client-confirmed 2026-09-16: this one track plays in full for every
+        visitor, guest or registered — no guest preview cutoff, no daily
+        listen quota — served by the dedicated, unrestricted
+        music.landing-autoplay.stream route (App\Http\Controllers\Music\
+        MusicLandingAutoplayStreamController), never music.tracks.stream.
+        There is no completion beacon here (no quota to record against).
     --}}
     @if ($autoplayTrack && $autoplayPlayback['src'])
         <audio data-music-autoplay-audio preload="none" class="hidden" src="{{ $autoplayPlayback['src'] }}"></audio>
-
-        @if ($autoplayPlayback['complete_url'])
-            <meta data-music-autoplay-complete-url content="{{ $autoplayPlayback['complete_url'] }}">
-        @endif
 
         <div data-music-autoplay-banner class="fixed right-4 bottom-4 z-40 hidden w-full max-w-[16rem] rounded-xl border border-brand-navy/10 bg-white p-4 shadow-xl sm:right-6 sm:bottom-6">
             <p class="text-xs font-semibold tracking-wide text-brand-gold uppercase">🎵 Now Playing</p>

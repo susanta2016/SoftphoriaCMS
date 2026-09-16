@@ -786,6 +786,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // <audio> element's own 'play'/'pause' events, so they can never drift from
 // actual playback state and never re-show themselves after Stop Music is
 // clicked, since nothing here calls play() again afterward.
+//
+// No completion beacon (client-confirmed 2026-09-16: this track plays in
+// full for every visitor with no daily-quota tracking at all — see
+// MusicController::autoplayTrackPlayback()'s own docblock).
 document.addEventListener('DOMContentLoaded', () => {
     const audio = document.querySelector('[data-music-autoplay-audio]');
     if (!audio || !audio.getAttribute('src')) return;
@@ -794,8 +798,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const stopButton = banner?.querySelector('[data-music-autoplay-stop]');
     const prompt = document.querySelector('[data-music-autoplay-prompt]');
     const promptPlayButton = prompt?.querySelector('[data-music-autoplay-play]');
-    const completeUrl = document.querySelector('[data-music-autoplay-complete-url]')?.getAttribute('content');
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
     const hideStatus = () => {
         banner?.classList.add('hidden');
@@ -808,26 +810,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     audio.addEventListener('pause', hideStatus);
-
-    // Same client-reported completion signal listening.blade.php's player
-    // already sends on natural end-of-track (never on pause/seek) — the
-    // sole writer of track_listens (see TrackListenController), so a
-    // registered visitor's autoplay listen counts toward their existing
-    // daily quota exactly as a manual listen would. Never sent for a guest
-    // (no complete_url rendered for one — see MusicController::
-    // autoplayTrackPlayback()), since guest playback is never quota-tracked.
-    audio.addEventListener('ended', () => {
-        if (!completeUrl || !csrfToken) return;
-
-        fetch(completeUrl, {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-        }).catch(() => {
-            // Recording the listen failed over the network — TrackStreamController
-            // remains the real quota authority on any subsequent stream request
-            // either way, so nothing is bypassed by this failing silently.
-        });
-    });
 
     stopButton?.addEventListener('click', () => audio.pause());
 

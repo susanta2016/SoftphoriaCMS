@@ -198,6 +198,14 @@ return [
     | flipping this back to true (or unsetting the env var, which defaults
     | to false) restores autoplay with no reconfiguration needed.
     |
+    | Client-confirmed 2026-09-16: this one configured Track is exempt from
+    | every other listening restriction on the site — no guest preview
+    | cutoff, no registered daily-listen quota — served by the dedicated
+    | App\Http\Controllers\Music\MusicLandingAutoplayStreamController route
+    | rather than the shared music.tracks.stream one every other Track
+    | (including this same Track played from its own Album/Single page)
+    | still uses unchanged.
+    |
     */
 
     'music_landing_autoplay_enabled' => env('MUSIC_LANDING_AUTOPLAY_ENABLED', false),

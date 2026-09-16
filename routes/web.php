@@ -27,6 +27,7 @@ use App\Http\Controllers\Music\CartController;
 use App\Http\Controllers\Music\CheckoutController;
 use App\Http\Controllers\Music\GuestDownloadController;
 use App\Http\Controllers\Music\MusicController;
+use App\Http\Controllers\Music\MusicLandingAutoplayStreamController;
 use App\Http\Controllers\Music\TrackDownloadController;
 use App\Http\Controllers\Music\TrackListenController;
 use App\Http\Controllers\Music\TrackReactionController;
@@ -354,6 +355,15 @@ Route::get('/music/tracks/{track:slug}/stream', TrackStreamController::class)->n
 Route::post('/music/tracks/{track:slug}/listen-complete', TrackListenController::class)
     ->middleware(['auth', 'throttle:20,1'])
     ->name('music.tracks.listen-complete');
+
+// The Music landing page's autoplay track (client-confirmed 2026-09-16) —
+// deliberately its own route with no {track} parameter at all, rather than
+// a bypass flag on the stream route above: see
+// MusicLandingAutoplayStreamController's own docblock for why. Public, no
+// auth middleware — every visitor, guest or registered, gets the full file
+// with none of TrackStreamController's guest/quota restrictions.
+Route::get('/music/landing-autoplay/stream', MusicLandingAutoplayStreamController::class)
+    ->name('music.landing-autoplay.stream');
 
 // Digital-only cart/checkout for Music purchases (Single/Album — see
 // CartSession's docblock for why the cart itself is session-only, never a

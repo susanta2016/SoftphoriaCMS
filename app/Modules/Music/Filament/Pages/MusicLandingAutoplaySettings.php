@@ -85,7 +85,7 @@ class MusicLandingAutoplaySettings extends Page
             Section::make('Autoplay Track')
                 ->description(
                     config('features.music_landing_autoplay_enabled')
-                        ? 'When set, the Music landing page attempts to automatically play this one track for every visitor (guest or registered), subject to the browser\'s own autoplay policy and the existing guest/daily-listen limits. Clear it to disable landing page autoplay entirely.'
+                        ? 'When set, the Music landing page attempts to automatically play this one track in full for every visitor (guest or registered), subject only to the browser\'s own autoplay policy — this track is exempt from the guest preview cutoff and the daily-listen quota that apply everywhere else on the site. Clear it to disable landing page autoplay entirely.'
                         : 'Landing page autoplay is currently switched off for the whole site (MUSIC_LANDING_AUTOPLAY_ENABLED). You can still configure a track below — it will start autoplaying as soon as that switch is turned back on.'
                 )
                 ->schema([

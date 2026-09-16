@@ -18,6 +18,7 @@ use App\Modules\Music\Models\Single;
 use App\Modules\Music\Models\SongStory;
 use App\Modules\Music\Models\Track;
 use App\Modules\Music\Support\DailyListenQuota;
+use App\Modules\Music\Support\LandingAutoplayTrackResolver;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
 use App\Modules\Podcast\Enums\PodcastStatus;
 use App\Modules\Podcast\Models\PodcastEpisode;
@@ -95,9 +96,7 @@ class MusicController extends Controller implements Sitemapable
             // independent of $featured above (never the Featured Album/
             // Single). See resolveAutoplayTrack()/autoplayTrackPlayback().
             'autoplayTrack' => $autoplayTrack,
-            'autoplayPlayback' => $autoplayTrack
-                ? $this->autoplayTrackPlayback($autoplayTrack, $this->listeningAccessState())
-                : null,
+            'autoplayPlayback' => $autoplayTrack ? $this->autoplayTrackPlayback($autoplayTrack) : null,
         ]);
     }
 
@@ -337,74 +336,36 @@ class MusicController extends Controller implements Sitemapable
      * MusicLandingAutoplaySettings), stored by ID only via the existing
      * generic settings table (SettingsRepository, group "music"). Never the
      * Featured Album/Single ($featured in index() above) — the two are
-     * completely independent, by design.
-     *
-     * Fails safe: a null/never-configured setting, a deleted Track, or a
-     * Track that is no longer Published (or whose parent Album/Single is no
-     * longer Published — a Track's own status doesn't guarantee its release
-     * is still publicly reachable, the same double-check showTrack() already
-     * makes) all resolve to null here, and the landing page simply attempts
-     * no autoplay at all rather than erroring. config('features.
-     * music_landing_autoplay_enabled') is the master switch — off entirely
-     * disables autoplay regardless of what Track is configured, without
-     * touching the stored setting itself.
+     * completely independent, by design. Delegates the actual resolution
+     * (and its fail-safe checks) to LandingAutoplayTrackResolver, shared
+     * with MusicLandingAutoplayStreamController so both agree on exactly
+     * which Track is currently eligible.
      */
     private function resolveAutoplayTrack(SettingsRepository $settings): ?Track
     {
-        if (! config('features.music_landing_autoplay_enabled')) {
-            return null;
-        }
-
-        $trackId = $settings->get('music', 'landing_autoplay_track_id');
-
-        if (! $trackId) {
-            return null;
-        }
-
-        $track = Track::query()->published()->with(['album', 'single'])->find($trackId);
-
-        if (! $track) {
-            return null;
-        }
-
-        $parentPublished = $track->album?->status === ReleaseStatus::Published
-            || $track->single?->status === ReleaseStatus::Published;
-
-        return $parentPublished ? $track : null;
+        return app(LandingAutoplayTrackResolver::class)->resolve($settings);
     }
 
     /**
-     * The exact same guest/quota rules music/listening.blade.php's own
-     * trackPlayback() closure already enforces for every track row there —
-     * ported here (not shared code, to avoid touching that already-tested
-     * view's behavior) purely because the landing page's autoplay needs this
-     * for a single Track computed in the controller, not per-row in a blade
-     * loop. No new rule, no new route: same music.tracks.stream/
-     * music.tracks.listen-complete endpoints, same TrackStreamController/
-     * DailyListenQuota enforcement.
+     * Client-confirmed 2026-09-16: this one admin-picked track is exempt
+     * from every listening restriction on the landing page — no guest
+     * duration cap, no registered daily-listen-quota check, and (since
+     * there is no completion beacon here at all) this playback never
+     * counts toward that quota either. Every other Track on the site,
+     * including this same one played from its own Album/Single page,
+     * keeps music.tracks.stream's existing guest/quota rules unchanged —
+     * see MusicLandingAutoplayStreamController's own docblock for why this
+     * is a dedicated route rather than a bypass flag on that one.
      *
-     * @return array{src: ?string, guest_limited: bool, limit_reached: bool, complete_url: ?string}
+     * @return array{src: ?string}
      */
-    private function autoplayTrackPlayback(Track $track, array $listening): array
+    private function autoplayTrackPlayback(Track $track): array
     {
         if (! $track->audio_media_id) {
-            return ['src' => null, 'guest_limited' => false, 'limit_reached' => false, 'complete_url' => null];
+            return ['src' => null];
         }
 
-        if (! $listening['is_guest'] && $listening['daily_limit_reached']) {
-            return ['src' => null, 'guest_limited' => false, 'limit_reached' => true, 'complete_url' => null];
-        }
-
-        $guestLimited = $listening['is_guest']
-            && $track->duration_seconds
-            && $track->duration_seconds > $listening['guest_limit_seconds'];
-
-        return [
-            'src' => route('music.tracks.stream', $track),
-            'guest_limited' => $guestLimited,
-            'limit_reached' => false,
-            'complete_url' => $listening['is_guest'] ? null : route('music.tracks.listen-complete', $track),
-        ];
+        return ['src' => route('music.landing-autoplay.stream')];
     }
 
     /**
