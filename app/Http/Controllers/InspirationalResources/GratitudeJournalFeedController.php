@@ -4,6 +4,7 @@ namespace App\Http\Controllers\InspirationalResources;
 
 use App\Http\Controllers\Controller;
 use App\Models\LightPost;
+use App\Models\LightPostFlag;
 use App\Models\Media;
 use App\Models\Reaction;
 use App\Shared\Services\Settings\SettingsRepository;
@@ -53,6 +54,7 @@ class GratitudeJournalFeedController extends Controller
         $entries = LightPost::query()->journal()->public()->with('user')->withCount('reactions')->latest()->orderByDesc('id')->paginate(10)->withQueryString();
 
         $this->markReactedEntries($entries->getCollection());
+        $this->markFlaggedEntries($entries->getCollection());
 
         $seo = SeoTagBuilder::build(null, [
             'title' => "Gratitude Journal — {$chrome['siteName']}",
@@ -112,6 +114,29 @@ class GratitudeJournalFeedController extends Controller
             ->all();
 
         $entries->each(fn (LightPost $entry) => $entry->userReacted = in_array($entry->id, $reactedIds, true));
+    }
+
+    /**
+     * Same one-query-for-the-whole-page approach as markReactedEntries()
+     * above, for the 🚩 report button's "already reported by you" state.
+     *
+     * @param  Collection<int, LightPost>  $entries
+     */
+    private function markFlaggedEntries(Collection $entries): void
+    {
+        if (! Auth::check() || $entries->isEmpty()) {
+            $entries->each(fn (LightPost $entry) => $entry->userFlagged = false);
+
+            return;
+        }
+
+        $flaggedIds = LightPostFlag::query()
+            ->where('user_id', Auth::id())
+            ->whereIn('light_post_id', $entries->pluck('id'))
+            ->pluck('light_post_id')
+            ->all();
+
+        $entries->each(fn (LightPost $entry) => $entry->userFlagged = in_array($entry->id, $flaggedIds, true));
     }
 
     /**

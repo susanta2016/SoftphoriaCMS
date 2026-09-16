@@ -16,6 +16,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InspirationalResources\GratitudeJournalFeedController;
+use App\Http\Controllers\InspirationalResources\GratitudeJournalFlagController;
 use App\Http\Controllers\InspirationalResources\GratitudeJournalReactionController;
 use App\Http\Controllers\InspirationalResources\InspirationalResourceController;
 use App\Http\Controllers\InspirationalResources\InspirationalResourceSubmissionController;
@@ -288,6 +289,13 @@ Route::get('/inspirational-resources/gratitude-journal', [GratitudeJournalFeedCo
 Route::post('/inspirational-resources/gratitude-journal/{lightPost:public_id}/reactions', [GratitudeJournalReactionController::class, 'toggle'])
     ->middleware([EnsureAccountIsUsable::class, 'throttle:10,1'])
     ->name('inspirational-resources.gratitude-journal.reactions.toggle');
+
+// The 🚩 "report this entry" action — independent of the 🙌 reaction above,
+// same guest-to-registration redirect and source/visibility guard (see
+// GratitudeJournalFlagController's own docblock).
+Route::post('/inspirational-resources/gratitude-journal/{lightPost:public_id}/flags', [GratitudeJournalFlagController::class, 'store'])
+    ->middleware([EnsureAccountIsUsable::class, 'throttle:10,1'])
+    ->name('inspirational-resources.gratitude-journal.flags.store');
 
 Route::get('/inspirational-resources/{resourceSubmission:slug}', [InspirationalResourceController::class, 'show'])->name('inspirational-resources.show');
 

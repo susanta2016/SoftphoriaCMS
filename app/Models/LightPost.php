@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Laravel\Scout\Builder as ScoutBuilder;
@@ -73,6 +74,29 @@ class LightPost extends Model implements SearchResultRepresentable
     public function reactions(): MorphMany
     {
         return $this->morphMany(Reaction::class, 'reactable');
+    }
+
+    /**
+     * The 🚩 report on a shared-feed entry (App\Models\LightPostFlag) —
+     * same relation shape as App\Models\Review::flags() for a comment.
+     * Having this relation does not itself make every LightPost flaggable:
+     * GratitudeJournalFlagController is what actually restricts reporting
+     * to source = journal AND visibility = public rows, matching
+     * reactions() above.
+     */
+    public function flags(): HasMany
+    {
+        return $this->hasMany(LightPostFlag::class);
+    }
+
+    /**
+     * The admin moderation queue for 🚩-reported entries
+     * (App\Filament\Resources\LightPostFlags\LightPostFlagResource,
+     * "Flagged Journal Entries") scopes to this.
+     */
+    public function scopeFlagged(Builder $query): Builder
+    {
+        return $query->whereHas('flags');
     }
 
     public function scopePublic(Builder $query): Builder

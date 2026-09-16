@@ -138,6 +138,38 @@
                                         </a>
                                     @endauth
                                 @endif
+
+                                {{--
+                                    🚩 Report — independent of the 🙌 reaction above; a
+                                    member can react and/or report the same entry,
+                                    independently. One report per user per entry (no
+                                    un-report), toggled asynchronously via
+                                    resources/js/app.js's generic data-flag-* handler
+                                    (same one Poetry/Prose comments use); the real POST
+                                    submit here is the no-JS fallback. Notifies the
+                                    entry's author and every admin
+                                    (App\Actions\GratitudeJournal\FlagGratitudeJournalEntryAction).
+                                --}}
+                                @if (config('features.gratitude_journal_flags_enabled'))
+                                    @auth
+                                        @if ($entry->userFlagged)
+                                            <span class="inline-flex shrink-0 items-center gap-1 self-start text-xs text-brand-navy/40" title="You reported this entry">
+                                                <span aria-hidden="true">🚩</span> Reported
+                                            </span>
+                                        @else
+                                            <form method="POST" action="{{ route('inspirational-resources.gratitude-journal.flags.store', $entry) }}" data-flag-form class="shrink-0 self-start">
+                                                @csrf
+                                                <button type="submit" data-flag-button aria-pressed="false" class="inline-flex items-center gap-1 text-xs text-brand-navy/40 transition hover:text-red-600" title="Report this entry">
+                                                    <span aria-hidden="true">🚩</span> <span data-flag-label>Report</span>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    @else
+                                        <a href="{{ route('register.show') }}" class="inline-flex shrink-0 items-center self-start text-xs text-brand-navy/40 transition hover:text-red-600" title="Register to report this entry">
+                                            <span aria-hidden="true">🚩</span>
+                                        </a>
+                                    @endauth
+                                @endif
                             </div>
                         </li>
                     @endforeach

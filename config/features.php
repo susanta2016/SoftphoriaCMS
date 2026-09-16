@@ -160,6 +160,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Gratitude Journal Shared Feed Report Toggle
+    |--------------------------------------------------------------------------
+    |
+    | The 🚩 "report this entry" action on a Gratitude Journal shared-feed
+    | entry — same App\Models\LightPostFlag/App\Actions\GratitudeJournal\
+    | FlagGratitudeJournalEntryAction architecture as the 🚩 report on a
+    | Review comment (poetry_prose_comments_enabled's sibling feature),
+    | adapted for LightPost since Gratitude Journal has no separate comment
+    | row of its own — the entry itself is what gets reported. Reporting
+    | emails the entry's author and every admin-role user, and surfaces the
+    | entry in the admin "Flagged Journal Entries" queue (App\Filament\
+    | Resources\LightPostFlags\LightPostFlagResource). Enforced server-side
+    | by GratitudeJournalFlagController, which also restricts flaggable
+    | LightPost rows to source = journal AND visibility = public regardless
+    | of this flag. Code default is false; only this environment's .env
+    | explicitly enables it.
+    |
+    */
+
+    'gratitude_journal_flags_enabled' => env('GRATITUDE_JOURNAL_FLAGS_ENABLED', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Music Landing Page Autoplay
     |--------------------------------------------------------------------------
     |

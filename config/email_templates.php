@@ -386,6 +386,67 @@ return [
         ],
     ],
 
+    // Sent from App\Actions\GratitudeJournal\FlagGratitudeJournalEntryAction
+    // whenever a member 🚩 reports a Gratitude Journal shared-feed entry
+    // for the first time (a repeat report from the same user is a silent
+    // no-op, never re-sent) — to both the entry's author and every
+    // admin-role user, mirroring review_comment_flagged above exactly
+    // (Gratitude Journal has no separate comment row to flag, so the entry
+    // itself is the reported content).
+    'gratitude_journal_entry_flagged' => [
+        'label' => 'Gratitude Journal Entry Flagged',
+        'recipients' => ['user', 'admin'],
+        'variables' => ['entry_author_name', 'entry_author_email', 'entry_content', 'content_url', 'flagged_by_name', 'flagged_by_email', 'site_name'],
+        'default_subject' => [
+            'user' => '{{site_name}} — Your Gratitude Journal Entry Has Been Reported for Review',
+            'admin' => '[{{site_name}}] A Gratitude Journal Entry Was Reported',
+        ],
+        'default_html_body' => [
+            'user' => <<<'HTML'
+                Hi {{entry_author_name}},
+
+                A member has reported your Gratitude Journal entry on the shared feed for review. Our team will take a look and follow up if any action is needed.
+
+                Your entry:
+
+                "{{entry_content}}"
+                HTML,
+            'admin' => <<<'HTML'
+                A Gratitude Journal entry was reported on {{site_name}}.
+
+                Reported by: {{flagged_by_name}} ({{flagged_by_email}})
+                Entry by: {{entry_author_name}} ({{entry_author_email}})
+
+                Entry:
+                "{{entry_content}}"
+
+                Please review it in the admin panel under Community &rarr; Flagged Journal Entries.
+                HTML,
+        ],
+        'default_text_body' => [
+            'user' => <<<'TEXT'
+                Hi {{entry_author_name}},
+
+                A member has reported your Gratitude Journal entry on the shared feed for review. Our team will take a look and follow up if any action is needed.
+
+                Your entry:
+
+                "{{entry_content}}"
+                TEXT,
+            'admin' => <<<'TEXT'
+                A Gratitude Journal entry was reported on {{site_name}}.
+
+                Reported by: {{flagged_by_name}} ({{flagged_by_email}})
+                Entry by: {{entry_author_name}} ({{entry_author_email}})
+
+                Entry:
+                "{{entry_content}}"
+
+                Please review it in the admin panel under Community -> Flagged Journal Entries.
+                TEXT,
+        ],
+    ],
+
     'gratitude_journal_reminder' => [
         'label' => 'Gratitude Journal Reminder',
         'recipients' => ['user'],
