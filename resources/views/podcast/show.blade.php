@@ -118,6 +118,19 @@
                                         </a>
                                     @endauth
                                 @endif
+
+                                {{-- Share — same right-aligned row as the 🙌
+                                    reaction/comment count above, rather than
+                                    its own separate left-aligned row further
+                                    down the page. --}}
+                                <div class="inline-flex items-center gap-2">
+                                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(route('podcast.episodes.show', $episode)) }}" target="_blank" rel="noopener" aria-label="Share on Facebook" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12Z"/></svg>
+                                    </a>
+                                    <a href="https://twitter.com/intent/tweet?url={{ urlencode(route('podcast.episodes.show', $episode)) }}&text={{ urlencode($episode->title) }}" target="_blank" rel="noopener" aria-label="Share on X" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M18.9 3H21l-6.6 7.5L22 21h-6.8l-4.7-6.2L5 21H3l7.1-8-8-10h6.9l4.3 5.7L18.9 3Z"/></svg>
+                                    </a>
+                                </div>
                             </div>
                         </div>
 
@@ -194,17 +207,6 @@
                                 @endauth
                             </div>
                         @endif
-                    </div>
-
-                    <div class="mt-10 flex flex-wrap items-center gap-3">
-                        <div class="inline-flex items-center gap-2">
-                            <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(route('podcast.episodes.show', $episode)) }}" target="_blank" rel="noopener" aria-label="Share on Facebook" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12Z"/></svg>
-                            </a>
-                            <a href="https://twitter.com/intent/tweet?url={{ urlencode(route('podcast.episodes.show', $episode)) }}&text={{ urlencode($episode->title) }}" target="_blank" rel="noopener" aria-label="Share on X" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-navy/15 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M18.9 3H21l-6.6 7.5L22 21h-6.8l-4.7-6.2L5 21H3l7.1-8-8-10h6.9l4.3 5.7L18.9 3Z"/></svg>
-                            </a>
-                        </div>
                     </div>
 
                     {{--
