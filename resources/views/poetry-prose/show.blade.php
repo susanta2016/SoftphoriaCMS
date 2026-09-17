@@ -25,6 +25,18 @@
             ? "background-image: linear-gradient(to right, rgba(251,243,230,.97) 0%, rgba(251,243,230,.94) 30%, rgba(251,243,230,.55) 58%, rgba(251,243,230,.15) 78%), url('{$bannerUrl}'); background-size: auto 300%; background-position: 88% 0%;"
             : ''])
     >
+        {{-- Same mobile-only contrast fix as poetry-prose/index.blade.php's
+            hero (see that file's comment): this gradient is tuned for a
+            desktop viewport where the text column doesn't reach into its
+            transparent tail. Below sm:, the (even wider, max-w-3xl)
+            excerpt stretches across nearly the full narrow viewport and
+            lands on the transparent part of the photo — a near-opaque,
+            mobile-only scrim restores contrast without touching the
+            desktop treatment. --}}
+        @if ($bannerUrl)
+            <div class="absolute inset-0 bg-brand-ivory/95 sm:hidden" aria-hidden="true"></div>
+        @endif
+
         <x-site.header :transparent="(bool) $bannerUrl" :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
 
         <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

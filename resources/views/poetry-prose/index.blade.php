@@ -29,6 +29,21 @@
             ? "background-image: linear-gradient(to right, rgba(251,243,230,.97) 0%, rgba(251,243,230,.94) 30%, rgba(251,243,230,.55) 58%, rgba(251,243,230,.15) 78%), url('{$bannerUrl}'); background-size: auto 165%; background-position: 100% 0%;"
             : ''])
     >
+        {{-- The linear-gradient above is a left-to-right fade tuned for a
+            desktop viewport, where the max-w-xl text column only occupies
+            the left ~40% of a wide container, leaving the gradient's
+            transparent 58-100% zone clear of text over the photo. Below
+            sm:, that same column stretches across nearly the full (much
+            narrower) viewport, so the gradient's transparent tail falls
+            directly under wrapped text instead of beside it — reported as
+            illegible subtext on mobile. A near-opaque, mobile-only scrim
+            (hidden at sm: and up, where the existing gradient already
+            handles it) restores contrast without touching the desktop
+            treatment or the photo itself. --}}
+        @if ($bannerUrl)
+            <div class="absolute inset-0 bg-brand-ivory/95 sm:hidden" aria-hidden="true"></div>
+        @endif
+
         <x-site.header :transparent="(bool) $bannerUrl" :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
 
         <div class="relative mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 lg:px-8 lg:pt-40 lg:pb-32">
