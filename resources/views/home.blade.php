@@ -136,17 +136,32 @@
                     <div class="min-w-0 flex-1 overflow-hidden">
                         <ul class="flex gap-4 transition-transform duration-700 ease-in-out" data-gratitude-carousel-track>
                             @foreach ($comments as $comment)
-                                <li class="w-full shrink-0 rounded-xl border border-brand-navy/10 p-4 sm:w-[calc(50%-0.5rem)] lg:w-[calc(25%-0.75rem)]" data-gratitude-carousel-item>
-                                    <div class="flex items-center gap-2.5">
-                                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold {{ $comment['color'] }}" aria-hidden="true">
-                                            {{ $comment['initials'] }}
-                                        </span>
-                                        <div class="min-w-0">
-                                            <p class="truncate text-sm font-semibold text-brand-navy">{{ $comment['name'] }}</p>
-                                            <p class="text-xs text-brand-navy/50">{{ $comment['time'] }}</p>
+                                <li class="w-full shrink-0 sm:w-[calc(50%-0.5rem)] lg:w-[calc(25%-0.75rem)]" data-gratitude-carousel-item>
+                                    {{-- Whole card is one link (client feedback: cards weren't
+                                        obviously tappable) — the same destination as "All
+                                        Gratitude Journal" below, since an individual entry has
+                                        no standalone page of its own (see GratitudeJournalVisibility's
+                                        docblock). Visible border/shadow on hover and a
+                                        focus-visible ring make the affordance obvious without
+                                        relying on hover alone for touch users. --}}
+                                    <a
+                                        href="{{ route('inspirational-resources.gratitude-journal') }}"
+                                        class="group block h-full rounded-xl border border-brand-navy/10 p-4 transition hover:border-brand-gold hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold"
+                                    >
+                                        <div class="flex items-center gap-2.5">
+                                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold {{ $comment['color'] }}" aria-hidden="true">
+                                                {{ $comment['initials'] }}
+                                            </span>
+                                            <div class="min-w-0">
+                                                <p class="truncate text-sm font-semibold text-brand-navy">{{ $comment['name'] }}</p>
+                                                <p class="text-xs text-brand-navy/50">{{ $comment['time'] }}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <p class="mt-3 text-sm text-brand-navy/75">&ldquo;{{ $comment['quote'] }}&rdquo;</p>
+                                        <p class="mt-3 text-base leading-relaxed text-brand-navy/80">&ldquo;{{ $comment['quote'] }}&rdquo;</p>
+                                        <span class="mt-3 flex items-center gap-1 text-xs font-semibold text-brand-gold">
+                                            Read the Gratitude Journal <span aria-hidden="true" class="transition group-hover:translate-x-0.5">→</span>
+                                        </span>
+                                    </a>
                                 </li>
                             @endforeach
                         </ul>
