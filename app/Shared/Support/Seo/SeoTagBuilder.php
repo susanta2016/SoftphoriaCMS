@@ -25,11 +25,21 @@ use Illuminate\Support\Facades\Storage;
 class SeoTagBuilder
 {
     /**
-     * @param  array{title: string, description?: ?string, canonical: string, force_canonical?: bool, image?: ?Media, type?: string, published_at?: mixed, modified_at?: mixed, author_name?: ?string}  $fallbacks
+     * Pass as `$fallbacks['robots']` for any controller-rendered page that
+     * has no SeoMetadata row and must never be indexed — the AUTH-001→005
+     * pages (registration, email verification, password reset, account
+     * profile/password) all use this. Using this constant (never a
+     * hand-typed string) means a typo can't silently leave a private or
+     * transactional page indexable.
+     */
+    public const string ROBOTS_NOINDEX = 'noindex, nofollow';
+
+    /**
+     * @param  array{title: string, description?: ?string, canonical: string, force_canonical?: bool, image?: ?Media, type?: string, published_at?: mixed, modified_at?: mixed, author_name?: ?string, robots?: string}  $fallbacks
      * @param  ?array<string, mixed>  $generalSettings  Pass the caller's own
-     *         already-fetched SettingsRepository::all('general') (e.g.
-     *         HomeController, which needs it anyway for site_name/tagline/
-     *         logo) to avoid a second, identical settings query here.
+     *                                                  already-fetched SettingsRepository::all('general') (e.g.
+     *                                                  HomeController, which needs it anyway for site_name/tagline/
+     *                                                  logo) to avoid a second, identical settings query here.
      * @return array<string, mixed>
      */
     public static function build(?SeoMetadata $seo, array $fallbacks, ?array $generalSettings = null): array
@@ -55,7 +65,7 @@ class SeoTagBuilder
             'description' => $description,
             'keywords' => $seo?->keywords,
             'canonical' => $canonical,
-            'robots' => $seo?->robots ?: 'index, follow',
+            'robots' => $seo?->robots ?: ($fallbacks['robots'] ?? 'index, follow'),
             'site_name' => $siteName,
             'og_title' => $seo?->og_title ?: $title,
             'og_description' => self::flatten($seo?->og_description) ?: $description,

@@ -23,6 +23,22 @@ return [
         'label' => 'Verify Email',
         'recipients' => ['user'],
         'variables' => ['user_name', 'verification_url', 'site_name'],
+        'default_subject' => '{{site_name}} — Verify Your Email Address',
+        'default_html_body' => <<<'HTML'
+            <p>Hi {{user_name}},</p>
+            <p>Thanks for joining {{site_name}}. Please verify your email address to activate your account.</p>
+            <p><a href="{{verification_url}}">Verify My Email</a></p>
+            <p>This link will expire in 24 hours. If you didn't create this account, you can safely ignore this email.</p>
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{user_name}},
+
+            Thanks for joining {{site_name}}. Please verify your email address to activate your account.
+
+            Verify my email: {{verification_url}}
+
+            This link will expire in 24 hours. If you didn't create this account, you can safely ignore this email.
+            TEXT,
     ],
 
     'user_registered' => [

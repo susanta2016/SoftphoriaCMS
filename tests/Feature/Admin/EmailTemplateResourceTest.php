@@ -148,7 +148,7 @@ class EmailTemplateResourceTest extends TestCase
 
         Mail::assertSent(TemplatedNotificationMail::class, function (TemplatedNotificationMail $mail): bool {
             return $mail->hasTo('someone@example.com')
-                && str_contains($mail->subjectLine, 'Verify Email');
+                && str_contains($mail->subjectLine, 'Verify Your Email Address');
         });
     }
 

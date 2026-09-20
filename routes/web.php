@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Media\PublicHeroVideoStreamController;
@@ -49,6 +51,23 @@ Route::get('/media/{media}/watch', PublicHeroVideoStreamController::class)
 Route::get('/admin/pages/{page}/preview', PreviewPageController::class)
     ->middleware('web')
     ->name('pages.preview');
+
+// AUTH-001/AUTH-003: public self-registration + email verification.
+// Guest/Registered only — no membership tier, no payment step. Honeypot
+// spam protection matches ContactController::store()'s pattern (see
+// RegisteredUserController's own docblock).
+Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
+Route::post('/register', [RegisteredUserController::class, 'store'])
+    ->middleware('throttle:6,1')
+    ->name('register.store');
+Route::get('/register/thank-you', [RegisteredUserController::class, 'thankYou'])->name('register.thank-you');
+
+Route::get('/verify-email/{token}', [EmailVerificationController::class, 'verify'])
+    ->middleware('throttle:10,1')
+    ->name('verification.verify');
+Route::post('/verify-email/resend', [EmailVerificationController::class, 'resend'])
+    ->middleware('throttle:3,1')
+    ->name('verification.resend');
 
 // Public CMS page viewer (Stage D) — kept last so it never shadows a more
 // specific route above; PageController itself 404s anything not published.
