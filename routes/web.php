@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Account\PasswordController as AccountPasswordController;
+use App\Http\Controllers\Account\ProfileController as AccountProfileController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\NewPasswordController;
@@ -14,6 +16,7 @@ use App\Http\Controllers\Page\PageController;
 use App\Http\Controllers\Page\PreviewPageController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Middleware\EnsureAccountIsUsable;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -98,6 +101,20 @@ Route::middleware('guest')->group(function (): void {
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+// AUTH-005: account profile/password management + session security.
+// EnsureAccountIsUsable re-checks status on top of `auth` (see its own
+// docblock) — PendingVerification is allowed through, only genuinely
+// blocked statuses are rejected. Private/member-only content per the
+// platform's standing indexing rule: every view here is noindex and never
+// Sitemapable, and access is enforced here, not by robots.txt.
+Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->name('account.')->group(function (): void {
+    Route::get('/profile', [AccountProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [AccountProfileController::class, 'update'])->name('profile.update');
+
+    Route::get('/password', [AccountPasswordController::class, 'edit'])->name('password.edit');
+    Route::put('/password', [AccountPasswordController::class, 'update'])->name('password.update');
+});
 
 // Public CMS page viewer (Stage D) — kept last so it never shadows a more
 // specific route above; PageController itself 404s anything not published.

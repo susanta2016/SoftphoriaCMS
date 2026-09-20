@@ -1,0 +1,100 @@
+<?php
+
+namespace App\Actions\Account;
+
+use App\Actions\Auth\Concerns\GeneratesVerificationTokens;
+use App\Enums\EmailRecipientType;
+use App\Enums\UserStatus;
+use App\Models\User;
+use App\Shared\Services\Notifications\TemplatedMailer;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
+
+/**
+ * The user editing their own name/email/profile fields — never a route
+ * parameter, always $user === Auth::user(), so there is no ID to forge to
+ * reach another account. Only ever writes name/email (User) and the
+ * UserProfile fillable fields; never touches id/status/roles regardless of
+ * what the request contains, since $data here is already the validated
+ * whitelist the controller built, not the raw request array.
+ *
+ * Changing the email re-uses the exact registration verification pipeline
+ * (GeneratesVerificationTokens + the "email_verification" template) rather
+ * than trusting an unconfirmed address — a changed address is unverified
+ * until proven otherwise, no matter how "trusted" the session changing it
+ * is (same reasoning as VerifyEmailAction's own docblock).
+ */
+class UpdateAccountProfileAction
+{
+    use GeneratesVerificationTokens;
+
+    public function __construct(private readonly TemplatedMailer $mailer) {}
+
+    /**
+     * @param  array{name: string, email: string, bio?: ?string}  $data
+     */
+    public function handle(User $user, array $data): User
+    {
+        return DB::transaction(function () use ($user, $data): User {
+            $emailChanged = $data['email'] !== $user->email;
+
+            $user->name = $data['name'];
+            $user->email = $data['email'];
+
+            if ($emailChanged) {
+                $user->email_verified_at = null;
+                $user->status = UserStatus::PendingVerification->value;
+            }
+
+            $user->save();
+
+            $profileData = array_filter([
+                'bio' => $data['bio'] ?? null,
+            ], fn ($value) => filled($value));
+
+            if ($profileData !== []) {
+                $user->profile()->updateOrCreate([], $profileData);
+            }
+
+            if ($emailChanged) {
+                $this->sendVerificationEmail($user);
+            } else {
+                $this->sendProfileUpdatedNotice($user);
+            }
+
+            return $user;
+        });
+    }
+
+    private function sendVerificationEmail(User $user): void
+    {
+        $rawToken = $this->issueVerificationToken($user);
+
+        try {
+            $this->mailer->send('email_verification', EmailRecipientType::User, $user->email, [
+                'user_name' => $user->name,
+                'verification_url' => route('verification.verify', ['token' => $rawToken]),
+            ]);
+        } catch (Throwable $exception) {
+            Log::warning('Account email-change verification email failed to send', [
+                'user_id' => $user->getKey(),
+                'exception' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    private function sendProfileUpdatedNotice(User $user): void
+    {
+        try {
+            $this->mailer->send('profile_updated', EmailRecipientType::User, $user->email, [
+                'user_name' => $user->name,
+            ]);
+        } catch (Throwable $exception) {
+            Log::warning('Profile updated notice failed to send', [
+                'user_id' => $user->getKey(),
+                'exception' => $exception->getMessage(),
+            ]);
+        }
+    }
+}
