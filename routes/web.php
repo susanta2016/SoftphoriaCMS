@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\HomeController;
@@ -68,6 +71,33 @@ Route::get('/verify-email/{token}', [EmailVerificationController::class, 'verify
 Route::post('/verify-email/resend', [EmailVerificationController::class, 'resend'])
     ->middleware('throttle:3,1')
     ->name('verification.resend');
+
+// AUTH-002/AUTH-004: login/logout + password reset. `guest` on the
+// request-side routes matches ContactController's own pattern of never
+// forcing state on an already-authenticated visitor; logout is `auth`-only
+// and POST-only. AppServiceProvider::routeResetPasswordThroughEmailTemplates()
+// already expects a route named "password.reset" accepting token+email —
+// this is that route.
+Route::middleware('guest')->group(function (): void {
+    Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::post('/login', [AuthenticatedSessionController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('login.store');
+
+    Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('password.email');
+
+    Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
+    Route::post('/reset-password', [NewPasswordController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('password.update');
+});
+
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
+    ->middleware('auth')
+    ->name('logout');
 
 // Public CMS page viewer (Stage D) — kept last so it never shadows a more
 // specific route above; PageController itself 404s anything not published.

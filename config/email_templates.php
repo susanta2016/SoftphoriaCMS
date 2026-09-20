@@ -51,6 +51,22 @@ return [
         'label' => 'Password Reset / Generate New Password',
         'recipients' => ['user'],
         'variables' => ['user_name', 'reset_url', 'site_name'],
+        'default_subject' => '{{site_name}} — Reset Your Password',
+        'default_html_body' => <<<'HTML'
+            <p>Hi {{user_name}},</p>
+            <p>We received a request to reset your password on {{site_name}}. Click the link below to choose a new password.</p>
+            <p><a href="{{reset_url}}">Reset My Password</a></p>
+            <p>If you didn't request this, you can safely ignore this email — your password will remain unchanged.</p>
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{user_name}},
+
+            We received a request to reset your password on {{site_name}}. Use the link below to choose a new password.
+
+            Reset my password: {{reset_url}}
+
+            If you didn't request this, you can safely ignore this email — your password will remain unchanged.
+            TEXT,
     ],
 
     'profile_updated' => [

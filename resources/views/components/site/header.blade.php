@@ -69,15 +69,38 @@
                     <path d="m21 21-4.35-4.35" stroke-linecap="round"/>
                 </svg>
             </a>
-            <a
-                href="#"
-                class="hidden rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold sm:inline-block"
-            >
-                Log In
-            </a>
-            <a href="#" class="inline-flex items-center gap-1.5 rounded-md bg-brand-gold px-3 py-2 text-sm font-semibold whitespace-nowrap text-white transition hover:bg-brand-gold-light sm:px-4">
-                Enter Here <span aria-hidden="true">→</span>
-            </a>
+            {{--
+                AUTH-002: these were dead "#" links until login/register
+                existed. @guest/@auth here are the only auth-state-aware
+                markup in this component — no cart/search/membership
+                additions beyond wiring these two links plus a logout form.
+            --}}
+            @guest
+                <a
+                    href="{{ route('login') }}"
+                    class="hidden rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold sm:inline-block"
+                >
+                    Log In
+                </a>
+                <a href="{{ route('register') }}" class="inline-flex items-center gap-1.5 rounded-md bg-brand-gold px-3 py-2 text-sm font-semibold whitespace-nowrap text-white transition hover:bg-brand-gold-light sm:px-4">
+                    Enter Here <span aria-hidden="true">→</span>
+                </a>
+            @else
+                @if (Route::has('account.profile.edit'))
+                    <a
+                        href="{{ route('account.profile.edit') }}"
+                        class="hidden rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold sm:inline-block"
+                    >
+                        My Profile
+                    </a>
+                @endif
+                <form method="POST" action="{{ route('logout') }}" class="hidden sm:block">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-md bg-brand-gold px-3 py-2 text-sm font-semibold whitespace-nowrap text-white transition hover:bg-brand-gold-light sm:px-4">
+                        Log Out
+                    </button>
+                </form>
+            @endguest
 
             <button
                 type="button"
@@ -121,9 +144,26 @@
                 </svg>
                 Search
             </a>
-            <a href="#" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
-                Log In
-            </a>
+            @guest
+                <a href="{{ route('login') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
+                    Log In
+                </a>
+                <a href="{{ route('register') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
+                    Register
+                </a>
+            @else
+                @if (Route::has('account.profile.edit'))
+                    <a href="{{ route('account.profile.edit') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
+                        My Profile
+                    </a>
+                @endif
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="w-full rounded-md px-3 py-2.5 text-left text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
+                        Log Out
+                    </button>
+                </form>
+            @endguest
         </div>
     </div>
 </header>
