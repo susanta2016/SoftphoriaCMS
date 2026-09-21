@@ -149,7 +149,11 @@
     <main class="bg-brand-ivory">
         <div class="mx-auto max-w-3xl px-4 pb-24 sm:px-6 lg:px-8">
             @forelse ($sections as $index => $section)
-                @php $content = $section->content_json ?? []; @endphp
+                @php
+                    $content = $section->content_json ?? [];
+                    $video = ! empty($content['video_media_id']) ? Media::find($content['video_media_id']) : null;
+                    $hasVideo = $video && $video->category() === MediaCategory::Video;
+                @endphp
 
                 @if ($index > 0)
                     <div class="my-14 flex items-center justify-center gap-3" aria-hidden="true">
@@ -174,6 +178,8 @@
                                     <span class="h-px w-10 bg-brand-gold/60"></span>
                                 </div>
                             </div>
+
+                            @include('pages.partials.about-video')
 
                             @php $chunks = $buildChunks($splitParagraphs($content['body'] ?? '')); @endphp
 
@@ -218,6 +224,7 @@
                                 <span class="text-sm text-brand-gold">✦</span>
                                 <span class="h-px w-10 bg-brand-gold/60"></span>
                             </div>
+                            <div class="mt-8">@include('pages.partials.about-video')</div>
                             <div data-section-body class="mx-auto mt-8 max-w-xl text-left [&_p]:mb-4 [&_p]:leading-relaxed [&_p]:text-brand-navy/80 last:[&_p]:mb-0">
                                 @if (trim(strip_tags($content['body'] ?? '')) !== '')
                                     {!! $content['body'] !!}
@@ -225,10 +232,6 @@
                             </div>
                         </div>
                     @elseif ($section->title === "About Jacob d'IAWARII")
-                        @php
-                            $video = ! empty($content['video_media_id']) ? Media::find($content['video_media_id']) : null;
-                            $hasVideo = $video && $video->category() === MediaCategory::Video;
-                        @endphp
                         <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-brand-navy/5 sm:p-12">
                             <div class="text-center">
                                 <span class="text-xs font-semibold tracking-wide text-brand-gold uppercase">{{ $section->title }}</span>
@@ -239,13 +242,7 @@
                                 </div>
                             </div>
 
-                            @if ($hasVideo)
-                                <div class="mx-auto max-w-2xl overflow-hidden rounded-2xl bg-brand-navy-dark shadow-lg ring-1 ring-brand-navy/10">
-                                    <video controls playsinline preload="none" class="aspect-video w-full">
-                                        <source src="{{ route('media.watch', $video) }}" type="{{ $video->mime_type }}">
-                                    </video>
-                                </div>
-                            @endif
+                            @include('pages.partials.about-video')
 
                             <div data-section-body class="mx-auto mt-8 max-w-xl text-left [&_p]:mb-4 [&_p]:leading-relaxed [&_p]:text-brand-navy/80 last:[&_p]:mb-0">
                                 @if (trim(strip_tags($content['body'] ?? '')) !== '')
@@ -258,6 +255,7 @@
                             @if ($section->title)
                                 <h2 class="text-center font-serif text-2xl text-brand-navy">{{ $section->title }}</h2>
                             @endif
+                            <div class="mt-6">@include('pages.partials.about-video')</div>
                             <div data-section-body class="mx-auto mt-6 max-w-xl text-left [&_p]:mb-4 [&_p]:leading-relaxed [&_p]:text-brand-navy/80 last:[&_p]:mb-0">
                                 {!! $content['body'] ?? '' !!}
                             </div>
