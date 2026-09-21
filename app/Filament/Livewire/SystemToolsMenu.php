@@ -18,6 +18,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
+use Throwable;
 
 /**
  * Topbar "System Tools" dropdown
@@ -154,13 +155,50 @@ class SystemToolsMenu extends Component implements HasActions, HasRenderHookScop
         /** @var User $actor */
         $actor = Auth::user();
 
-        Artisan::call($command);
+        try {
+            $exitCode = Artisan::call($command);
+        } catch (Throwable $e) {
+            report($e);
+
+            $this->notifyFailure($command, $e->getMessage());
+
+            return;
+        }
+
+        // Production runs opcache with validate_timestamps=0, so PHP never
+        // re-reads a file it has already cached — compiled Blade views and
+        // the config/route cache files are all plain PHP files. Deleting or
+        // rewriting them on disk therefore has no visible effect on the
+        // running site until opcache is reset (which is why "Clear View
+        // Cache" used to report success yet keep serving the old template
+        // until the container was restarted). opcache_reset() empties the
+        // shared cache for every FPM worker; it's a no-op where opcache is
+        // off (local dev / CLI).
+        if (function_exists('opcache_reset')) {
+            @opcache_reset();
+        }
+
+        if ($exitCode !== 0) {
+            $this->notifyFailure($command, trim(Artisan::output()));
+
+            return;
+        }
 
         app(AuditLogService::class)->record($actor, $auditAction, $actor);
 
         Notification::make()
             ->title($successMessage)
             ->success()
+            ->send();
+    }
+
+    private function notifyFailure(string $command, string $detail): void
+    {
+        Notification::make()
+            ->title("`php artisan {$command}` failed")
+            ->body($detail !== '' ? $detail : 'See the application log for details.')
+            ->danger()
+            ->persistent()
             ->send();
     }
 }
