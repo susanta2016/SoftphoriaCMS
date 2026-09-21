@@ -13,6 +13,7 @@ use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Single;
 use App\Modules\Music\Models\Track;
 use App\Modules\Music\Models\TrackListen;
+use App\Modules\Music\Support\LandingAutoplayTrackResolver;
 use App\Shared\Services\Settings\SettingsRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -92,26 +93,26 @@ class MusicLandingAutoplayTest extends TestCase
 
         Livewire::actingAs($this->admin())
             ->test(MusicLandingAutoplaySettings::class)
-            ->fillForm(['track_id' => $track->id])
+            ->fillForm(['tracks' => [['track_id' => $track->id]]])
             ->call('save')
             ->assertHasNoFormErrors();
 
-        $this->assertSame($track->id, app(SettingsRepository::class)->get('music', 'landing_autoplay_track_id'));
+        $this->assertSame([$track->id], app(LandingAutoplayTrackResolver::class)->configuredIds(app(SettingsRepository::class)));
     }
 
     public function test_admin_can_clear_the_autoplay_track(): void
     {
         $album = $this->album(['status' => ReleaseStatus::Published]);
         $track = $this->track($album, null, ['status' => TrackStatus::Published]);
-        app(SettingsRepository::class)->set('music', 'landing_autoplay_track_id', $track->id, 'integer');
+        $this->setAutoplayTrack($track);
 
         Livewire::actingAs($this->admin())
             ->test(MusicLandingAutoplaySettings::class)
-            ->fillForm(['track_id' => null])
+            ->fillForm(['tracks' => []])
             ->call('save')
             ->assertHasNoFormErrors();
 
-        $this->assertNull(app(SettingsRepository::class)->get('music', 'landing_autoplay_track_id'));
+        $this->assertSame([], app(LandingAutoplayTrackResolver::class)->configuredIds(app(SettingsRepository::class)));
     }
 
     public function test_non_admin_cannot_access_the_autoplay_settings_page(): void
@@ -133,11 +134,11 @@ class MusicLandingAutoplayTest extends TestCase
         $media = $this->audioMedia();
         $track = $this->track($album, null, ['status' => TrackStatus::Published, 'audio_media_id' => $media->id]);
 
-        app(SettingsRepository::class)->set('music', 'landing_autoplay_track_id', $track->id, 'integer');
+        $this->setAutoplayTrack($track);
 
-        $raw = Setting::query()->where('group', 'music')->where('key', 'landing_autoplay_track_id')->first();
+        $raw = Setting::query()->where('group', 'music')->where('key', 'landing_autoplay_track_ids')->first();
 
-        $this->assertSame((string) $track->id, $raw->value);
+        $this->assertSame('['.$track->id.']', $raw->value);
         $this->assertStringNotContainsString('/', $raw->value);
         $this->assertStringNotContainsString('.mp3', $raw->value);
     }
@@ -203,7 +204,7 @@ class MusicLandingAutoplayTest extends TestCase
 
     public function test_a_deleted_track_fails_safely_with_no_autoplay(): void
     {
-        app(SettingsRepository::class)->set('music', 'landing_autoplay_track_id', 999999, 'integer');
+        app(SettingsRepository::class)->set('music', 'landing_autoplay_track_ids', '[999999]');
 
         $response = $this->get(route('music.index'));
 
@@ -455,9 +456,95 @@ class MusicLandingAutoplayTest extends TestCase
         $response->assertDontSee(route('music.tracks.stream', $autoplayTrack), false);
     }
 
-    private function setAutoplayTrack(Track $track): void
+    public function test_multiple_configured_tracks_render_as_an_ordered_playlist(): void
     {
+        $album = $this->album(['status' => ReleaseStatus::Published]);
+        $first = $this->track($album, null, ['title' => 'First Song', 'status' => TrackStatus::Published, 'audio_media_id' => $this->audioMedia('a.mp3')->id]);
+        $second = $this->track($album, null, ['title' => 'Second Song', 'status' => TrackStatus::Published, 'audio_media_id' => $this->audioMedia('b.mp3')->id]);
+        // Deliberately reversed relative to creation order.
+        $this->setAutoplayTrack($second, $first);
+
+        $response = $this->get(route('music.index'));
+
+        $response->assertOk();
+        $response->assertSee('data-playlist=', false);
+        $response->assertSee('src="'.route('music.landing-autoplay.stream').'"', false);
+        $response->assertSee(e(json_encode(['title' => 'First Song', 'src' => route('music.landing-autoplay.stream', ['position' => 1])])), false);
+        $this->assertSame(
+            ['Second Song', 'First Song'],
+            app(LandingAutoplayTrackResolver::class)->resolve(app(SettingsRepository::class))->pluck('title')->all(),
+        );
+    }
+
+    public function test_the_stream_endpoint_serves_the_track_at_the_requested_playlist_position(): void
+    {
+        $album = $this->album(['status' => ReleaseStatus::Published]);
+        $firstMedia = $this->audioMedia('a.mp3');
+        $secondMedia = $this->audioMedia('b.mp3', 'second-audio-bytes');
+        $first = $this->track($album, null, ['status' => TrackStatus::Published, 'audio_media_id' => $firstMedia->id]);
+        $second = $this->track($album, null, ['status' => TrackStatus::Published, 'audio_media_id' => $secondMedia->id]);
+        $this->setAutoplayTrack($first, $second);
+        config(['features.guest_user_listening_limit_seconds' => 1]);
+
+        $response = $this->get(route('music.landing-autoplay.stream', ['position' => 1]));
+
+        $response->assertOk();
+        $this->assertSame(Storage::disk($secondMedia->disk)->path($secondMedia->path), $response->baseResponse->getFile()->getPathname());
+    }
+
+    public function test_the_stream_endpoint_404s_for_a_position_outside_the_playlist(): void
+    {
+        $album = $this->album(['status' => ReleaseStatus::Published]);
+        $track = $this->track($album, null, ['status' => TrackStatus::Published, 'audio_media_id' => $this->audioMedia()->id]);
+        $this->setAutoplayTrack($track);
+
+        $this->get(route('music.landing-autoplay.stream', ['position' => 1]))->assertNotFound();
+    }
+
+    public function test_unplayable_tracks_are_skipped_but_the_rest_of_the_playlist_still_plays(): void
+    {
+        $album = $this->album(['status' => ReleaseStatus::Published]);
+        $draft = $this->track($album, null, ['title' => 'Draft Song', 'status' => TrackStatus::Draft, 'audio_media_id' => $this->audioMedia('a.mp3')->id]);
+        $silent = $this->track($album, null, ['title' => 'Silent Song', 'status' => TrackStatus::Published]);
+        $good = $this->track($album, null, ['title' => 'Good Song', 'status' => TrackStatus::Published, 'audio_media_id' => $this->audioMedia('b.mp3')->id]);
+        $this->setAutoplayTrack($draft, $silent, $good);
+
+        $response = $this->get(route('music.index'));
+
+        $response->assertOk();
+        $response->assertSee('Good Song');
+        $response->assertDontSee('Draft Song');
+        $response->assertDontSee('Silent Song');
+        // The one survivor is position 0, so the stream URL carries no position.
+        $response->assertSee('src="'.route('music.landing-autoplay.stream').'"', false);
+    }
+
+    public function test_the_earlier_single_track_setting_still_works_as_a_one_item_playlist(): void
+    {
+        $album = $this->album(['status' => ReleaseStatus::Published]);
+        $track = $this->track($album, null, ['title' => 'Legacy Song', 'status' => TrackStatus::Published, 'audio_media_id' => $this->audioMedia()->id]);
         app(SettingsRepository::class)->set('music', 'landing_autoplay_track_id', $track->id, 'integer');
+
+        $response = $this->get(route('music.index'));
+
+        $response->assertOk();
+        $response->assertSee('Legacy Song');
+        $response->assertSee('data-music-autoplay-audio', false);
+    }
+
+    public function test_an_explicitly_emptied_playlist_does_not_fall_back_to_the_earlier_single_track_setting(): void
+    {
+        $album = $this->album(['status' => ReleaseStatus::Published]);
+        $track = $this->track($album, null, ['status' => TrackStatus::Published, 'audio_media_id' => $this->audioMedia()->id]);
+        app(SettingsRepository::class)->set('music', 'landing_autoplay_track_id', $track->id, 'integer');
+        app(SettingsRepository::class)->set('music', 'landing_autoplay_track_ids', '[]');
+
+        $this->get(route('music.index'))->assertDontSee('data-music-autoplay-audio', false);
+    }
+
+    private function setAutoplayTrack(Track ...$tracks): void
+    {
+        app(SettingsRepository::class)->set('music', 'landing_autoplay_track_ids', json_encode(array_map(fn (Track $track): int => $track->id, $tracks)));
     }
 
     private function admin(): User

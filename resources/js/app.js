@@ -772,9 +772,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTrack(currentIndex, false);
 });
 
-// Music landing page autoplay enhancement — an admin-selected single Track
-// (music/index.blade.php's [data-music-autoplay-audio], never the multi-
-// track player above, which that page does not render at all: no visible
+// Music landing page autoplay enhancement — an admin-selected, ordered
+// playlist of Tracks played one after another through a single hidden
+// <audio> element (music/index.blade.php's [data-music-autoplay-audio],
+// never the multi-track player above, which that page does not render at all: no visible
 // play/pause/seek controls, no track rows). Deliberately its own small,
 // separate engine rather than reusing the player block's loadTrack()/rows
 // machinery, since that machinery is inherently built around visible
@@ -787,15 +788,21 @@ document.addEventListener('DOMContentLoaded', () => {
 // actual playback state and never re-show themselves after Stop Music is
 // clicked, since nothing here calls play() again afterward.
 //
-// No completion beacon (client-confirmed 2026-09-16: this track plays in
+// When a track ends, the next one in the list starts on the same element
+// (a track that fails to load is skipped), and after the last one it wraps back
+// to the first — the playlist repeats until Stop Music is clicked (which
+// pauses without advancing).
+//
+// No completion beacon (client-confirmed 2026-09-16: these tracks play in
 // full for every visitor with no daily-quota tracking at all — see
-// MusicController::autoplayTrackPlayback()'s own docblock).
+// MusicController::autoplayPlaylist()'s own docblock).
 document.addEventListener('DOMContentLoaded', () => {
     const audio = document.querySelector('[data-music-autoplay-audio]');
     if (!audio || !audio.getAttribute('src')) return;
 
     const banner = document.querySelector('[data-music-autoplay-banner]');
     const stopButton = banner?.querySelector('[data-music-autoplay-stop]');
+    const titleElement = banner?.querySelector('[data-music-autoplay-title]');
     const prompt = document.querySelector('[data-music-autoplay-prompt]');
     const promptPlayButton = prompt?.querySelector('[data-music-autoplay-play]');
 
@@ -811,6 +818,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
     audio.addEventListener('pause', hideStatus);
 
+    let playlist = [];
+    try {
+        playlist = JSON.parse(audio.dataset.playlist || '[]');
+    } catch (e) {
+        // Malformed playlist attribute — fall back to the single src below.
+    }
+    let position = 0;
+    let consecutiveErrors = 0;
+
+    // A single track (or a malformed/empty playlist attribute, which leaves
+    // just the element's own src) simply repeats in place.
+    if (playlist.length <= 1) audio.loop = true;
+
+    // Moves to the next playlist entry and plays it, wrapping back to the
+    // first after the last so the landing page keeps playing until Stop
+    // Music is clicked. A single-track playlist simply restarts itself.
+    const playNext = () => {
+        position = (position + 1) % playlist.length;
+
+        audio.src = playlist[position].src;
+        if (titleElement) titleElement.textContent = playlist[position].title;
+        audio.play().catch(() => {});
+    };
+
+    audio.addEventListener('playing', () => {
+        consecutiveErrors = 0;
+    });
+
+    audio.addEventListener('ended', () => {
+        if (playlist.length > 0) playNext();
+    });
+
+    // A track that fails to load is skipped, but if every track in a row
+    // fails (e.g. offline) stop instead of spinning through the list forever.
+    audio.addEventListener('error', () => {
+        consecutiveErrors += 1;
+
+        if (playlist.length > 0 && consecutiveErrors < playlist.length) playNext();
+    });
     stopButton?.addEventListener('click', () => audio.pause());
 
     // A real user gesture on this prompt's own button calling audio.play()

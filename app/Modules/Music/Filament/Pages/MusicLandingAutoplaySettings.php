@@ -4,10 +4,12 @@ namespace App\Modules\Music\Filament\Pages;
 
 use App\Models\Setting;
 use App\Modules\Music\Models\Track;
+use App\Modules\Music\Support\LandingAutoplayTrackResolver;
 use App\Shared\Services\AuditLogService;
 use App\Shared\Services\Settings\SettingsRepository;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -19,20 +21,21 @@ use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 /**
- * Admin control for the Music landing page's autoplay enhancement — picks
- * exactly one existing Track (or none, to disable autoplay entirely). Same
+ * Admin control for the Music landing page's autoplay enhancement — picks an
+ * ordered list of existing Tracks (or none, to disable autoplay entirely),
+ * which the landing page plays one after another in that order. Same
  * `settings`-table pattern via SettingsRepository as
  * App\Modules\Commerce\Filament\Pages\DownloadAccessSettings, its own group
  * ("music") rather than a new standalone config mechanism or a new column
  * on any Music table. Never touches Featured Album/Single selection
  * (Album::is_featured/Single::is_featured) — a completely separate concern.
  *
- * The Select only ever writes a Track's `id` (SettingsRepository's
- * "integer" type) — never a URL, media path, or filename — and only ever
- * offers currently Published tracks, so an admin cannot pick a track that
- * is already unreachable. See App\Http\Controllers\Music\MusicController::
- * resolveAutoplayTrack() for the public-side fail-safe (a track later
- * unpublished/deleted still resolves to "no autoplay", not an error).
+ * The Selects only ever write Track `id`s (stored as a JSON list of integers
+ * under landing_autoplay_track_ids) — never a URL, media path, or filename —
+ * and only ever offer currently Published tracks, so an admin cannot pick a
+ * track that is already unreachable. See App\Modules\Music\Support\
+ * LandingAutoplayTrackResolver for the public-side fail-safe (a track later
+ * unpublished/deleted is simply skipped, not an error).
  */
 class MusicLandingAutoplaySettings extends Page
 {
@@ -52,6 +55,11 @@ class MusicLandingAutoplaySettings extends Page
      * @var array<string, mixed>|null
      */
     public ?array $data = [];
+
+    /**
+     * @var array<int, string>|null
+     */
+    private ?array $trackOptions = null;
 
     /**
      * Hidden from navigation while the feature's master switch
@@ -82,30 +90,47 @@ class MusicLandingAutoplaySettings extends Page
     public function form(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Autoplay Track')
+            Section::make('Autoplay Tracks')
                 ->description(
                     config('features.music_landing_autoplay_enabled')
-                        ? 'When set, the Music landing page attempts to automatically play this one track in full for every visitor (guest or registered), subject only to the browser\'s own autoplay policy — this track is exempt from the guest preview cutoff and the daily-listen quota that apply everywhere else on the site. Clear it to disable landing page autoplay entirely.'
-                        : 'Landing page autoplay is currently switched off for the whole site (MUSIC_LANDING_AUTOPLAY_ENABLED). You can still configure a track below — it will start autoplaying as soon as that switch is turned back on.'
+                        ? 'When set, the Music landing page attempts to automatically play these tracks in full, one after another in the order below, for every visitor (guest or registered), subject only to the browser\'s own autoplay policy — these tracks are exempt from the guest preview cutoff and the daily-listen quota that apply everywhere else on the site. Remove every row to disable landing page autoplay entirely.'
+                        : 'Landing page autoplay is currently switched off for the whole site (MUSIC_LANDING_AUTOPLAY_ENABLED). You can still configure tracks below — they will start autoplaying as soon as that switch is turned back on.'
                 )
                 ->schema([
-                    Select::make('track_id')
-                        ->label('Track')
-                        ->options(fn (): array => Track::query()
-                            ->published()
-                            ->with(['album', 'single'])
-                            ->orderBy('title')
-                            ->get()
-                            ->mapWithKeys(fn (Track $track): array => [
-                                $track->id => "{$track->title} — ".($track->album->title ?? $track->single->title ?? 'Unknown release'),
-                            ])
-                            ->all())
-                        ->searchable()
-                        ->native(false)
-                        ->placeholder('No Track (autoplay disabled)')
-                        ->helperText('Only published tracks are listed. A track that is later unpublished or deleted simply stops autoplaying — nothing breaks.'),
+                    Repeater::make('tracks')
+                        ->label('Playlist')
+                        ->schema([
+                            Select::make('track_id')
+                                ->label('Track')
+                                ->options(fn (): array => $this->trackOptions())
+                                ->searchable()
+                                ->native(false)
+                                ->required()
+                                ->disableOptionsWhenSelectedInSiblingRepeaterItems(),
+                        ])
+                        ->reorderable()
+                        ->addActionLabel('Add track')
+                        ->defaultItems(0)
+                        ->itemLabel(fn (array $state): ?string => $this->trackOptions()[$state['track_id'] ?? null] ?? null)
+                        ->helperText('Tracks play top to bottom and then repeat from the first until the visitor clicks Stop Music. Drag to reorder. Only published tracks are listed; a track that is later unpublished or deleted is simply skipped — nothing breaks.'),
                 ]),
         ]);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function trackOptions(): array
+    {
+        return $this->trackOptions ??= Track::query()
+            ->published()
+            ->with(['album', 'single'])
+            ->orderBy('title')
+            ->get()
+            ->mapWithKeys(fn (Track $track): array => [
+                $track->id => "{$track->title} — ".($track->album->title ?? $track->single->title ?? 'Unknown release'),
+            ])
+            ->all();
     }
 
     public function content(Schema $schema): Schema
@@ -129,7 +154,18 @@ class MusicLandingAutoplaySettings extends Page
         $state = $this->form->getState();
         $settings = app(SettingsRepository::class);
 
-        $settings->set('music', 'landing_autoplay_track_id', $state['track_id'] ?? null, 'integer');
+        $ids = collect($state['tracks'] ?? [])
+            ->pluck('track_id')
+            ->filter()
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        // An empty list is stored as '[]' (not null), so clearing it really
+        // does disable autoplay instead of falling back to the legacy
+        // single-track setting (see LandingAutoplayTrackResolver).
+        $settings->set('music', 'landing_autoplay_track_ids', json_encode($ids));
 
         $this->recordAudit();
 
@@ -140,7 +176,7 @@ class MusicLandingAutoplaySettings extends Page
 
     private function recordAudit(): void
     {
-        $entity = Setting::query()->where('group', 'music')->where('key', 'landing_autoplay_track_id')->first();
+        $entity = Setting::query()->where('group', 'music')->where('key', 'landing_autoplay_track_ids')->first();
 
         if (! $entity) {
             return;
@@ -148,7 +184,7 @@ class MusicLandingAutoplaySettings extends Page
 
         app(AuditLogService::class)->record(Auth::user(), 'settings.updated', $entity, [
             'group' => 'music',
-            'keys' => ['landing_autoplay_track_id'],
+            'keys' => ['landing_autoplay_track_ids'],
         ]);
     }
 
@@ -157,8 +193,10 @@ class MusicLandingAutoplaySettings extends Page
      */
     private function loadFormState(): array
     {
+        $ids = app(LandingAutoplayTrackResolver::class)->configuredIds(app(SettingsRepository::class));
+
         return [
-            'track_id' => app(SettingsRepository::class)->get('music', 'landing_autoplay_track_id'),
+            'tracks' => array_map(fn (int $id): array => ['track_id' => $id], $ids),
         ];
     }
 }

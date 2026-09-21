@@ -73,7 +73,7 @@ class MusicController extends Controller implements Sitemapable
         $featured = $this->featuredRelease();
         $songStories = $this->latestSongStories();
         $storyBanner = $this->storyBannerContent($page);
-        $autoplayTrack = $this->resolveAutoplayTrack($settings);
+        $autoplayPlaylist = $this->autoplayPlaylist($settings);
 
         $seo = SeoTagBuilder::build($page?->seo, [
             'title' => "Music — {$chrome['siteName']}",
@@ -91,12 +91,11 @@ class MusicController extends Controller implements Sitemapable
             'songStories' => $songStories,
             'storyBanner' => $storyBanner,
             'filters' => $filters,
-            // Landing page autoplay enhancement — a single admin-picked Track
-            // (Website Setup > Music > Landing Page Autoplay), completely
-            // independent of $featured above (never the Featured Album/
-            // Single). See resolveAutoplayTrack()/autoplayTrackPlayback().
-            'autoplayTrack' => $autoplayTrack,
-            'autoplayPlayback' => $autoplayTrack ? $this->autoplayTrackPlayback($autoplayTrack) : null,
+            // Landing page autoplay enhancement — an ordered playlist of
+            // admin-picked Tracks (Website Setup > Music > Landing Page
+            // Autoplay), completely independent of $featured above (never
+            // the Featured Album/Single). See autoplayPlaylist().
+            'autoplayPlaylist' => $autoplayPlaylist,
         ]);
     }
 
@@ -331,41 +330,40 @@ class MusicController extends Controller implements Sitemapable
     }
 
     /**
-     * The Music landing page's autoplay enhancement — an admin picks exactly
-     * one Track (Website Setup > Music > Landing Page Autoplay, see
-     * MusicLandingAutoplaySettings), stored by ID only via the existing
+     * The Music landing page's autoplay enhancement — an admin picks an
+     * ordered list of Tracks (Website Setup > Music > Landing Page Autoplay,
+     * see MusicLandingAutoplaySettings), stored by ID only via the existing
      * generic settings table (SettingsRepository, group "music"). Never the
      * Featured Album/Single ($featured in index() above) — the two are
      * completely independent, by design. Delegates the actual resolution
-     * (and its fail-safe checks) to LandingAutoplayTrackResolver, shared
-     * with MusicLandingAutoplayStreamController so both agree on exactly
-     * which Track is currently eligible.
-     */
-    private function resolveAutoplayTrack(SettingsRepository $settings): ?Track
-    {
-        return app(LandingAutoplayTrackResolver::class)->resolve($settings);
-    }
-
-    /**
-     * Client-confirmed 2026-09-16: this one admin-picked track is exempt
-     * from every listening restriction on the landing page — no guest
-     * duration cap, no registered daily-listen-quota check, and (since
-     * there is no completion beacon here at all) this playback never
-     * counts toward that quota either. Every other Track on the site,
-     * including this same one played from its own Album/Single page,
-     * keeps music.tracks.stream's existing guest/quota rules unchanged —
-     * see MusicLandingAutoplayStreamController's own docblock for why this
-     * is a dedicated route rather than a bypass flag on that one.
+     * (and its per-track fail-safe checks) to LandingAutoplayTrackResolver,
+     * shared with MusicLandingAutoplayStreamController so both agree on
+     * exactly which Tracks are currently eligible and in what order.
      *
-     * @return array{src: ?string}
+     * Client-confirmed 2026-09-16: these tracks are exempt from every
+     * listening restriction on the landing page — no guest duration cap, no
+     * registered daily-listen-quota check, and (since there is no completion
+     * beacon here at all) this playback never counts toward that quota
+     * either. Every other Track on the site, including these same ones
+     * played from their own Album/Single page, keeps music.tracks.stream's
+     * existing guest/quota rules unchanged — see
+     * MusicLandingAutoplayStreamController's own docblock for why this is a
+     * dedicated route rather than a bypass flag on that one. Each entry's
+     * src carries only its playlist position, never a track identifier.
+     *
+     * @return list<array{title: string, src: string}>
      */
-    private function autoplayTrackPlayback(Track $track): array
+    private function autoplayPlaylist(SettingsRepository $settings): array
     {
-        if (! $track->audio_media_id) {
-            return ['src' => null];
-        }
-
-        return ['src' => route('music.landing-autoplay.stream')];
+        return app(LandingAutoplayTrackResolver::class)->resolve($settings)
+            ->values()
+            ->map(fn (Track $track, int $position): array => [
+                'title' => $track->title,
+                'src' => $position === 0
+                    ? route('music.landing-autoplay.stream')
+                    : route('music.landing-autoplay.stream', ['position' => $position]),
+            ])
+            ->all();
     }
 
     /**

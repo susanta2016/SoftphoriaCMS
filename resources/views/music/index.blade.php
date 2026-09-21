@@ -155,29 +155,30 @@
     </div>
 
     {{--
-        Landing page autoplay enhancement — the admin-selected Track from
-        Website Setup > Music > Landing Page Autoplay (App\Http\Controllers\
-        Music\MusicController::resolveAutoplayTrack()), never the Featured
-        Album/Single above. Deliberately no visible player controls (no
-        play/pause button, seek bar, track list) — just one hidden <audio>
-        element plus the small status popup below, wired up by the dedicated
+        Landing page autoplay enhancement — the admin-selected, ordered
+        playlist of Tracks from Website Setup > Music > Landing Page Autoplay
+        (App\Http\Controllers\Music\MusicController::autoplayPlaylist()),
+        never the Featured Album/Single above. Deliberately no visible player
+        controls (no play/pause button, seek bar, track list) — just one
+        hidden <audio> element (which the JS steps through the playlist with,
+        one track after another) plus the small status popup below, wired up by the dedicated
         [data-music-autoplay-*] block in resources/js/app.js (separate from
         the visible multi-track player's own JS, which this page does not
         use at all).
 
-        Client-confirmed 2026-09-16: this one track plays in full for every
+        Client-confirmed 2026-09-16: these tracks play in full for every
         visitor, guest or registered — no guest preview cutoff, no daily
         listen quota — served by the dedicated, unrestricted
         music.landing-autoplay.stream route (App\Http\Controllers\Music\
         MusicLandingAutoplayStreamController), never music.tracks.stream.
         There is no completion beacon here (no quota to record against).
     --}}
-    @if ($autoplayTrack && $autoplayPlayback['src'])
-        <audio data-music-autoplay-audio preload="none" class="hidden" src="{{ $autoplayPlayback['src'] }}"></audio>
+    @if (count($autoplayPlaylist) > 0)
+        <audio data-music-autoplay-audio data-playlist="{{ json_encode($autoplayPlaylist) }}" preload="none" class="hidden" src="{{ $autoplayPlaylist[0]['src'] }}"></audio>
 
         <div data-music-autoplay-banner class="fixed right-4 bottom-4 z-40 hidden w-full max-w-[16rem] rounded-xl border border-brand-navy/10 bg-white p-4 shadow-xl sm:right-6 sm:bottom-6">
             <p class="text-xs font-semibold tracking-wide text-brand-gold uppercase">🎵 Now Playing</p>
-            <p class="mt-1 truncate text-sm font-semibold text-brand-navy">{{ $autoplayTrack->title }}</p>
+            <p data-music-autoplay-title class="mt-1 truncate text-sm font-semibold text-brand-navy">{{ $autoplayPlaylist[0]['title'] }}</p>
             <button type="button" data-music-autoplay-stop class="mt-3 inline-flex items-center gap-1.5 rounded-md border border-brand-navy/20 px-3 py-1.5 text-xs font-semibold tracking-wide text-brand-navy uppercase transition hover:border-brand-gold">
                 Stop Music
             </button>
