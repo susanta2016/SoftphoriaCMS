@@ -29,6 +29,10 @@ class CreateUserAction
         return DB::transaction(function () use ($data, $actor): User {
             $user = new User;
             $user->name = $data['name'];
+            // See UpdateUserAction's own comment: blank means "no username",
+            // not the literal empty string (which would collide with every
+            // other user also left blank on the unique index).
+            $user->username = filled($data['username'] ?? null) ? $data['username'] : null;
             $user->email = $data['email'];
             $user->status = $data['status'];
             $user->password = Hash::make(Str::random(40));

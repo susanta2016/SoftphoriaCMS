@@ -28,6 +28,12 @@ class UpdateUserAction
         return DB::transaction(function () use ($user, $data, $actor): User {
             $user->fill([
                 'name' => $data['name'],
+                // An empty submission means "clear it", not "the literal
+                // empty string" — same normalization ProfileController's
+                // own update() does, and for the same reason: two users
+                // both saved with username = '' would collide on the
+                // unique index, since '' isn't null.
+                'username' => filled($data['username'] ?? null) ? $data['username'] : null,
                 'email' => $data['email'],
             ]);
             $changedAttributes = array_keys($user->getDirty());

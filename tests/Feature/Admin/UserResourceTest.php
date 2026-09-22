@@ -173,6 +173,80 @@ class UserResourceTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_set_a_users_username(): void
+    {
+        $admin = $this->admin();
+        $target = User::factory()->create(['username' => null]);
+
+        Livewire::actingAs($admin)
+            ->test(EditUser::class, ['record' => $target->getRouteKey()])
+            ->fillForm([
+                'name' => $target->name,
+                'username' => 'new_admin_set',
+                'email' => $target->email,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('new_admin_set', $target->fresh()->username);
+    }
+
+    public function test_admin_can_clear_a_users_username(): void
+    {
+        $admin = $this->admin();
+        $target = User::factory()->create(['username' => 'had_one']);
+
+        Livewire::actingAs($admin)
+            ->test(EditUser::class, ['record' => $target->getRouteKey()])
+            ->fillForm([
+                'name' => $target->name,
+                'username' => '',
+                'email' => $target->email,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertNull($target->fresh()->username);
+    }
+
+    public function test_editing_a_user_leaving_username_blank_does_not_collide_with_another_blank_username(): void
+    {
+        $admin = $this->admin();
+        User::factory()->create(['username' => null]);
+        $target = User::factory()->create(['username' => null]);
+
+        Livewire::actingAs($admin)
+            ->test(EditUser::class, ['record' => $target->getRouteKey()])
+            ->fillForm([
+                'name' => $target->name,
+                'username' => '',
+                'email' => $target->email,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertNull($target->fresh()->username);
+    }
+
+    public function test_admin_can_set_a_username_when_creating_a_user(): void
+    {
+        $admin = $this->admin();
+
+        Livewire::actingAs($admin)
+            ->test(CreateUser::class)
+            ->fillForm([
+                'name' => 'Jane Username',
+                'username' => 'jane_username',
+                'email' => 'jane.username@example.com',
+                'status' => 'pending_verification',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $user = User::query()->where('email', 'jane.username@example.com')->firstOrFail();
+        $this->assertSame('jane_username', $user->username);
+    }
+
     public function test_the_edit_form_does_not_expose_a_status_field(): void
     {
         $target = User::factory()->create();
