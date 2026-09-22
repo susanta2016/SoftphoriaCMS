@@ -6,8 +6,9 @@
 
     $footerLogoMediaId = $settings->get('footer', 'logo_media_id');
     $footerLogo = $footerLogoMediaId ? \App\Models\Media::find($footerLogoMediaId) : null;
-    $footerSubheading = $settings->get('footer', 'subheading')
-        ?: 'A creative home for music, writing, reflection, thinking, and community.';
+    // WEB-102: no fabricated Softphoria tagline here — an empty setting
+    // just omits the subheading line rather than guessing at company copy.
+    $footerSubheading = $settings->get('footer', 'subheading');
 
     $socialLinks = \App\Models\SocialLink::query()
         ->with('icon')
@@ -57,9 +58,11 @@
                 @else
                     <x-site.brand-mark :site-name="$siteName" :tagline="$tagline" :on-dark="false"/>
                 @endif
-                <p class="mt-4 max-w-xs text-sm text-brand-navy/70">
-                    {{ $footerSubheading }}
-                </p>
+                @if ($footerSubheading)
+                    <p class="mt-4 max-w-xs text-sm text-brand-navy/70">
+                        {{ $footerSubheading }}
+                    </p>
+                @endif
                 <div class="mt-5 flex gap-2">
                     @foreach ($socialLinks as $link)
                         <a href="{{ $link->url }}" aria-label="{{ $link->label }}" target="_blank" rel="noopener" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-navy text-white transition hover:bg-brand-gold">

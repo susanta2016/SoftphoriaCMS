@@ -259,6 +259,24 @@ class PageForm
             TextInput::make('content_json.attribution')->label('Attribution')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Quote->value),
 
+            // WEB-102 — reuses the same structured gallery_items shape below
+            // for non-photo "titled item grid" content (service cards,
+            // process steps, testimonials) instead of a new section type:
+            // this only changes which of the existing title/description
+            // fields per item are filled in and how they're presented,
+            // never the data shape itself. Defaults to 'grid' (today's
+            // photo/portfolio behavior, unchanged) so every section saved
+            // before this field existed keeps rendering exactly as before.
+            Select::make('content_json.display')
+                ->label('Display as')
+                ->options([
+                    'grid' => 'Card grid (photos or titled cards)',
+                    'steps' => 'Numbered steps (e.g. a process)',
+                    'quotes' => 'Quotes (e.g. testimonials — title is used as the attribution)',
+                ])
+                ->default('grid')
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Gallery->value),
+
             // WEB-101 item E: a structured repeater (same pattern as the FAQ
             // repeater above) replaces the old bare content_json.media_ids
             // ID list, so a gallery item can carry a title/description/link

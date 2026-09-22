@@ -5,19 +5,29 @@ namespace App\Http\Controllers;
 use App\Enums\PageSectionType;
 use App\Models\Media;
 use App\Models\Page;
+use App\Models\PageSection;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 
 /**
- * The approved Home_page_layout_V4.1.1.png homepage (WEB-001..005). Content
- * comes from the "home" CMS Page — created/edited through the same Pages
- * module as any other page (ADMIN-006) — while the fallback values below
- * mirror that same approved copy, so a fresh install with the page not yet
- * created still renders the approved layout instead of an error. The header
- * logo and site_name/tagline read Website Setup's existing general settings
- * — this is site-wide chrome, not page content.
+ * The Softphoria homepage (WEB-102). Content comes from the "home" CMS Page
+ * — created/edited through the same Pages module as any other page
+ * (ADMIN-006), seeded with Softphoria's real copy by HomePageSeeder — while
+ * the fallback values below are deliberately neutral (never another
+ * company's identity/claims), so a fresh install with the page not yet
+ * created still renders something reasonable instead of an error. The
+ * header logo and site_name/tagline read Website Setup's existing general
+ * settings — this is site-wide chrome, not page content.
+ *
+ * The Hero section is rendered here with its own bespoke full-bleed banner
+ * markup (resources/views/home.blade.php) since that look is specific to
+ * the homepage; every other enabled section on the "home" Page (Who We Are,
+ * Services, Expertise, Process, Testimonials, the Contact Form CTA — see
+ * HomePageSeeder) is rendered generically through the same x-site.sections
+ * component the rest of the public site uses (WEB-102), via $sections.
  */
 class HomeController extends Controller
 {
@@ -25,6 +35,7 @@ class HomeController extends Controller
     {
         $hero = null;
         $seo = null;
+        $sections = new Collection;
 
         // A freshly deployed/not-yet-migrated environment has neither table
         // yet — same "fail open onto the approved defaults" reasoning as
@@ -50,12 +61,13 @@ class HomeController extends Controller
             // this used to add up to across both call sites.
             $general = $settings->all('general');
 
-            $siteName = ($general['site_name'] ?? null) ?: 'All The Things Light';
-            $tagline = ($general['tagline'] ?? null) ?: 'I AM. WE ARE. IT IS.';
+            $siteName = ($general['site_name'] ?? null) ?: config('app.name');
+            $tagline = $general['tagline'] ?? null;
             $logoMediaId = $general['logo_media_id'] ?? null;
             $logo = $logoMediaId ? Media::find($logoMediaId) : null;
 
             $hero = $this->heroContent($page);
+            $sections = $this->nonHeroSections($page);
 
             $seo = SeoTagBuilder::build($page?->seo, [
                 'title' => $page?->title ?: $siteName,
@@ -74,8 +86,8 @@ class HomeController extends Controller
             ], $general);
         } catch (QueryException) {
             $page = null;
-            $siteName = 'All The Things Light';
-            $tagline = 'I AM. WE ARE. IT IS.';
+            $siteName = config('app.name');
+            $tagline = null;
             $logo = null;
         }
 
@@ -107,7 +119,7 @@ class HomeController extends Controller
 
         return view('home', [
             'hero' => $hero,
-            'community' => $this->communityContent($page),
+            'sections' => $sections,
             'siteName' => $siteName,
             'tagline' => $tagline,
             'logo' => $logo,
@@ -120,16 +132,20 @@ class HomeController extends Controller
      */
     private function heroContent(?Page $page): array
     {
+        // Neutral fallback only — used when the "home" Page or its Hero
+        // section doesn't exist yet (fresh install). Never another
+        // company's headline/CTAs; those come solely from the real seeded
+        // content (HomePageSeeder) or an admin editing the Page.
         $defaults = [
-            'heading' => 'Light is our nature. Love is our purpose.',
-            'subheading' => "Music. Writing. Reflection. Thinking. Community.\n\nA space to explore ideas, discover music, and connect with what truly matters.",
+            'heading' => config('app.name'),
+            'subheading' => null,
             'media_id' => null,
-            'cta_label' => 'Explore Music',
-            'cta_url' => '#',
-            'secondary_cta_label' => 'Read Writing',
-            'secondary_cta_url' => '#',
-            'tertiary_label' => 'Watch Introduction',
-            'tertiary_url' => '#',
+            'cta_label' => null,
+            'cta_url' => null,
+            'secondary_cta_label' => null,
+            'secondary_cta_url' => null,
+            'tertiary_label' => null,
+            'tertiary_url' => null,
             'tertiary_video_media_id' => null,
         ];
 
@@ -171,12 +187,19 @@ class HomeController extends Controller
     }
 
     /**
-     * @return array<string, mixed>
+     * Every enabled section on the "home" Page except Hero (rendered
+     * separately, see the class docblock) — Who We Are, Services,
+     * Expertise, Process, Testimonials, the Contact Form CTA, in
+     * sort_order. Rendered generically by x-site.sections, the same
+     * component the rest of the public site uses (WEB-102) — no
+     * homepage-specific rendering logic duplicated here.
+     *
+     * @return Collection<int, PageSection>
      */
-    private function communityContent(?Page $page): array
+    private function nonHeroSections(?Page $page): Collection
     {
-        return [
-            'enabled' => (bool) $page?->sections->firstWhere('section_type', PageSectionType::FeaturedContent->value),
-        ];
+        return ($page?->sections ?? new Collection)
+            ->reject(fn ($section) => $section->section_type === PageSectionType::Hero->value)
+            ->values();
     }
 }

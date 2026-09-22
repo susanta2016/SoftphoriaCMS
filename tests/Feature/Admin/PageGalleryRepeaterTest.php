@@ -57,6 +57,63 @@ class PageGalleryRepeaterTest extends TestCase
         $this->assertSame('https://example.com/first', $section->content_json['gallery_items'][0]['url']);
     }
 
+    /**
+     * WEB-102 — the Gallery section's optional content_json.display field
+     * ('grid' | 'steps' | 'quotes'), reusing the exact same gallery_items
+     * shape for service cards / process steps / testimonials instead of a
+     * new section type. Defaults to 'grid' when unset (existing photo
+     * galleries, unchanged) — see PageForm's "Display as" field and
+     * resources/views/components/site/sections.blade.php.
+     */
+    public function test_saving_a_gallery_section_persists_the_display_field(): void
+    {
+        $admin = $this->admin();
+        $page = app(CreatePageAction::class)->handle([
+            'title' => 'Process Page', 'slug' => 'process-page', 'template' => PageTemplate::Standard->value,
+        ], $admin);
+
+        Livewire::actingAs($admin)
+            ->test(EditPage::class, ['record' => $page->getRouteKey()])
+            ->fillForm([
+                'sections' => [[
+                    'section_type' => 'gallery',
+                    'title' => 'Our Process',
+                    'is_enabled' => true,
+                    'content_json' => [
+                        'display' => 'steps',
+                        'gallery_items' => [['title' => 'Discovery', 'description' => 'We dive deep.']],
+                    ],
+                ]],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $section = $page->fresh()->sections()->first();
+        $this->assertSame('steps', $section->content_json['display']);
+    }
+
+    public function test_a_gallery_section_with_no_display_field_defaults_to_grid_on_the_public_page(): void
+    {
+        $admin = $this->admin();
+        $media = $this->media();
+        $page = app(CreatePageAction::class)->handle([
+            'title' => 'Legacy Display Page', 'slug' => 'legacy-display-page', 'template' => PageTemplate::Standard->value,
+            'status' => 'published',
+            'sections' => [
+                ['section_type' => 'gallery', 'is_enabled' => true, 'content_json' => [
+                    'gallery_items' => [['media_id' => $media->id, 'title' => 'A Photo']],
+                ]],
+            ],
+        ], $admin);
+
+        $response = $this->get('/'.$page->slug);
+
+        $response->assertOk();
+        // Grid rendering (x-site.portfolio-item) wraps the item in an <a>/<div>
+        // with the "group" class — steps/quotes layouts never emit it.
+        $response->assertSee('group block overflow-hidden rounded-lg', false);
+    }
+
     public function test_editing_a_legacy_media_ids_gallery_section_hydrates_the_repeater(): void
     {
         $admin = $this->admin();
