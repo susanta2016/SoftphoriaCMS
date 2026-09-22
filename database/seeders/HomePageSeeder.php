@@ -45,6 +45,16 @@ class HomePageSeeder extends Seeder
             return;
         }
 
+        $existingPage = Page::query()->where('slug', 'home')->with('sections')->first();
+
+        // WEB-102 browser-verification pass: re-running this seeder used to
+        // silently wipe out a hero image an admin had since uploaded through
+        // the Pages editor, since this array below never set media_id itself
+        // — carrying forward whatever is already saved avoids that.
+        $existingHeroMediaId = $existingPage?->sections
+            ->firstWhere('section_type', PageSectionType::Hero->value)
+            ?->content_json['media_id'] ?? null;
+
         $data = [
             'title' => 'Home',
             'slug' => 'home',
@@ -58,10 +68,15 @@ class HomePageSeeder extends Seeder
                     'title' => 'Homepage Hero',
                     'is_enabled' => true,
                     'content_json' => [
-                        'heading' => 'Technology & IT Solutions',
-                        'subheading' => 'Excellent IT Services for your success',
+                        // WEB-102 browser-verification pass: the live site's
+                        // small "TECHNOLOGY & IT SOLUTION" label sits ABOVE
+                        // its big "Excellent IT Services for your success"
+                        // heading — the first pass had these two swapped.
+                        'eyebrow' => 'Technology & IT Solutions',
+                        'heading' => 'Excellent IT Services for your success',
                         'cta_label' => 'Read More',
                         'cta_url' => '#',
+                        'media_id' => $existingHeroMediaId,
                     ],
                 ],
                 [
@@ -85,18 +100,38 @@ class HomePageSeeder extends Seeder
                                 'title' => 'Creative Design',
                                 'description' => 'Build a distinctive brand identity that captures attention, engages your audience, and leaves a memorable impression.',
                                 'url' => '#',
+                                'icon' => 'design',
                             ],
                             [
                                 'title' => 'Web Development',
                                 'description' => 'Bring your vision to life with a beautifully crafted, user-centric website—designed for seamless performance and modern appeal.',
                                 'url' => '#',
+                                'icon' => 'code',
                             ],
                             [
                                 'title' => 'Mobile Application',
                                 'description' => 'Develop powerful, intuitive apps customized to your needs. Deliver exceptional user experiences and grow your digital impact.',
                                 'url' => '#',
+                                'icon' => 'mobile',
                             ],
                         ],
+                    ],
+                ],
+                [
+                    // WEB-102 browser-verification pass: the live homepage's
+                    // "Explore Our Expert" / "Fully dedicated to the best
+                    // solutions." section — missing from the first pass
+                    // entirely. Cta's new eyebrow/description fields exist
+                    // specifically for this.
+                    'section_type' => PageSectionType::Cta->value,
+                    'title' => null,
+                    'is_enabled' => true,
+                    'content_json' => [
+                        'eyebrow' => 'Explore Our Expert',
+                        'heading' => 'Fully dedicated to the best solutions.',
+                        'description' => 'We specialize in crafting high-performance websites that bring your vision to life. From sleek, responsive designs to robust backend development, we build tailored web solutions that deliver results. Whether you\'re launching a startup or scaling an enterprise, our web development services are designed to grow with you.',
+                        'cta_label' => 'Learn More',
+                        'cta_url' => '#',
                     ],
                 ],
                 [
@@ -132,10 +167,10 @@ class HomePageSeeder extends Seeder
                         // was preserved rather than "corrected" (WEB-102:
                         // preserve actual content, don't rewrite claims).
                         'gallery_items' => [
-                            ['title' => 'Discovery', 'description' => 'We dive deep to understand your goals, audience, and challenges.'],
-                            ['title' => 'Planning', 'description' => 'We bring ideas to life with precision, creativity, and agility.'],
-                            ['title' => 'Execute', 'description' => 'We craft a clear, strategic roadmap tailored to your vision.'],
-                            ['title' => 'Deliver', 'description' => 'We launch with impact, ensuring quality, performance, and satisfaction.'],
+                            ['title' => 'Discovery', 'description' => 'We dive deep to understand your goals, audience, and challenges.', 'icon' => 'search'],
+                            ['title' => 'Planning', 'description' => 'We bring ideas to life with precision, creativity, and agility.', 'icon' => 'plan'],
+                            ['title' => 'Execute', 'description' => 'We craft a clear, strategic roadmap tailored to your vision.', 'icon' => 'gear'],
+                            ['title' => 'Deliver', 'description' => 'We launch with impact, ensuring quality, performance, and satisfaction.', 'icon' => 'rocket'],
                         ],
                     ],
                 ],
@@ -184,10 +219,8 @@ class HomePageSeeder extends Seeder
             ],
         ];
 
-        $page = Page::query()->where('slug', 'home')->first();
-
-        if ($page) {
-            app(UpdatePageAction::class)->handle($page, $data, $actor);
+        if ($existingPage) {
+            app(UpdatePageAction::class)->handle($existingPage, $data, $actor);
         } else {
             app(CreatePageAction::class)->handle($data, $actor);
         }
@@ -244,6 +277,16 @@ class HomePageSeeder extends Seeder
     {
         if (in_array($settings->get('general', 'site_name'), [null, '', 'All The Things Light'], true)) {
             $settings->set('general', 'site_name', 'Softphoria');
+        }
+
+        // WEB-102 browser-verification pass: "Be your tech partner" is the
+        // real tagline shown under the logo on the live site — verified via
+        // browser, not fabricated. Never overwrites a tagline an admin has
+        // since set (including intentionally clearing it back to blank —
+        // there's no way to distinguish that from "never set" here, so this
+        // only ever fires once on a fresh/never-touched install).
+        if (blank($settings->get('general', 'tagline'))) {
+            $settings->set('general', 'tagline', 'Be your tech partner');
         }
 
         if ($settings->get('general', 'logo_media_id')) {

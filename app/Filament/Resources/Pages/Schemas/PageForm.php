@@ -14,6 +14,7 @@ use App\Filament\Support\Seo\SeoFields;
 use App\Models\Page;
 use App\Models\PageRevision;
 use App\Models\User;
+use App\Shared\Support\Pages\GalleryItemIcons;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -202,10 +203,23 @@ class PageForm
                 ->default(true)
                 ->columnSpanFull(),
 
+            // WEB-102 browser-verification pass: a small eyebrow/kicker label
+            // shown above the Heading (e.g. "TECHNOLOGY & IT SOLUTION" above
+            // "Excellent IT Services for your success") — the live reference
+            // site uses this on both its Hero and its "Explore Our Expert"
+            // CTA-style section. Optional; omitted when blank.
+            TextInput::make('content_json.eyebrow')->label('Eyebrow (small label above the heading)')
+                ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
             TextInput::make('content_json.heading')->label('Heading')
                 ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
             Textarea::make('content_json.subheading')->label('Subheading')->rows(2)
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
+            // WEB-102: a body paragraph under the CTA heading, e.g. the
+            // reference site's "Fully dedicated to the best solutions."
+            // section. Cta previously had no body text field, only a
+            // heading + button.
+            Textarea::make('content_json.description')->label('Description')->rows(3)
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Cta->value),
             MediaPicker::make('content_json.media_id', 'Image')
                 ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::ImageText->value], true)),
             TextInput::make('content_json.cta_label')->label('Button label')
@@ -296,6 +310,15 @@ class PageForm
                     Textarea::make('description')->rows(2),
                     TextInput::make('url')->label('Link URL')->maxLength(255)
                         ->helperText('Optional — makes the item clickable.'),
+                    // WEB-102: a small decorative icon in place of/alongside
+                    // an uploaded Image — for a 'steps' or plain 'grid' item
+                    // with no photo (e.g. a service or process step), a
+                    // generic icon reads better than a blank card. Closed
+                    // set (x-site.icon), never arbitrary markup.
+                    Select::make('icon')
+                        ->label('Icon (used when there\'s no Image)')
+                        ->options(GalleryItemIcons::options())
+                        ->native(false),
                 ])
                 ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
                 ->defaultItems(0)

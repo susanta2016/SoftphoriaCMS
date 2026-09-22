@@ -137,6 +137,7 @@ class HomeController extends Controller
         // company's headline/CTAs; those come solely from the real seeded
         // content (HomePageSeeder) or an admin editing the Page.
         $defaults = [
+            'eyebrow' => null,
             'heading' => config('app.name'),
             'subheading' => null,
             'media_id' => null,

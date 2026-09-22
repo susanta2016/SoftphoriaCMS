@@ -23,12 +23,25 @@
                 alt="{{ $hero['media']->alt_text ?: '' }}"
                 class="absolute inset-0 z-0 h-full w-full object-cover"
             >
+            {{-- Readability overlay — keeps the white hero text legible regardless of how light/dark the uploaded photo is. --}}
+            <div class="absolute inset-0 z-[1] bg-brand-navy/60"></div>
         @endif
-        <x-site.header transparent :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
+        {{--
+            WEB-102 browser-verification pass: the reference site's header
+            is a plain solid bar, not a transparent overlay on the hero
+            photo — and a transparent header here forced nav/phone-module
+            text (always navy) to sit directly against the hero's own navy
+            background/overlay with no guaranteed contrast. Matching the
+            reference's actual layout fixes both at once.
+        --}}
+        <x-site.header :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
 
-        <div class="relative z-20 mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 lg:px-8 lg:pt-40 lg:pb-32">
+        <div class="relative z-20 mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 sm:pt-36 lg:px-8 lg:pt-44 lg:pb-32">
             <div class="max-w-2xl">
-                <h1 class="text-[2.5rem] leading-[1.15] font-serif text-brand-navy [text-wrap:balance] sm:text-5xl">
+                @if ($hero['eyebrow'])
+                    <p class="text-sm font-semibold tracking-[0.15em] text-brand-gold-light uppercase">{{ $hero['eyebrow'] }}</p>
+                @endif
+                <h1 class="mt-1 text-[2.5rem] leading-[1.15] font-serif text-white [text-wrap:balance] sm:text-5xl">
                     {{ $hero['heading'] }}
                 </h1>
 
@@ -39,7 +52,7 @@
                 </div>
 
                 @if ($hero['subheading'])
-                    <p class="max-w-xl text-base leading-relaxed whitespace-pre-line text-brand-navy/80 sm:text-lg">{{ $hero['subheading'] }}</p>
+                    <p class="max-w-xl text-base leading-relaxed whitespace-pre-line text-white/80 sm:text-lg">{{ $hero['subheading'] }}</p>
                 @endif
 
                 <div class="mt-8 flex flex-wrap items-center gap-4">
@@ -51,7 +64,7 @@
                     @endif
 
                     @if ($hero['secondary_cta_label'] && $hero['secondary_cta_url'])
-                        <a href="{{ $hero['secondary_cta_url'] }}" class="inline-flex items-center rounded-md border border-brand-navy/40 px-6 py-3.5 text-sm font-semibold tracking-wide text-brand-navy uppercase transition hover:border-brand-navy hover:bg-white/40">
+                        <a href="{{ $hero['secondary_cta_url'] }}" class="inline-flex items-center rounded-md border border-white/40 px-6 py-3.5 text-sm font-semibold tracking-wide text-white uppercase transition hover:border-white hover:bg-white/10">
                             {{ $hero['secondary_cta_label'] }}
                         </a>
                     @endif
@@ -59,15 +72,15 @@
 
                 @if ($hero['tertiary_label'])
                     @if ($hero['tertiary_video'] || $hero['tertiary_embed_url'])
-                        <button type="button" data-video-modal-toggle class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-navy transition hover:text-brand-gold">
-                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-brand-navy/70">
+                        <button type="button" data-video-modal-toggle class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-white transition hover:text-brand-gold-light">
+                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-white/70">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-2.5 w-2.5"><path d="M8 5v14l11-7z"/></svg>
                             </span>
                             {{ $hero['tertiary_label'] }}
                         </button>
                     @else
-                        <a href="{{ $hero['tertiary_url'] }}" class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-navy transition hover:text-brand-gold">
-                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-brand-navy/70">
+                        <a href="{{ $hero['tertiary_url'] }}" class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-white transition hover:text-brand-gold-light">
+                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-white/70">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-2.5 w-2.5"><path d="M8 5v14l11-7z"/></svg>
                             </span>
                             {{ $hero['tertiary_label'] }}

@@ -11,7 +11,7 @@
 <x-layouts.site :seo="$seo">
     <x-site.header :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
 
-    <main class="pt-24 pb-12 sm:pt-28">
+    <main class="pt-24 pb-12 sm:pt-32">
         <x-site.section>
             <h1 class="text-3xl font-bold text-brand-navy sm:text-4xl">Contact Us</h1>
 

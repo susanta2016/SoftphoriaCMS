@@ -30,6 +30,9 @@
                             alt="{{ $media->alt_text ?? '' }}"
                         >
                     @endif
+                    @if (!empty($content['eyebrow']))
+                        <p class="text-sm font-semibold tracking-[0.15em] text-brand-gold uppercase">{{ $content['eyebrow'] }}</p>
+                    @endif
                     @if (!empty($content['heading']))
                         <h2 class="text-2xl font-bold text-brand-navy">{{ $content['heading'] }}</h2>
                     @endif
@@ -96,8 +99,14 @@
 
             @case('cta')
                 <div class="text-center">
+                    @if (!empty($content['eyebrow']))
+                        <p class="text-sm font-semibold tracking-[0.15em] text-brand-gold uppercase">{{ $content['eyebrow'] }}</p>
+                    @endif
                     @if (!empty($content['heading']))
-                        <h2 class="text-2xl font-bold text-brand-navy">{{ $content['heading'] }}</h2>
+                        <h2 class="mt-1 text-2xl font-bold text-brand-navy">{{ $content['heading'] }}</h2>
+                    @endif
+                    @if (!empty($content['description']))
+                        <p class="mx-auto mt-3 max-w-2xl text-brand-navy/70">{{ $content['description'] }}</p>
                     @endif
                     @if (!empty($content['cta_label']) && !empty($content['cta_url']))
                         <div class="mt-5">
@@ -118,6 +127,9 @@
                     <ol class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                         @foreach ($content['gallery_items'] as $item)
                             <li>
+                                @if (!empty($item['icon']))
+                                    <x-site.icon :name="$item['icon']" class="mb-2 h-8 w-8 text-brand-gold"/>
+                                @endif
                                 <span class="text-sm font-bold text-brand-gold">{{ sprintf('%02d', $loop->iteration) }}</span>
                                 @if (!empty($item['title']))
                                     <h3 class="mt-1 font-semibold text-brand-navy">{{ $item['title'] }}</h3>
@@ -150,6 +162,7 @@
                                 :title="$item['title'] ?? null"
                                 :description="$item['description'] ?? null"
                                 :url="$item['url'] ?? null"
+                                :icon="$item['icon'] ?? null"
                             />
                         @endforeach
                     </div>

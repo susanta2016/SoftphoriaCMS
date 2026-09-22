@@ -16,16 +16,48 @@
         ->first();
 
     $navItems = $primaryMenu?->items ?? collect();
+
+    // WEB-102 browser-verification pass: the reference site's utility bar
+    // (contact email + address above the nav) and its header phone/"Free
+    // Consultation" module — both reuse the existing Website Setup ->
+    // Contact settings (WEB-101 item F), nothing new to configure.
+    $contactSettings = app(\App\Shared\Services\Settings\SettingsRepository::class);
+    $contactEmail = $contactSettings->get('contact', 'email');
+    $contactPhone = $contactSettings->get('contact', 'phone');
+    $contactAddress = $contactSettings->get('contact', 'address');
 @endphp
 
-<header
-    @if ($transparent) data-transparent-header @endif
-    {{ $attributes->class([
-        'fixed inset-x-0 top-0 z-30 w-full transition-colors duration-200',
-        'bg-transparent' => $transparent,
-        'bg-white shadow-sm' => ! $transparent,
-    ]) }}
->
+{{--
+    One fixed wrapper holds both the utility bar and the nav row, so they
+    stack in normal flow inside it rather than needing two independently
+    coordinated fixed offsets. The utility bar only takes up space when
+    there's contact info to show — pages/show.blade.php's and home.blade.php's
+    own top padding already has enough buffer for either case.
+--}}
+<div class="fixed inset-x-0 top-0 z-30 w-full">
+    @if ($contactEmail || $contactAddress)
+        <div class="hidden bg-brand-gold px-4 py-2 text-xs text-white sm:block sm:px-6 lg:px-8">
+            <div class="mx-auto flex max-w-7xl items-center justify-between gap-4">
+                <span class="truncate">
+                    @if ($contactEmail)
+                        <a href="mailto:{{ $contactEmail }}" class="font-medium hover:underline">{{ $contactEmail }}</a>
+                    @endif
+                </span>
+                @if ($contactAddress)
+                    <span class="hidden truncate lg:inline">{{ $contactAddress }}</span>
+                @endif
+            </div>
+        </div>
+    @endif
+
+    <header
+        @if ($transparent) data-transparent-header @endif
+        {{ $attributes->class([
+            'w-full transition-colors duration-200',
+            'bg-transparent' => $transparent,
+            'bg-white shadow-sm' => ! $transparent,
+        ]) }}
+    >
     <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-3 gap-y-3 px-4 py-4 sm:gap-x-6 sm:px-6 lg:flex-nowrap lg:px-8">
         <a href="{{ route('home') }}" class="min-w-0 shrink">
             @if ($logo)
@@ -61,6 +93,18 @@
                 </a>
             @endforeach
         </nav>
+
+        @if ($contactPhone)
+            <div class="hidden shrink-0 items-center gap-2 lg:flex">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="h-6 w-6 text-brand-navy">
+                    <path d="M4 5c0 8.3 6.7 15 15 15l2-3.5-5-2-1.5 2A12 12 0 0 1 7.5 9.5l2-1.5-2-5L4 5Z" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <a href="tel:{{ $contactPhone }}" class="leading-tight">
+                    <span class="block text-xs text-brand-navy/60">Free Consultation</span>
+                    <span class="block text-sm font-semibold text-brand-navy">{{ $contactPhone }}</span>
+                </a>
+            </div>
+        @endif
 
         <div class="flex shrink-0 items-center gap-2 sm:gap-3">
             <a
@@ -170,4 +214,5 @@
             @endguest
         </div>
     </div>
-</header>
+    </header>
+</div>

@@ -39,6 +39,76 @@ class HomepageTest extends TestCase
         $response->assertSee('Read More');
     }
 
+    /**
+     * Browser-verification pass against the live reference site: its small
+     * "TECHNOLOGY & IT SOLUTION" label sits ABOVE the big "Excellent IT
+     * Services..." heading, not the other way around — assert the actual
+     * heading tag carries the big line, and the eyebrow renders separately.
+     */
+    public function test_the_hero_eyebrow_is_distinct_from_and_precedes_the_heading(): void
+    {
+        $this->seedHomepage();
+
+        $content = $this->get('/')->getContent();
+
+        $this->assertNotFalse($content);
+        $eyebrow = strpos($content, 'Technology &amp; IT Solutions');
+        $heading = strpos($content, 'Excellent IT Services for your success');
+
+        $this->assertNotFalse($heading, 'the H1 should contain the big headline');
+        $this->assertNotFalse($eyebrow);
+        $this->assertTrue($eyebrow < $heading, 'the eyebrow should render before the heading');
+    }
+
+    /**
+     * The "Explore Our Expert" / "Fully dedicated to the best solutions."
+     * section — present on the live homepage, missing entirely from the
+     * first WEB-102 pass.
+     */
+    public function test_the_homepage_renders_the_fully_dedicated_section(): void
+    {
+        $this->seedHomepage();
+
+        $response = $this->get('/');
+
+        $response->assertSee('Explore Our Expert');
+        $response->assertSee('Fully dedicated to the best solutions.');
+        $response->assertSee('We specialize in crafting high-performance websites');
+        $response->assertSee('Learn More');
+    }
+
+    public function test_services_and_process_items_render_their_icons(): void
+    {
+        $this->seedHomepage();
+
+        $response = $this->get('/');
+
+        // x-site.icon renders nothing for an unknown/blank name, so seeing
+        // the svg markup at all confirms a recognized icon key was used.
+        $response->assertSee('<svg', false);
+    }
+
+    public function test_the_header_shows_the_real_tagline_and_utility_bar(): void
+    {
+        $this->seedHomepage();
+
+        $response = $this->get('/');
+
+        $response->assertSee('Be your tech partner');
+        $response->assertSee('contact@softphoria.com');
+        $response->assertSee('Monalisa Mansion, Nayabad Ave, Kolkata, India');
+    }
+
+    public function test_the_header_shows_the_free_consultation_phone_module(): void
+    {
+        $this->seedHomepage();
+
+        $response = $this->get('/');
+
+        $response->assertSee('Free Consultation');
+        $response->assertSee('tel:+91 9163270494', false);
+    }
+
     public function test_the_homepage_renders_who_we_are(): void
     {
         $this->seedHomepage();

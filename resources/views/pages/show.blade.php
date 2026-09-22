@@ -32,7 +32,7 @@
         <x-site.header :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
     @endif
 
-    <main class="pt-24 pb-4 sm:pt-28">
+    <main class="pt-24 pb-4 sm:pt-32">
         <div class="mx-auto max-w-4xl px-4 sm:px-6">
             @if ($page->featuredImage)
                 <img
