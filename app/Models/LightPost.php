@@ -180,7 +180,9 @@ class LightPost extends Model implements SearchResultRepresentable
      */
     public function searchResultTitle(): string
     {
-        return $this->user?->name ? "A Little Light from {$this->user->name}" : 'A Little Light';
+        $name = $this->user?->displayName();
+
+        return $name ? "A Little Light from {$name}" : 'A Little Light';
     }
 
     public function searchResultExcerpt(): string

@@ -8,6 +8,7 @@ use App\Filament\Resources\Users\UserResource;
 use App\Filament\Support\Media\MediaPicker;
 use App\Models\Role;
 use App\Models\User;
+use App\Shared\Support\Users\UsernameRules;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -55,6 +56,13 @@ class UserForm
                                     TextInput::make('name')
                                         ->required()
                                         ->maxLength(255),
+                                    TextInput::make('username')
+                                        ->helperText('Shown publicly instead of Name (e.g. Gratitude Journal, reviews) once set. Leave blank to keep showing Name.')
+                                        ->nullable()
+                                        ->minLength(UsernameRules::MIN_LENGTH)
+                                        ->maxLength(UsernameRules::MAX_LENGTH)
+                                        ->regex('/^[A-Za-z0-9_]+$/')
+                                        ->unique(table: User::class, column: 'username', ignoreRecord: true),
                                     TextInput::make('email')
                                         ->label('Email address')
                                         ->email()

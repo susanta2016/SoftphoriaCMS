@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Media;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
+use App\Shared\Support\Users\UsernameRules;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,8 +51,18 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
 
+        // An empty submission means "clear it" (Username is optional for an
+        // existing member — UsernameRules::rules(required: false)) rather
+        // than "an invalid, too-short value" — `nullable` only short-
+        // circuits the other rules for a literal null, not an empty string,
+        // so a blank field is normalized to null before validating.
+        $request->merge([
+            'username' => $request->filled('username') ? trim((string) $request->string('username')) : null,
+        ]);
+
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
+            'username' => UsernameRules::rules(required: false, ignoreUserId: $user->getKey()),
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->getKey())],
             'bio' => ['nullable', 'string', 'max:65535'],
         ]);

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
 use App\Modules\Commerce\Services\Stripe\StripeGatewayContract;
 use App\Shared\Services\Notifications\TemplatedMailer;
+use App\Shared\Support\Users\UsernameRules;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
@@ -44,7 +45,7 @@ class RegisterProUserAction
     ) {}
 
     /**
-     * @param  array{name: string, email: string, password: string, phone_number?: ?string, address?: ?string, zip_code?: ?string, light_post_action?: ?string, light_message?: ?string}  $data
+     * @param  array{name: string, username: string, email: string, password: string, phone_number?: ?string, address?: ?string, zip_code?: ?string, light_post_action?: ?string, light_message?: ?string}  $data
      */
     public function handle(array $data): ProRegistrationOutcome
     {
@@ -66,8 +67,23 @@ class RegisterProUserAction
             // stranger's existing profile, on a resumed abandoned attempt.
             $user = $existing;
         } else {
+            // The controller's own validator deliberately skips its
+            // uniqueness rule for username (UsernameRules::rules()'s
+            // $enforceUniqueness — same reasoning as `email` above: a retry
+            // legitimately resubmits its own already-saved value, and
+            // there's no user id yet at validation time to ignore). This is
+            // genuinely a new account, so a real conflict with a *different*
+            // user is caught here instead, before the row is ever written —
+            // the same case-insensitive check that rule itself runs.
+            if (UsernameRules::isTaken($data['username'])) {
+                throw ValidationException::withMessages([
+                    'username' => 'This username has already been taken.',
+                ]);
+            }
+
             $user = new User;
             $user->name = $data['name'];
+            $user->username = $data['username'];
             $user->email = $data['email'];
             $user->password = Hash::make($data['password']);
             $user->status = UserStatus::PendingVerification->value;

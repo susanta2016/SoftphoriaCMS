@@ -24,7 +24,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'username', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -52,6 +52,27 @@ class User extends Authenticatable implements FilamentUser
     public function profile(): HasOne
     {
         return $this->hasOne(UserProfile::class);
+    }
+
+    /**
+     * Every public-facing place a member's identity is shown to *other*
+     * visitors — the homepage's Latest Gratitude carousel, the Gratitude
+     * Journal shared feed, a Light Post's own page, and Music/Podcast/
+     * Poetry-Prose review bylines — reads through this rather than `name`
+     * directly, so Username (once a member sets one) is what the public
+     * sees instead of their real name. Falls back to `name` for a member
+     * who has never set a Username (nullable — existing accounts have
+     * none until they add one on Account > Profile).
+     *
+     * Deliberately NOT used for self-facing text addressed to the account
+     * owner themselves (the dashboard welcome, the profile edit form's own
+     * "Full Name" field, "Purchasing as .../Submitting as ..." confirmation
+     * lines) — those stay `name`, the same real name a receipt or an admin
+     * needs, on purpose.
+     */
+    public function displayName(): string
+    {
+        return $this->username ?: $this->name;
     }
 
     /**

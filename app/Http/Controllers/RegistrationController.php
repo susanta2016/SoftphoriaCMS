@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
+use App\Shared\Support\Users\UsernameRules;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -76,6 +77,7 @@ class RegistrationController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
+            'username' => UsernameRules::rules(required: true),
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             ...self::lightPostRules(),
@@ -125,6 +127,7 @@ class RegistrationController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
+            'username' => UsernameRules::rules(required: true, enforceUniqueness: false),
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             ...self::lightPostRules(),

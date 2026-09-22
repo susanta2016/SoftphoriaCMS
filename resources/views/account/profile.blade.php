@@ -33,6 +33,17 @@
                 </div>
 
                 <div>
+                    <label for="username" class="block text-sm font-medium text-brand-navy">Username</label>
+                    <input
+                        type="text" id="username" name="username" value="{{ old('username', $user->username) }}" autocomplete="username"
+                        minlength="{{ \App\Shared\Support\Users\UsernameRules::MIN_LENGTH }}" maxlength="{{ \App\Shared\Support\Users\UsernameRules::MAX_LENGTH }}"
+                        pattern="[A-Za-z0-9_]+" title="Letters, numbers, and underscores only"
+                        class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
+                    >
+                    <p class="mt-1.5 text-xs text-brand-navy/60">Shown to other members instead of your full name (e.g. on the Gratitude Journal). Leave blank to keep showing your full name.</p>
+                </div>
+
+                <div>
                     <label for="email" class="block text-sm font-medium text-brand-navy">Email Address *</label>
                     <input
                         type="email" id="email" name="email" value="{{ old('email', $user->email) }}" required autocomplete="email"

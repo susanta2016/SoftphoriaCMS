@@ -176,7 +176,7 @@
                                             <div class="min-w-0 flex-1">
                                                 <p class="text-sm leading-relaxed text-brand-navy/75">{{ $review->content }}</p>
                                                 <p class="mt-2 text-xs text-brand-navy/50">
-                                                    {{ $review->user?->name ?? 'A Member' }} &middot; {{ $review->created_at->format('M j, Y') }}
+                                                    {{ $review->reviewerName() }} &middot; {{ $review->created_at->format('M j, Y') }}
                                                 </p>
                                             </div>
 

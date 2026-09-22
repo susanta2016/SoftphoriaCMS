@@ -31,12 +31,13 @@ class RegisterFreeUserAction
     public function __construct(private readonly TemplatedMailer $mailer) {}
 
     /**
-     * @param  array{name: string, email: string, password: string, phone_number?: ?string, address?: ?string, zip_code?: ?string, light_post_action?: ?string, light_message?: ?string}  $data
+     * @param  array{name: string, username: string, email: string, password: string, phone_number?: ?string, address?: ?string, zip_code?: ?string, light_post_action?: ?string, light_message?: ?string}  $data
      */
     public function handle(array $data): User
     {
         $user = new User;
         $user->name = $data['name'];
+        $user->username = $data['username'];
         $user->email = $data['email'];
         $user->password = Hash::make($data['password']);
         $user->status = UserStatus::PendingVerification->value;

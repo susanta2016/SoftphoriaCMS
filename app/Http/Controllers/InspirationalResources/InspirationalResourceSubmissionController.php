@@ -65,8 +65,12 @@ class InspirationalResourceSubmissionController extends Controller
         // Sourced from the authenticated account, never trusted from the
         // request — a logged-in user's name/email are fetched internally
         // rather than taking whatever the client happened to submit.
+        // displayName() (Username if set, else the real name) since this
+        // becomes the public "Shared by ..." byline on the resource listing
+        // (see ResourceSubmission::publicTitle()/entry-card.blade.php) — the
+        // same public-identity rule as every other public byline.
         if ($user) {
-            $data['name'] = $user->name;
+            $data['name'] = $user->displayName();
             $data['email'] = $user->email;
         }
 

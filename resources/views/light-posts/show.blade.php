@@ -1,7 +1,7 @@
 @php
     use App\Models\User;
 
-    $name = $lightPost->user?->name ?: 'A Member';
+    $name = $lightPost->user?->displayName() ?: 'A Member';
 @endphp
 
 <x-layouts.site :seo="$seo">

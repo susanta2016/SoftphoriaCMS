@@ -37,6 +37,7 @@ class ProRegistrationTest extends TestCase
     {
         $response = $this->post(route('register.pro'), [
             'name' => 'Jane Pro',
+            'username' => 'jane_pro',
             'email' => 'jane.pro@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -46,6 +47,7 @@ class ProRegistrationTest extends TestCase
 
         $user = User::query()->where('email', 'jane.pro@example.com')->firstOrFail();
         $this->assertSame(UserStatus::PendingVerification->value, $user->status);
+        $this->assertSame('jane_pro', $user->username);
         $this->assertNull(Subscription::query()->where('user_id', $user->id)->first());
 
         /** @var FakeStripeGateway $fake */
@@ -62,6 +64,7 @@ class ProRegistrationTest extends TestCase
     {
         $response = $this->post(route('register.pro'), [
             'name' => 'Jane Pro',
+            'username' => 'jane_pro_noindex',
             'email' => 'jane.pro.noindex@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -74,6 +77,7 @@ class ProRegistrationTest extends TestCase
     {
         $this->post(route('register.pro'), [
             'name' => 'Jane Pro',
+            'username' => 'jane_pro_profile',
             'email' => 'jane.pro.profile@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -92,6 +96,7 @@ class ProRegistrationTest extends TestCase
     {
         $this->post(route('register.pro'), [
             'name' => 'Jane Pro',
+            'username' => 'jane_pro_light',
             'email' => 'jane.pro.light@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -109,6 +114,7 @@ class ProRegistrationTest extends TestCase
     {
         $this->post(route('register.pro'), [
             'name' => 'Retry Light',
+            'username' => 'retry_light',
             'email' => 'retry.light@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -118,6 +124,7 @@ class ProRegistrationTest extends TestCase
 
         $this->post(route('register.pro'), [
             'name' => 'Retry Light Again',
+            'username' => 'retry_light_again',
             'email' => 'retry.light@example.com',
             'password' => 'a-different-password',
             'password_confirmation' => 'a-different-password',
@@ -138,6 +145,7 @@ class ProRegistrationTest extends TestCase
         // must be silently ignored; the server always resolves its own.
         $this->post(route('register.pro'), [
             'name' => 'Jane Pro',
+            'username' => 'jane_pro2',
             'email' => 'jane.pro2@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -156,6 +164,7 @@ class ProRegistrationTest extends TestCase
 
         $response = $this->post(route('register.pro'), [
             'name' => 'Someone',
+            'username' => 'someone_active',
             'email' => 'active@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -173,6 +182,7 @@ class ProRegistrationTest extends TestCase
     {
         $first = $this->post(route('register.pro'), [
             'name' => 'Retry Me',
+            'username' => 'retry_me',
             'email' => 'retry@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -184,9 +194,13 @@ class ProRegistrationTest extends TestCase
 
         // Abandoned: never completed payment, still PendingVerification, no
         // Subscription row. Submitting the form again must reuse the same
-        // user, not create a second account.
+        // user, not create a second account. Deliberately resubmits the
+        // *same* username as the first attempt — a legitimate retry
+        // colliding with its own already-saved value must not be rejected
+        // (UsernameRules::rules()'s $enforceUniqueness — see registerPro()).
         $second = $this->post(route('register.pro'), [
             'name' => 'Retry Me Again',
+            'username' => 'retry_me',
             'email' => 'retry@example.com',
             'password' => 'a-different-password',
             'password_confirmation' => 'a-different-password',
@@ -196,9 +210,11 @@ class ProRegistrationTest extends TestCase
         $this->assertSame(1, User::query()->where('email', 'retry@example.com')->count());
 
         $user = User::query()->where('email', 'retry@example.com')->firstOrFail();
-        // The original name/password must survive — a retry never silently
-        // overwrites them (would otherwise be an account-takeover vector).
+        // The original name/username/password must survive — a retry never
+        // silently overwrites them (would otherwise be an account-takeover
+        // vector).
         $this->assertSame('Retry Me', $user->name);
+        $this->assertSame('retry_me', $user->username);
 
         /** @var FakeStripeGateway $fake */
         $fake = app(StripeGatewayContract::class);
@@ -219,6 +235,7 @@ class ProRegistrationTest extends TestCase
 
         $response = $this->post(route('register.pro'), [
             'name' => 'Paid Pending',
+            'username' => 'paid_pending',
             'email' => 'paid.pending@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -239,6 +256,7 @@ class ProRegistrationTest extends TestCase
         // Session is ever created for it.
         $response = $this->post(route('register.pro'), [
             'name' => 'Spam Bot',
+            'username' => 'spam_bot_pro',
             'email' => 'bot.pro@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -253,11 +271,58 @@ class ProRegistrationTest extends TestCase
         $this->assertCount(0, $fake->subscriptionSessionsCreated);
     }
 
+    public function test_registering_pro_without_a_username_is_rejected(): void
+    {
+        $response = $this->post(route('register.pro'), [
+            'name' => 'No Username',
+            'email' => 'no.username.pro@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertSessionHasErrors('username');
+        $this->assertSame(0, User::query()->where('email', 'no.username.pro@example.com')->count());
+
+        /** @var FakeStripeGateway $fake */
+        $fake = app(StripeGatewayContract::class);
+        $this->assertCount(0, $fake->subscriptionSessionsCreated);
+    }
+
+    /**
+     * Unlike a retry resubmitting its own value (see
+     * test_an_abandoned_pro_registration_can_be_resumed_without_creating_a_duplicate_user
+     * above), a genuinely new Pro registration colliding with a *different*
+     * existing member's username must still be rejected — RegisterProUserAction's
+     * own pre-save check (UsernameRules::isTaken()), since the controller's
+     * validator deliberately skips its uniqueness rule for this route.
+     */
+    public function test_registering_pro_with_a_username_already_taken_by_a_different_user_is_rejected(): void
+    {
+        User::factory()->create(['username' => 'existing_member']);
+
+        $response = $this->post(route('register.pro'), [
+            'name' => 'Someone New',
+            'username' => 'existing_member',
+            'email' => 'someone.new.pro@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertRedirect(route('register.show'));
+        $response->assertSessionHasErrors('username');
+        $this->assertSame(0, User::query()->where('email', 'someone.new.pro@example.com')->count());
+
+        /** @var FakeStripeGateway $fake */
+        $fake = app(StripeGatewayContract::class);
+        $this->assertCount(0, $fake->subscriptionSessionsCreated);
+    }
+
     public function test_registration_pro_is_rate_limited(): void
     {
         for ($i = 0; $i < 6; $i++) {
             $this->post(route('register.pro'), [
                 'name' => 'Someone',
+                'username' => "prorate_user_{$i}",
                 'email' => "prorate{$i}@example.com",
                 'password' => 'password123',
                 'password_confirmation' => 'password123',
@@ -266,6 +331,7 @@ class ProRegistrationTest extends TestCase
 
         $response = $this->post(route('register.pro'), [
             'name' => 'Someone',
+            'username' => 'prorate_blocked',
             'email' => 'prorate-blocked@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',

@@ -102,6 +102,18 @@ class Review extends Model
     }
 
     /**
+     * The reviewer's public byline — User::displayName() (Username if the
+     * member set one, else their real name), never the raw `name` column
+     * directly, so a review reads the same as every other public place a
+     * member's identity is shown. Falls back the same way reviewerAvatarUrl()
+     * does on the rare chance the user relation is unloadable.
+     */
+    public function reviewerName(): string
+    {
+        return $this->user?->displayName() ?? 'A Member';
+    }
+
+    /**
      * A human label for the *kind* of content reviewed (e.g. "Podcast
      * Episode", "Track") — distinct from reviewableLabel(), which names the
      * specific item. Lets the admin moderation table/filter distinguish

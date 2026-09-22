@@ -29,7 +29,7 @@ use Throwable;
  * of everything else: a changed address is unverified until proven
  * otherwise, no matter how "trusted" the session changing it is.
  *
- * @param  array{name: string, email: string, bio?: ?string}  $data
+ * @param  array{name: string, username?: ?string, email: string, bio?: ?string}  $data
  */
 class UpdateAccountProfileAction
 {
@@ -43,6 +43,7 @@ class UpdateAccountProfileAction
             $emailChanged = $data['email'] !== $user->email;
 
             $user->name = $data['name'];
+            $user->username = $data['username'] ?? null;
             $user->email = $data['email'];
 
             if ($emailChanged) {

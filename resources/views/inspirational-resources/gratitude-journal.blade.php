@@ -99,7 +99,7 @@
                             <p class="max-w-3xl font-serif text-xl leading-relaxed text-brand-navy sm:text-2xl">{{ $entry->content }}</p>
                             <div class="mt-4 flex flex-wrap items-center gap-4">
                                 <p class="text-xs text-brand-navy/50">
-                                    {{ $entry->user?->name ?? 'A member' }} · <span class="tabular-nums">{{ $entry->created_at?->format('M j, Y') }}</span>
+                                    {{ $entry->user?->displayName() ?? 'A member' }} · <span class="tabular-nums">{{ $entry->created_at?->format('M j, Y') }}</span>
                                 </p>
 
                                 {{-- The 🙌 reaction — same generic

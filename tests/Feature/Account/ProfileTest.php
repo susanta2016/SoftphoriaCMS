@@ -170,4 +170,90 @@ class ProfileTest extends TestCase
 
         $response->assertSee('<meta name="robots" content="noindex, nofollow">', false);
     }
+
+    public function test_leaving_username_blank_does_not_set_one(): void
+    {
+        $user = User::factory()->create(['username' => null]);
+
+        $response = $this->actingAs($user)->patch(route('account.profile.update'), [
+            'name' => $user->name,
+            'email' => $user->email,
+        ]);
+
+        $response->assertRedirect(route('account.profile.edit'));
+        $response->assertSessionDoesntHaveErrors('username');
+        $this->assertNull($user->fresh()->username);
+    }
+
+    public function test_the_owner_can_set_a_username(): void
+    {
+        $user = User::factory()->create(['username' => null]);
+
+        $response = $this->actingAs($user)->patch(route('account.profile.update'), [
+            'name' => $user->name,
+            'username' => 'new_username',
+            'email' => $user->email,
+        ]);
+
+        $response->assertRedirect(route('account.profile.edit'));
+        $this->assertSame('new_username', $user->fresh()->username);
+    }
+
+    public function test_the_owner_can_clear_a_previously_set_username(): void
+    {
+        $user = User::factory()->create(['username' => 'had_one']);
+
+        $response = $this->actingAs($user)->patch(route('account.profile.update'), [
+            'name' => $user->name,
+            'username' => '',
+            'email' => $user->email,
+        ]);
+
+        $response->assertRedirect(route('account.profile.edit'));
+        $response->assertSessionDoesntHaveErrors('username');
+        $this->assertNull($user->fresh()->username);
+    }
+
+    public function test_username_uniqueness_ignores_the_current_user(): void
+    {
+        $user = User::factory()->create(['username' => 'my_own_name']);
+
+        $response = $this->actingAs($user)->patch(route('account.profile.update'), [
+            'name' => $user->name,
+            'username' => 'my_own_name',
+            'email' => $user->email,
+        ]);
+
+        $response->assertRedirect(route('account.profile.edit'));
+        $response->assertSessionDoesntHaveErrors('username');
+    }
+
+    public function test_username_uniqueness_rejects_another_users_username(): void
+    {
+        User::factory()->create(['username' => 'taken_username']);
+        $user = User::factory()->create(['username' => null]);
+
+        $response = $this->actingAs($user)->patch(route('account.profile.update'), [
+            'name' => $user->name,
+            'username' => 'taken_username',
+            'email' => $user->email,
+        ]);
+
+        $response->assertSessionHasErrors('username');
+        $this->assertNull($user->fresh()->username);
+    }
+
+    public function test_a_username_with_invalid_characters_is_rejected(): void
+    {
+        $user = User::factory()->create(['username' => null]);
+
+        $response = $this->actingAs($user)->patch(route('account.profile.update'), [
+            'name' => $user->name,
+            'username' => 'not valid!',
+            'email' => $user->email,
+        ]);
+
+        $response->assertSessionHasErrors('username');
+        $this->assertNull($user->fresh()->username);
+    }
 }

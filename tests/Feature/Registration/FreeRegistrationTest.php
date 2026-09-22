@@ -57,6 +57,7 @@ class FreeRegistrationTest extends TestCase
 
         $response = $this->post(route('register.free'), [
             'name' => 'Jane Doe',
+            'username' => 'jane_doe',
             'email' => 'jane@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -68,6 +69,7 @@ class FreeRegistrationTest extends TestCase
         $this->assertSame(UserStatus::PendingVerification->value, $user->status);
         $this->assertNull($user->email_verified_at);
         $this->assertTrue(Hash::check('password123', $user->password));
+        $this->assertSame('jane_doe', $user->username);
 
         $verification = EmailVerification::query()->where('user_id', $user->id)->firstOrFail();
         $this->assertSame(64, strlen($verification->token));
@@ -84,6 +86,7 @@ class FreeRegistrationTest extends TestCase
 
         $response = $this->post(route('register.free'), [
             'name' => 'Jane Doe',
+            'username' => 'jane_profile',
             'email' => 'jane.profile@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -129,6 +132,7 @@ class FreeRegistrationTest extends TestCase
 
         $response = $this->post(route('register.free'), [
             'name' => 'Jane Doe',
+            'username' => 'jane_light',
             'email' => 'jane.light@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -151,6 +155,7 @@ class FreeRegistrationTest extends TestCase
 
         $this->post(route('register.free'), [
             'name' => 'Jane Doe',
+            'username' => 'jane_skip',
             'email' => 'jane.skip@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -169,6 +174,7 @@ class FreeRegistrationTest extends TestCase
 
         $this->post(route('register.free'), [
             'name' => 'Jane Doe',
+            'username' => 'jane_blank',
             'email' => 'jane.blank@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -187,6 +193,7 @@ class FreeRegistrationTest extends TestCase
 
         $response = $this->post(route('register.free'), [
             'name' => 'Jane Doe',
+            'username' => 'jane_nolight',
             'email' => 'jane.nolight@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -204,6 +211,7 @@ class FreeRegistrationTest extends TestCase
 
         $response = $this->post(route('register.free'), [
             'name' => 'Jane Doe',
+            'username' => 'jane_toolong',
             'email' => 'jane.toolong@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -241,6 +249,7 @@ class FreeRegistrationTest extends TestCase
 
         $response = $this->post(route('register.free'), [
             'name' => 'Someone Else',
+            'username' => 'someone_else',
             'email' => 'taken@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -255,6 +264,7 @@ class FreeRegistrationTest extends TestCase
     {
         $response = $this->post(route('register.free'), [
             'name' => 'Someone',
+            'username' => 'someone_invalidemail',
             'email' => 'not-an-email',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -268,6 +278,7 @@ class FreeRegistrationTest extends TestCase
     {
         $response = $this->post(route('register.free'), [
             'name' => 'Someone',
+            'username' => 'someone_mismatch',
             'email' => 'someone@example.com',
             'password' => 'password123',
             'password_confirmation' => 'different',
@@ -302,6 +313,7 @@ class FreeRegistrationTest extends TestCase
 
         $response = $this->post(route('register.free'), [
             'name' => 'Spam Bot',
+            'username' => 'spam_bot',
             'email' => 'bot@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -315,11 +327,91 @@ class FreeRegistrationTest extends TestCase
         Mail::assertNothingSent();
     }
 
+    public function test_registering_free_without_a_username_is_rejected(): void
+    {
+        $response = $this->post(route('register.free'), [
+            'name' => 'No Username',
+            'email' => 'no.username@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertSessionHasErrors('username');
+        $this->assertSame(0, User::query()->where('email', 'no.username@example.com')->count());
+    }
+
+    public function test_registering_free_with_a_username_containing_invalid_characters_is_rejected(): void
+    {
+        $response = $this->post(route('register.free'), [
+            'name' => 'Bad Username',
+            'username' => 'not a valid username!',
+            'email' => 'bad.username@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertSessionHasErrors('username');
+        $this->assertSame(0, User::query()->where('email', 'bad.username@example.com')->count());
+    }
+
+    public function test_registering_free_with_a_username_shorter_than_the_minimum_length_is_rejected(): void
+    {
+        $response = $this->post(route('register.free'), [
+            'name' => 'Short Username',
+            'username' => 'ab',
+            'email' => 'short.username@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertSessionHasErrors('username');
+        $this->assertSame(0, User::query()->where('email', 'short.username@example.com')->count());
+    }
+
+    public function test_registering_free_with_an_already_taken_username_is_rejected(): void
+    {
+        User::factory()->create(['username' => 'taken_username']);
+
+        $response = $this->post(route('register.free'), [
+            'name' => 'Someone New',
+            'username' => 'taken_username',
+            'email' => 'someone.new@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertSessionHasErrors('username');
+        $this->assertSame(0, User::query()->where('email', 'someone.new@example.com')->count());
+    }
+
+    /**
+     * Username uniqueness is case-insensitive (the `users` connection's
+     * utf8mb4_unicode_ci collation — see the add_username_to_users_table
+     * migration's own docblock), matching the client-confirmed rule that
+     * "Jacob" and "jacob" can't both be registered.
+     */
+    public function test_registering_free_with_a_username_differing_only_in_case_from_an_existing_one_is_rejected(): void
+    {
+        User::factory()->create(['username' => 'CaseTest']);
+
+        $response = $this->post(route('register.free'), [
+            'name' => 'Someone New',
+            'username' => 'casetest',
+            'email' => 'casetest@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertSessionHasErrors('username');
+        $this->assertSame(0, User::query()->where('email', 'casetest@example.com')->count());
+    }
+
     public function test_registration_free_is_rate_limited(): void
     {
         for ($i = 0; $i < 6; $i++) {
             $this->post(route('register.free'), [
                 'name' => 'Someone',
+                'username' => "rate_user_{$i}",
                 'email' => "rate{$i}@example.com",
                 'password' => 'password123',
                 'password_confirmation' => 'password123',
@@ -328,6 +420,7 @@ class FreeRegistrationTest extends TestCase
 
         $response = $this->post(route('register.free'), [
             'name' => 'Someone',
+            'username' => 'rate_blocked',
             'email' => 'rate-blocked@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',

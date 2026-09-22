@@ -7,7 +7,7 @@
     // deliberately excluded here (see HomeController::latestGratitudeEntries()).
     $lightPostColors = ['bg-rose-100 text-rose-700', 'bg-sky-100 text-sky-700', 'bg-amber-100 text-amber-700', 'bg-emerald-100 text-emerald-700'];
     $comments = $gratitude->values()->map(function ($post, $index) use ($lightPostColors) {
-        $name = $post->user?->name ?: 'A Member';
+        $name = $post->user?->displayName() ?: 'A Member';
         $initials = collect(preg_split('/\s+/', trim($name)))->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))->take(2)->implode('');
 
         return [
