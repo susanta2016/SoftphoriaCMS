@@ -96,8 +96,19 @@ class SearchService
 
         return collect(self::MODELS)
             ->flatMap(fn (string $model): Collection => $this->searchModel($model, $escaped))
-            ->map(fn ($model): SearchResult => SearchResult::fromModel($model))
-            ->sortByDesc(fn (SearchResult $result) => $result->sortDate)
+            ->map(fn ($model): SearchResult => SearchResult::fromModel($model, $query))
+            // A title match ranks above a result that only matched in its
+            // description/body — otherwise a content type with frequent
+            // updates (Podcast episodes, in practice) dominates every page
+            // of results by sheer recency even when the query only appears
+            // in an unrelated description, burying genuine title matches
+            // from quieter content types (Music, Poetry/Prose, ...) past
+            // page 1. Recency (sortDate) is still the tiebreaker within
+            // each relevance tier.
+            ->sortBy([
+                ['titleMatch', 'desc'],
+                ['sortDate', 'desc'],
+            ])
             ->values();
     }
 

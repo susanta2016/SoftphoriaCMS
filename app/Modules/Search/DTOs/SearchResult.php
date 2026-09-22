@@ -5,6 +5,7 @@ namespace App\Modules\Search\DTOs;
 use App\Shared\Support\Search\SearchResultRepresentable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * The normalized shape every unified-Search result is reduced to
@@ -23,17 +24,30 @@ final class SearchResult
         public readonly ?string $image,
         public readonly string $url,
         public readonly Carbon $sortDate,
+        public readonly bool $titleMatch,
     ) {}
 
-    public static function fromModel(Model&SearchResultRepresentable $model): self
+    /**
+     * @param  string  $query  The normalized (trimmed/squished) search term
+     *                         — used only to rank a title match above a
+     *                         match that only occurred in body/description
+     *                         text (see SearchService::results()'s sort).
+     *                         Every model's own toSearchableArray() already
+     *                         decided this row belongs in the result set at
+     *                         all; this never filters anything out.
+     */
+    public static function fromModel(Model&SearchResultRepresentable $model, string $query): self
     {
+        $title = $model->searchResultTitle();
+
         return new self(
             type: $model->searchResultType(),
-            title: $model->searchResultTitle(),
+            title: $title,
             excerpt: $model->searchResultExcerpt(),
             image: $model->searchResultImageUrl(),
             url: $model->searchResultUrl(),
             sortDate: $model->updated_at ?? Carbon::now(),
+            titleMatch: $query !== '' && Str::contains($title, $query, ignoreCase: true),
         );
     }
 }
