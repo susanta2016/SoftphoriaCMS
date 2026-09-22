@@ -7,7 +7,11 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
-    /* All The Things Light brand palette — Home_page_layout_V4.1.1.png */
+    /* Softphoria public design system — brand color tokens (WEB-101).
+       Single source of truth for the public site's palette: every public
+       Blade view/component references these custom properties (via
+       Tailwind's brand-* utilities) instead of one-off hex values, so a
+       future brand refresh only ever touches this block. */
     --color-brand-navy: #16324f;
     --color-brand-navy-dark: #0f2237;
     --color-brand-gold: #d99a3d;

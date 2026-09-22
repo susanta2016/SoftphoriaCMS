@@ -259,7 +259,28 @@ class PageForm
             TextInput::make('content_json.attribution')->label('Attribution')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Quote->value),
 
-            MediaPicker::make('content_json.media_ids', 'Images', multiple: true)
+            // WEB-101 item E: a structured repeater (same pattern as the FAQ
+            // repeater above) replaces the old bare content_json.media_ids
+            // ID list, so a gallery item can carry a title/description/link
+            // — enough to double as the future References/portfolio card
+            // layout. Existing sections saved under the old shape (a flat
+            // content_json.media_ids array, no content_json.gallery_items
+            // yet) are hydrated into this shape by EditPage::mutateFormDataBeforeFill()
+            // the first time the section is opened for editing, so nothing
+            // is lost; the public page (pages/show.blade.php) still renders
+            // the old shape unchanged for any section never re-saved
+            // through here.
+            Repeater::make('content_json.gallery_items')
+                ->label('Gallery items')
+                ->schema([
+                    MediaPicker::make('media_id', 'Image'),
+                    TextInput::make('title')->maxLength(255),
+                    Textarea::make('description')->rows(2),
+                    TextInput::make('url')->label('Link URL')->maxLength(255)
+                        ->helperText('Optional — makes the item clickable.'),
+                ])
+                ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
+                ->defaultItems(0)
                 ->columnSpanFull()
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Gallery->value),
 
@@ -272,10 +293,16 @@ class PageForm
             Placeholder::make('inert_notice')
                 ->hiddenLabel()
                 ->content('No configuration needed — this block has no functionality yet until the corresponding system exists.')
-                ->visible(fn (Get $get): bool => in_array($get('section_type'), [
-                    PageSectionType::NewsletterSignup->value,
-                    PageSectionType::ContactForm->value,
-                ], true)),
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::NewsletterSignup->value),
+
+            // WEB-101 item D: contact_form now renders the real, shared
+            // contact form (resources/views/components/site/contact-form.blade.php)
+            // — the "Admin label" field above doubles as its optional
+            // on-page heading, so no further configuration is needed here.
+            Placeholder::make('contact_form_notice')
+                ->hiddenLabel()
+                ->content('No configuration needed — renders the same Contact form as the dedicated Contact Us page. The "Admin label" field above is shown as an optional heading above the form.')
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::ContactForm->value),
         ];
     }
 

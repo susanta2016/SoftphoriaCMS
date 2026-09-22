@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Page\ResolvePageRedirectAction;
 use App\Http\Controllers\Account\PasswordController as AccountPasswordController;
 use App\Http\Controllers\Account\ProfileController as AccountProfileController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Page\PreviewPageController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\EnsureAccountIsUsable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -118,4 +120,9 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
 
 // Public CMS page viewer (Stage D) — kept last so it never shadows a more
 // specific route above; PageController itself 404s anything not published.
-Route::get('/{page:slug}', PageController::class)->name('pages.show');
+// WEB-101 item G: `missing()` fires only once implicit route-model binding
+// has already found no live Page with this slug — ResolvePageRedirectAction
+// then checks page_redirects for a matching old_path before finally 404ing.
+Route::get('/{page:slug}', PageController::class)
+    ->name('pages.show')
+    ->missing(fn (Request $request) => app(ResolvePageRedirectAction::class)->handle((string) $request->route('page')) ?? abort(404));

@@ -32,6 +32,8 @@ class ContactController extends Controller
 
         $contactEmail = $settings->get('contact', 'email');
         $contactAddress = $settings->get('contact', 'address');
+        $contactPhone = $settings->get('contact', 'phone');
+        $contactWhatsapp = $settings->get('contact', 'whatsapp');
 
         $seo = SeoTagBuilder::build(null, [
             'title' => "Contact Us — {$siteName}",
@@ -47,6 +49,8 @@ class ContactController extends Controller
             'logo' => $logo,
             'contactEmail' => $contactEmail,
             'contactAddress' => $contactAddress,
+            'contactPhone' => $contactPhone,
+            'contactWhatsapp' => $contactWhatsapp,
         ]);
     }
 

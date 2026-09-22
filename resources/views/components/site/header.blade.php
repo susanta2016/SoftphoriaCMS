@@ -1,4 +1,8 @@
-@props(['transparent' => false, 'siteName' => 'All The Things Light', 'tagline' => null, 'logo' => null])
+@props(['transparent' => false, 'siteName' => null, 'tagline' => null, 'logo' => null])
+
+@php
+    $siteName = $siteName ?: config('app.name');
+@endphp
 
 @php
     $primaryMenu = \App\Models\Menu::query()

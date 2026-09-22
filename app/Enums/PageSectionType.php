@@ -12,11 +12,12 @@ use Filament\Support\Contracts\HasLabel;
  * builder, not a drag-and-drop page builder (Database Specification
  * §18.5) — admins choose from this closed list, never arbitrary HTML.
  *
- * contact_form/newsletter_signup/featured_content are selectable now but
- * functionally inert until ADMIN-009/010 and the JACOB-* content modules
- * exist — the schema is explicitly designed to allow that (§18.5: "allow
- * new section types to be introduced later without changing the pages
- * table"), so placing them now costs nothing.
+ * newsletter_signup/featured_content are selectable now but functionally
+ * inert until ADMIN-009 and the JACOB-* content modules exist — the schema
+ * is explicitly designed to allow that (§18.5: "allow new section types to
+ * be introduced later without changing the pages table"), so placing them
+ * now costs nothing. contact_form was wired up in WEB-101 and renders the
+ * real, shared contact form (resources/views/components/site/contact-form.blade.php).
  */
 enum PageSectionType: string implements HasLabel
 {

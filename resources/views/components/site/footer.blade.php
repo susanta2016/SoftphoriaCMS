@@ -1,6 +1,7 @@
-@props(['siteName' => 'All The Things Light', 'tagline' => null])
+@props(['siteName' => null, 'tagline' => null])
 
 @php
+    $siteName = $siteName ?: config('app.name');
     $settings = app(\App\Shared\Services\Settings\SettingsRepository::class);
 
     $footerLogoMediaId = $settings->get('footer', 'logo_media_id');

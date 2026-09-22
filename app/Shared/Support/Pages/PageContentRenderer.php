@@ -40,8 +40,8 @@ class PageContentRenderer
 
         $isMaintenancePage = ((int) ($general['maintenance_page_id'] ?? 0)) === $page->id;
 
-        $siteName = ($general['site_name'] ?? null) ?: 'All The Things Light';
-        $tagline = ($general['tagline'] ?? null) ?: 'I AM. WE ARE. IT IS.';
+        $siteName = ($general['site_name'] ?? null) ?: config('app.name');
+        $tagline = $general['tagline'] ?? null;
         $logoMediaId = $general['logo_media_id'] ?? null;
         $logo = $logoMediaId ? Media::find($logoMediaId) : null;
 

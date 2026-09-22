@@ -172,7 +172,7 @@ class Settings extends Page
             TextInput::make('footer.copyright_text')
                 ->label('Copyright Text')
                 ->maxLength(255)
-                ->helperText('Shown at the bottom of the footer. Use {year} anywhere in the text and it will always be replaced with the current year, e.g. "© {year} All The Things Light. All rights reserved."'),
+                ->helperText('Shown at the bottom of the footer. Use {year} anywhere in the text and it will always be replaced with the current year, e.g. "© {year} Softphoria. All rights reserved."'),
         ];
     }
 
@@ -181,7 +181,8 @@ class Settings extends Page
      * (App\Http\Controllers\ContactController). Same shape as
      * footerTabSchema() above: a single site-wide settings group rather
      * than a new content model, since there's exactly one contact
-     * email/address for the whole site.
+     * email/address/phone/WhatsApp number for the whole site. phone/whatsapp
+     * added in WEB-101 (item F).
      *
      * @return array<int, Component>
      */
@@ -198,6 +199,16 @@ class Settings extends Page
                 ->rows(3)
                 ->maxLength(500)
                 ->helperText('Shown on the public Contact Us page. Each line break is preserved as its own line.'),
+            TextInput::make('contact.phone')
+                ->label('Contact Phone')
+                ->tel()
+                ->maxLength(30)
+                ->helperText('Shown on the public Contact Us page, e.g. "+1 555 010 0100".'),
+            TextInput::make('contact.whatsapp')
+                ->label('WhatsApp Number')
+                ->tel()
+                ->maxLength(30)
+                ->helperText('Shown on the public Contact Us page as a "Chat on WhatsApp" link. Digits only (with country code), e.g. "15550100100" — no spaces, dashes, or the leading +.'),
         ];
     }
 
@@ -354,6 +365,8 @@ class Settings extends Page
         $contact = $state['contact'];
         $settings->set('contact', 'email', $contact['email']);
         $settings->set('contact', 'address', $contact['address']);
+        $settings->set('contact', 'phone', $contact['phone']);
+        $settings->set('contact', 'whatsapp', $contact['whatsapp']);
 
         $email = $state['email'];
         $settings->set('email', 'enabled', (bool) $email['enabled'], 'boolean');
@@ -433,6 +446,8 @@ class Settings extends Page
             'contact' => [
                 'email' => $settings->get('contact', 'email'),
                 'address' => $settings->get('contact', 'address'),
+                'phone' => $settings->get('contact', 'phone'),
+                'whatsapp' => $settings->get('contact', 'whatsapp'),
             ],
             'email' => [
                 'enabled' => $settings->get('email', 'enabled', false),

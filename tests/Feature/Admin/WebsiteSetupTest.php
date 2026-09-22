@@ -87,6 +87,47 @@ class WebsiteSetupTest extends TestCase
         $this->assertSame("123 Main St\nAnytown, US", $settings->get('contact', 'address'));
     }
 
+    /**
+     * WEB-101 item F — contact.phone/contact.whatsapp added alongside the
+     * existing contact.email/contact.address, same settings architecture.
+     */
+    public function test_admin_can_save_contact_phone_and_whatsapp_settings(): void
+    {
+        Livewire::actingAs($this->admin())
+            ->test(Settings::class)
+            ->fillForm([
+                'general' => [
+                    'site_name' => 'Softphoria',
+                    'site_url' => 'https://softphoria.test',
+                ],
+                'contact' => [
+                    'email' => 'hello@softphoria.test',
+                    'phone' => '+1 555 010 0100',
+                    'whatsapp' => '15550100100',
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $settings = app(SettingsRepository::class);
+        $this->assertSame('hello@softphoria.test', $settings->get('contact', 'email'));
+        $this->assertSame('+1 555 010 0100', $settings->get('contact', 'phone'));
+        $this->assertSame('15550100100', $settings->get('contact', 'whatsapp'));
+    }
+
+    public function test_the_public_contact_page_shows_the_configured_phone_and_whatsapp(): void
+    {
+        $settings = app(SettingsRepository::class);
+        $settings->set('contact', 'phone', '+1 555 010 0100');
+        $settings->set('contact', 'whatsapp', '15550100100');
+
+        $response = $this->get('/contact');
+
+        $response->assertOk();
+        $response->assertSee('+1 555 010 0100');
+        $response->assertSee('https://wa.me/15550100100', false);
+    }
+
     public function test_maintenance_page_is_required_when_maintenance_mode_is_enabled(): void
     {
         Livewire::actingAs($this->admin())

@@ -8,7 +8,7 @@
         $cookies = array_merge(config('cookies_policy'), $settings->all('cookies'));
         $paragraphs = fn (?string $text): array => array_filter(array_map('trim', preg_split('/\n\s*\n/', (string) $text)));
 
-        $siteName = ($settings->get('general', 'site_name') ?? null) ?: 'All The Things Light';
+        $siteName = ($settings->get('general', 'site_name') ?? null) ?: config('app.name');
 
         $privacyPolicyPage = \App\Models\Page::query()->published()->where('slug', 'privacy-policy')->first();
 
