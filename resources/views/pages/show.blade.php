@@ -102,9 +102,19 @@
                         @break
 
                     @case('rich_text')
+                        @php
+                            $video = (!empty($content['video_media_id'])) ? \App\Models\Media::find($content['video_media_id']) : null;
+                            $hasVideo = $video && $video->category() === \App\Enums\MediaCategory::Video;
+                            $videoBeforeContent = ($content['video_position'] ?? 'before_content') !== 'after_content';
+                        @endphp
                         <div class="rich-text">
+                            @if ($hasVideo && $videoBeforeContent)
+                                <video controls preload="none">
+                                    <source src="{{ route('media.watch', $video) }}" type="{{ $video->mime_type }}">
+                                </video>
+                            @endif
                             {!! $content['body'] ?? '' !!}
-                            @if (!empty($content['video_media_id']) && ($video = \App\Models\Media::find($content['video_media_id'])) && $video->category() === \App\Enums\MediaCategory::Video)
+                            @if ($hasVideo && ! $videoBeforeContent)
                                 <video controls preload="none">
                                     <source src="{{ route('media.watch', $video) }}" type="{{ $video->mime_type }}">
                                 </video>

@@ -153,6 +153,7 @@
                     $content = $section->content_json ?? [];
                     $video = ! empty($content['video_media_id']) ? Media::find($content['video_media_id']) : null;
                     $hasVideo = $video && $video->category() === MediaCategory::Video;
+                    $videoBeforeContent = ($content['video_position'] ?? 'before_content') !== 'after_content';
                 @endphp
 
                 @if ($index > 0)
@@ -179,7 +180,9 @@
                                 </div>
                             </div>
 
-                            @include('pages.partials.about-video')
+                            @if ($videoBeforeContent)
+                                @include('pages.partials.about-video')
+                            @endif
 
                             @php $chunks = $buildChunks($splitParagraphs($content['body'] ?? '')); @endphp
 
@@ -215,6 +218,10 @@
                                     @endswitch
                                 @endforeach
                             </div>
+
+                            @unless ($videoBeforeContent)
+                                <div class="mt-8">@include('pages.partials.about-video')</div>
+                            @endunless
                         </div>
                     @elseif ($section->title === 'About Cory Gold')
                         <div class="py-4 text-center">
@@ -224,12 +231,17 @@
                                 <span class="text-sm text-brand-gold">✦</span>
                                 <span class="h-px w-10 bg-brand-gold/60"></span>
                             </div>
-                            <div class="mt-8">@include('pages.partials.about-video')</div>
+                            @if ($videoBeforeContent)
+                                <div class="mt-8">@include('pages.partials.about-video')</div>
+                            @endif
                             <div data-section-body class="mx-auto mt-8 max-w-xl text-left [&_p]:mb-4 [&_p]:leading-relaxed [&_p]:text-brand-navy/80 last:[&_p]:mb-0">
                                 @if (trim(strip_tags($content['body'] ?? '')) !== '')
                                     {!! $content['body'] !!}
                                 @endif
                             </div>
+                            @unless ($videoBeforeContent)
+                                <div class="mt-8">@include('pages.partials.about-video')</div>
+                            @endunless
                         </div>
                     @elseif ($section->title === "About Jacob d'IAWARII")
                         <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-brand-navy/5 sm:p-12">
@@ -242,23 +254,34 @@
                                 </div>
                             </div>
 
-                            @include('pages.partials.about-video')
+                            @if ($videoBeforeContent)
+                                @include('pages.partials.about-video')
+                            @endif
 
                             <div data-section-body class="mx-auto mt-8 max-w-xl text-left [&_p]:mb-4 [&_p]:leading-relaxed [&_p]:text-brand-navy/80 last:[&_p]:mb-0">
                                 @if (trim(strip_tags($content['body'] ?? '')) !== '')
                                     {!! $content['body'] !!}
                                 @endif
                             </div>
+
+                            @unless ($videoBeforeContent)
+                                <div class="mt-8">@include('pages.partials.about-video')</div>
+                            @endunless
                         </div>
                     @else
                         <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-brand-navy/5 sm:p-12">
                             @if ($section->title)
                                 <h2 class="text-center font-serif text-2xl text-brand-navy">{{ $section->title }}</h2>
                             @endif
-                            <div class="mt-6">@include('pages.partials.about-video')</div>
+                            @if ($videoBeforeContent)
+                                <div class="mt-6">@include('pages.partials.about-video')</div>
+                            @endif
                             <div data-section-body class="mx-auto mt-6 max-w-xl text-left [&_p]:mb-4 [&_p]:leading-relaxed [&_p]:text-brand-navy/80 last:[&_p]:mb-0">
                                 {!! $content['body'] ?? '' !!}
                             </div>
+                            @unless ($videoBeforeContent)
+                                <div class="mt-6">@include('pages.partials.about-video')</div>
+                            @endunless
                         </div>
                     @endif
                 </section>

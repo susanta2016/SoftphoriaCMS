@@ -232,6 +232,26 @@ class PageForm
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::RichText->value),
             MediaPicker::make('content_json.video_media_id', 'Video', MediaCategory::Video)
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::RichText->value),
+            Select::make('content_json.video_position')
+                ->label('Video position')
+                ->options([
+                    'before_content' => 'Before content start',
+                    'after_content' => 'After content end',
+                ])
+                ->default('before_content')
+                ->native(false)
+                ->helperText('Where the video above appears relative to this section\'s text.')
+                // Existing sections saved before this field existed have no
+                // video_position key at all — default() only seeds brand-new
+                // repeater items, so without this an existing section's edit
+                // form would show the select blank even though the frontend
+                // (falling back the same way) already renders it "before".
+                ->afterStateHydrated(function (Select $component, ?string $state): void {
+                    if (blank($state)) {
+                        $component->state('before_content');
+                    }
+                })
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::RichText->value),
 
             // A distinct key from RichText's content_json.body above, even
             // though both are only ever visible one-at-a-time — Filament
