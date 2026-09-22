@@ -19,7 +19,7 @@
         </span>
         <h3 class="mt-2 font-serif text-lg text-brand-navy transition group-hover:text-brand-gold">{{ $episode->title }}</h3>
         @if ($episode->description)
-            <p class="mt-2 text-sm text-brand-navy/65">{{ str($episode->description)->stripTags()->limit(110) }}</p>
+            <p class="mt-2 text-sm text-brand-navy/65">{{ str($episode->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s))->limit(110) }}</p>
         @endif
         <div class="mt-auto flex items-center gap-4 pt-4 text-xs text-brand-navy/50">
             @if ($durationLabel($episode->duration_seconds))

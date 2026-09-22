@@ -24,7 +24,7 @@
                 <span class="text-brand-gold">✦</span>
             </div>
             @if ($podcast?->description)
-                <p class="mt-5 max-w-2xl text-sm leading-relaxed text-brand-navy/70">{{ str($podcast->description)->stripTags()->limit(220) }}</p>
+                <p class="mt-5 max-w-2xl text-sm leading-relaxed text-brand-navy/70">{{ str($podcast->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s))->limit(220) }}</p>
             @endif
         </div>
     </div>

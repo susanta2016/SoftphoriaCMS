@@ -19,7 +19,7 @@
         </p>
         <a href="{{ route('podcast.episodes.show', $episode) }}" class="mt-1 block font-serif text-lg text-brand-navy transition hover:text-brand-gold">{{ $episode->title }}</a>
         @if ($episode->description)
-            <p class="mt-1 max-w-xl text-sm text-brand-navy/65">{{ str($episode->description)->stripTags()->limit(140) }}</p>
+            <p class="mt-1 max-w-xl text-sm text-brand-navy/65">{{ str($episode->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s))->limit(140) }}</p>
         @endif
         @if ($episode->tags->isNotEmpty())
             <div class="mt-2 flex flex-wrap gap-1.5">

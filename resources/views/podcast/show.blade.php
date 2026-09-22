@@ -26,7 +26,7 @@
             </p>
             <h1 class="mt-2 font-serif text-3xl text-brand-navy sm:text-4xl">{{ $episode->title }}</h1>
             @if ($episode->description)
-                <p class="mt-3 max-w-3xl text-sm leading-relaxed text-brand-navy/70">{{ str($episode->description)->stripTags()->limit(220) }}</p>
+                <p class="mt-3 max-w-3xl text-sm leading-relaxed text-brand-navy/70">{{ str($episode->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s))->limit(220) }}</p>
             @endif
 
             <div class="mt-4 flex flex-wrap items-center gap-4 text-sm text-brand-navy/60">

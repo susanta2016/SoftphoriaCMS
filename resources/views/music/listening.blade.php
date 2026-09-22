@@ -113,7 +113,7 @@
                     @endif
 
                     @if ($release['description'])
-                        <p class="mt-4 max-w-2xl text-sm leading-relaxed text-brand-navy/75">{{ str($release['description'])->stripTags() }}</p>
+                        <p class="mt-4 max-w-2xl text-sm leading-relaxed text-brand-navy/75">{{ str($release['description'])->stripTags()->pipe(fn ($s) => html_entity_decode($s)) }}</p>
                     @endif
 
                     @php
@@ -238,7 +238,7 @@
                         $aboutDescription = $isSingleTrack ? ($onlyTrack?->description ?: $release['description']) : $release['description'];
                     @endphp
                     @if ($aboutDescription)
-                        <p class="mt-4 text-sm leading-relaxed text-brand-navy/75">{{ str($aboutDescription)->stripTags() }}</p>
+                        <p class="mt-4 text-sm leading-relaxed text-brand-navy/75">{{ str($aboutDescription)->stripTags()->pipe(fn ($s) => html_entity_decode($s)) }}</p>
                     @endif
 
                     @php
