@@ -224,21 +224,26 @@
                             @endunless
                         </div>
                     @elseif ($section->title === 'About Cory Gold')
-                        <div class="py-4 text-center">
-                            <span class="text-xs font-semibold tracking-wide text-brand-gold uppercase">{{ $section->title }}</span>
-                            <div class="mx-auto mt-4 flex items-center justify-center gap-3" aria-hidden="true">
-                                <span class="h-px w-10 bg-brand-gold/60"></span>
-                                <span class="text-sm text-brand-gold">✦</span>
-                                <span class="h-px w-10 bg-brand-gold/60"></span>
+                        <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-brand-navy/5 sm:p-12">
+                            <div class="text-center">
+                                <span class="text-xs font-semibold tracking-wide text-brand-gold uppercase">{{ $section->title }}</span>
+                                <div class="mx-auto mt-4 mb-8 flex items-center justify-center gap-3" aria-hidden="true">
+                                    <span class="h-px w-10 bg-brand-gold/60"></span>
+                                    <span class="text-sm text-brand-gold">✦</span>
+                                    <span class="h-px w-10 bg-brand-gold/60"></span>
+                                </div>
                             </div>
+
                             @if ($videoBeforeContent)
-                                <div class="mt-8">@include('pages.partials.about-video')</div>
+                                @include('pages.partials.about-video')
                             @endif
+
                             <div data-section-body class="mx-auto mt-8 max-w-xl text-left [&_p]:mb-4 [&_p]:leading-relaxed [&_p]:text-brand-navy/80 last:[&_p]:mb-0">
                                 @if (trim(strip_tags($content['body'] ?? '')) !== '')
                                     {!! $content['body'] !!}
                                 @endif
                             </div>
+
                             @unless ($videoBeforeContent)
                                 <div class="mt-8">@include('pages.partials.about-video')</div>
                             @endunless
