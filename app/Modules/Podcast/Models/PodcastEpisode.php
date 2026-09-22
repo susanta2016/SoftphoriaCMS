@@ -263,7 +263,12 @@ class PodcastEpisode extends Model implements Reviewable, SearchResultRepresenta
 
     public function searchResultExcerpt(): string
     {
-        return $this->description ? str($this->description)->stripTags()->limit(160)->toString() : '';
+        // See PoetryProse::plainTextBody()'s own html_entity_decode() call —
+        // stripTags() alone leaves a literal entity like &quot; in place,
+        // which Blade's {{ }} then re-escapes into &amp;quot; on display.
+        return $this->description
+            ? str($this->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s, ENT_QUOTES | ENT_HTML5))->limit(160)->toString()
+            : '';
     }
 
     public function searchResultImageUrl(): ?string

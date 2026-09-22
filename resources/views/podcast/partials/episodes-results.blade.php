@@ -65,7 +65,7 @@
                     <h2 class="font-serif text-lg text-brand-navy">About the Podcast</h2>
                     @if ($podcast->description)
                         <div class="mt-3 max-h-48 overflow-y-auto pr-2">
-                            <p class="text-sm leading-relaxed text-brand-navy/70">{{ str($podcast->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s)) }}</p>
+                            <p class="text-sm leading-relaxed text-brand-navy/70">{{ str($podcast->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s, ENT_QUOTES | ENT_HTML5)) }}</p>
                         </div>
                     @endif
                     <a href="{{ route('podcast.index') }}" class="mt-4 inline-flex items-center gap-1.5 rounded-md border border-brand-gold/40 px-4 py-2 text-sm font-semibold text-brand-gold transition hover:bg-brand-gold hover:text-white">

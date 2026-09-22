@@ -38,7 +38,7 @@
                 </div>
                 @if ($podcast?->description)
                     <p class="max-w-xl text-base leading-relaxed text-brand-navy/75">
-                        {{ str($podcast->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s))->limit(220) }}
+                        {{ str($podcast->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s, ENT_QUOTES | ENT_HTML5))->limit(220) }}
                     </p>
                 @endif
 
@@ -93,7 +93,7 @@
                         </p>
                         <h2 class="mt-2 font-serif text-2xl text-brand-navy sm:text-3xl">{{ $featured->title }}</h2>
                         @if ($featured->description)
-                            <p class="mt-3 text-sm leading-relaxed text-brand-navy/70">{{ str($featured->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s))->limit(160) }}</p>
+                            <p class="mt-3 text-sm leading-relaxed text-brand-navy/70">{{ str($featured->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s, ENT_QUOTES | ENT_HTML5))->limit(160) }}</p>
                         @endif
 
                         <div class="mt-4 flex flex-wrap items-center gap-4 text-sm text-brand-navy/60">

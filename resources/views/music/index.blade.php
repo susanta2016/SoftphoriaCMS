@@ -75,7 +75,7 @@
                         <h2 class="mt-2 font-serif text-3xl text-brand-navy">{{ $featured->title }}</h2>
 
                         @if ($featured->description)
-                            <p class="mt-4 max-w-2xl text-sm leading-relaxed text-brand-navy/75">{{ str($featured->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s)) }}</p>
+                            <p class="mt-4 max-w-2xl text-sm leading-relaxed text-brand-navy/75">{{ str($featured->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s, ENT_QUOTES | ENT_HTML5)) }}</p>
                         @endif
 
                         @if ($featuredTracks->isNotEmpty())
@@ -144,7 +144,7 @@
                             @endphp
                             <a href="{{ $storyRoute }}" class="block rounded-xl bg-white/95 p-5 shadow-xl transition hover:bg-white">
                                 <h3 class="font-serif text-lg text-brand-navy">{{ $story->track->title }}</h3>
-                                <p class="mt-2 line-clamp-3 text-sm text-brand-navy/70">{{ str($story->content)->stripTags()->pipe(fn ($s) => html_entity_decode($s)) }}</p>
+                                <p class="mt-2 line-clamp-3 text-sm text-brand-navy/70">{{ str($story->content)->stripTags()->pipe(fn ($s) => html_entity_decode($s, ENT_QUOTES | ENT_HTML5)) }}</p>
                                 <span class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-gold">Read the story <span aria-hidden="true">→</span></span>
                             </a>
                         @endforeach
