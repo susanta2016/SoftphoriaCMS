@@ -40,6 +40,37 @@ class WebsiteSetupTest extends TestCase
             ->assertSuccessful();
     }
 
+    /**
+     * WEB-103 — the redesigned header's button and footer's column
+     * headings. save() writes an explicit list of keys, so a field missing
+     * there would be silently dropped.
+     */
+    public function test_admin_can_save_header_button_and_footer_headings(): void
+    {
+        Livewire::actingAs($this->admin())
+            ->test(Settings::class)
+            ->fillForm([
+                'general' => [
+                    'site_name' => 'Softphoria',
+                    'site_url' => 'https://softphoria.test',
+                    'header_cta_label' => 'Book a Call',
+                    'header_cta_url' => '/book',
+                ],
+                'footer' => [
+                    'social_heading' => 'Find Us',
+                    'newsletter_heading' => 'Stay in the Loop',
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $settings = app(SettingsRepository::class);
+        $this->assertSame('Book a Call', $settings->get('general', 'header_cta_label'));
+        $this->assertSame('/book', $settings->get('general', 'header_cta_url'));
+        $this->assertSame('Find Us', $settings->get('footer', 'social_heading'));
+        $this->assertSame('Stay in the Loop', $settings->get('footer', 'newsletter_heading'));
+    }
+
     public function test_admin_can_save_general_settings(): void
     {
         Livewire::actingAs($this->admin())

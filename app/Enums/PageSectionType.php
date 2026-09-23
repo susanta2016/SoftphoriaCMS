@@ -18,6 +18,9 @@ use Filament\Support\Contracts\HasLabel;
  * be introduced later without changing the pages table"), so placing them
  * now costs nothing. contact_form was wired up in WEB-101 and renders the
  * real, shared contact form (resources/views/components/site/contact-form.blade.php).
+ * testimonials (WEB-103) renders every enabled row from the admin
+ * Testimonials resource as a slider — the section itself only carries its
+ * heading and background image.
  */
 enum PageSectionType: string implements HasLabel
 {
@@ -31,6 +34,7 @@ enum PageSectionType: string implements HasLabel
     case NewsletterSignup = 'newsletter_signup';
     case ContactForm = 'contact_form';
     case FeaturedContent = 'featured_content';
+    case Testimonials = 'testimonials';
 
     public function getLabel(): string
     {
@@ -45,6 +49,7 @@ enum PageSectionType: string implements HasLabel
             self::NewsletterSignup => 'Newsletter Signup',
             self::ContactForm => 'Contact Form',
             self::FeaturedContent => 'Featured Content',
+            self::Testimonials => 'Testimonials',
         };
     }
 

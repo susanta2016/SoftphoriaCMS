@@ -117,6 +117,17 @@ class Settings extends Page
                 ->maxLength(255),
             MediaPicker::make('general.logo_media_id', 'Logo', MediaCategory::Image),
             MediaPicker::make('general.favicon_media_id', 'Favicon', MediaCategory::Image),
+            // WEB-103: the header's single call-to-action button.
+            TextInput::make('general.header_cta_label')
+                ->label('Header Button Label')
+                ->placeholder("Let's Talk")
+                ->maxLength(60)
+                ->helperText('The button at the right of the site header. Leave blank for "Let\'s Talk".'),
+            TextInput::make('general.header_cta_url')
+                ->label('Header Button URL')
+                ->placeholder('/contact')
+                ->maxLength(255)
+                ->helperText('Leave blank to link to the Contact page.'),
             Toggle::make('general.maintenance_mode')
                 ->label('Maintenance Mode')
                 ->live()
@@ -167,12 +178,23 @@ class Settings extends Page
             TextInput::make('footer.subheading')
                 ->label('Sub-heading text')
                 ->maxLength(255)
-                ->helperText('Shown under the logo in the footer, e.g. "A creative home for music, writing, reflection, thinking, and community."'),
+                ->helperText('Shown under the logo in the footer, e.g. "Technology solutions for ambitious businesses."'),
             MediaPicker::make('footer.background_media_id', 'Footer Background Image', MediaCategory::Image),
             TextInput::make('footer.copyright_text')
                 ->label('Copyright Text')
                 ->maxLength(255)
                 ->helperText('Shown at the bottom of the footer. Use {year} anywhere in the text and it will always be replaced with the current year, e.g. "© {year} Softphoria. All rights reserved."'),
+            // WEB-103: the redesigned footer's last column. Its link groups
+            // come from Menus → Footer Navigation, and the bottom-bar links
+            // from Menus → Footer Legal Links.
+            TextInput::make('footer.social_heading')
+                ->label('Social Links Heading')
+                ->placeholder('Follow Us')
+                ->maxLength(60),
+            TextInput::make('footer.newsletter_heading')
+                ->label('Newsletter Heading')
+                ->placeholder('Newsletter')
+                ->maxLength(60),
         ];
     }
 
@@ -346,6 +368,8 @@ class Settings extends Page
         $settings->set('general', 'default_share_image_media_id', $general['default_share_image_media_id'], 'integer');
         $settings->set('general', 'twitter_handle', $general['twitter_handle']);
         $settings->set('general', 'fb_app_id', $general['fb_app_id']);
+        $settings->set('general', 'header_cta_label', $general['header_cta_label']);
+        $settings->set('general', 'header_cta_url', $general['header_cta_url']);
 
         // The Maintenance Page field is only visible (and therefore only
         // dehydrated into form state) while Maintenance Mode is on — when
@@ -361,6 +385,8 @@ class Settings extends Page
         $settings->set('footer', 'subheading', $footer['subheading']);
         $settings->set('footer', 'background_media_id', $footer['background_media_id'], 'integer');
         $settings->set('footer', 'copyright_text', $footer['copyright_text']);
+        $settings->set('footer', 'social_heading', $footer['social_heading']);
+        $settings->set('footer', 'newsletter_heading', $footer['newsletter_heading']);
 
         $contact = $state['contact'];
         $settings->set('contact', 'email', $contact['email']);
@@ -436,12 +462,16 @@ class Settings extends Page
                 'default_share_image_media_id' => $settings->get('general', 'default_share_image_media_id'),
                 'twitter_handle' => $settings->get('general', 'twitter_handle'),
                 'fb_app_id' => $settings->get('general', 'fb_app_id'),
+                'header_cta_label' => $settings->get('general', 'header_cta_label'),
+                'header_cta_url' => $settings->get('general', 'header_cta_url'),
             ],
             'footer' => [
                 'logo_media_id' => $settings->get('footer', 'logo_media_id'),
                 'subheading' => $settings->get('footer', 'subheading'),
                 'background_media_id' => $settings->get('footer', 'background_media_id'),
                 'copyright_text' => $settings->get('footer', 'copyright_text'),
+                'social_heading' => $settings->get('footer', 'social_heading'),
+                'newsletter_heading' => $settings->get('footer', 'newsletter_heading'),
             ],
             'contact' => [
                 'email' => $settings->get('contact', 'email'),

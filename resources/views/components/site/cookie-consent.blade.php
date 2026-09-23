@@ -30,9 +30,9 @@
                 <p class="mt-1 text-sm text-brand-navy/70">{{ $cookies['banner_description'] ?? '' }}</p>
             </div>
             <div class="flex shrink-0 flex-wrap items-center gap-3">
-                <button type="button" data-cookie-agree class="rounded-md bg-brand-gold px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-gold-light">I agree</button>
+                <button type="button" data-cookie-agree class="rounded-md bg-brand-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-accent-dark">I agree</button>
                 <button type="button" data-cookie-decline class="rounded-md border border-brand-navy/30 px-4 py-2 text-sm font-semibold text-brand-navy transition hover:bg-brand-navy/5">I decline</button>
-                <button type="button" data-cookie-preferences-open class="rounded-md px-4 py-2 text-sm font-semibold text-brand-navy underline decoration-brand-navy/30 underline-offset-2 transition hover:text-brand-gold">Change my preferences</button>
+                <button type="button" data-cookie-preferences-open class="rounded-md px-4 py-2 text-sm font-semibold text-brand-navy underline decoration-brand-navy/30 underline-offset-2 transition hover:text-brand-accent">Change my preferences</button>
             </div>
         </div>
     </div>
@@ -57,7 +57,7 @@
                             type="button"
                             data-cookie-tab-trigger="{{ $category['key'] }}"
                             aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
-                            class="cookie-tab-trigger shrink-0 border-b-2 border-transparent px-4 py-3 text-left text-sm font-medium transition hover:bg-brand-navy/5 sm:border-b-0 sm:border-l-2 {{ $index === 0 ? 'is-active bg-white font-semibold text-brand-navy sm:border-l-brand-gold' : 'text-brand-navy/70' }}"
+                            class="cookie-tab-trigger shrink-0 border-b-2 border-transparent px-4 py-3 text-left text-sm font-medium transition hover:bg-brand-navy/5 sm:border-b-0 sm:border-l-2 {{ $index === 0 ? 'is-active bg-white font-semibold text-brand-navy sm:border-l-brand-accent' : 'text-brand-navy/70' }}"
                         >{{ $category['label'] }}</button>
                     @endforeach
                 </div>
@@ -70,7 +70,7 @@
                                 <p class="text-sm text-brand-navy/75">{{ $cookies['more_info_description'] ?? '' }}</p>
                                 <p class="text-sm text-brand-navy/75">
                                     @if ($privacyPolicyPage)
-                                        To find out more, please visit our <a href="{{ route('pages.show', $privacyPolicyPage) }}" class="font-semibold text-brand-navy underline hover:text-brand-gold">Privacy Policy</a>.
+                                        To find out more, please visit our <a href="{{ route('pages.show', $privacyPolicyPage) }}" class="font-semibold text-brand-navy underline hover:text-brand-accent">Privacy Policy</a>.
                                     @else
                                         To find out more, please visit our Privacy Policy.
                                     @endif
@@ -107,7 +107,7 @@
             </div>
 
             <div class="flex justify-end border-t border-brand-navy/10 px-6 py-4">
-                <button type="button" data-cookie-save class="rounded-md bg-brand-gold px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-gold-light">Save my preferences</button>
+                <button type="button" data-cookie-save class="rounded-md bg-brand-accent px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-accent-dark">Save my preferences</button>
             </div>
         </div>
     </div>

@@ -28,10 +28,10 @@
     @if ($title || $description || (!$media && $icon))
         <div class="p-4">
             @if (!$media && $icon)
-                <x-site.icon :name="$icon" class="h-9 w-9 text-brand-gold"/>
+                <x-site.icon :name="$icon" class="h-9 w-9 text-brand-accent"/>
             @endif
             @if ($title)
-                <h3 @class(['text-sm font-semibold text-brand-navy', 'mt-3' => (!$media && $icon), 'group-hover:text-brand-gold' => (bool) $url])>{{ $title }}</h3>
+                <h3 @class(['text-sm font-semibold text-brand-navy', 'mt-3' => (!$media && $icon), 'group-hover:text-brand-accent' => (bool) $url])>{{ $title }}</h3>
             @endif
             @if ($description)
                 <p class="mt-1 text-sm text-brand-navy/70">{{ $description }}</p>

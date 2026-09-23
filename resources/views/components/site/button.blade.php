@@ -3,20 +3,24 @@
     "primary" action always looks the same whether it comes from a Hero
     section, a CTA section, or a plain form submit. `href` renders an <a>,
     its absence renders a <button> (defaulting to type="button", override
-    via the `type` prop for a submit button).
+    via the `type` prop for a submit button). WEB-103 added `outline-light`
+    (for dark bands) and `size="lg"`.
 --}}
-@props(['href' => null, 'variant' => 'primary', 'type' => 'button'])
+@props(['href' => null, 'variant' => 'primary', 'type' => 'button', 'size' => 'md'])
 
 @php
     $variantClasses = match ($variant) {
         'outline' => 'border border-brand-navy bg-transparent text-brand-navy hover:bg-brand-navy hover:text-white',
-        'secondary' => 'border border-brand-navy/20 bg-white text-brand-navy hover:border-brand-gold hover:text-brand-gold',
-        default => 'bg-brand-gold text-white hover:bg-brand-gold-light',
+        'outline-light' => 'border border-white/70 bg-transparent text-white hover:border-white hover:bg-white/10',
+        'secondary' => 'border border-brand-navy/20 bg-white text-brand-navy hover:border-brand-accent hover:text-brand-accent',
+        default => 'border border-brand-accent bg-brand-accent text-white hover:border-brand-accent-dark hover:bg-brand-accent-dark',
     };
 
-    $baseClasses = 'inline-flex items-center justify-center gap-1.5 rounded-md px-5 py-2.5 text-sm font-semibold '
+    $sizeClasses = $size === 'lg' ? 'px-6 py-3' : 'px-5 py-2.5';
+
+    $baseClasses = 'inline-flex items-center justify-center gap-2 rounded-md text-sm font-semibold '
         .'transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 '
-        .'focus-visible:outline-brand-navy '.$variantClasses;
+        .'focus-visible:outline-brand-accent '.$sizeClasses.' '.$variantClasses;
 @endphp
 
 @if ($href)

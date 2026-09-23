@@ -2,19 +2,27 @@
 
 namespace Tests\Feature\Public;
 
-use App\Models\ContactRequest;
+use App\Actions\Page\UpdatePageAction;
+use App\Enums\MenuItemDestinationType;
+use App\Enums\PageSectionType;
+use App\Models\Media;
+use App\Models\Menu;
+use App\Models\Page;
 use App\Models\Role;
+use App\Models\Testimonial;
 use App\Models\User;
+use App\Shared\Services\Settings\SettingsRepository;
 use Database\Seeders\HomePageSeeder;
+use Database\Seeders\NavigationMenuSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * WEB-102 — the Softphoria homepage, rebuilt on real content transcribed
- * from the live https://softphoria.com/ (and, for Expertise only,
- * https://softphoria.com/about-us) via HomePageSeeder, replacing the old
- * "All The Things Light" placeholder content entirely. See
- * HomeController/resources/views/home.blade.php.
+ * WEB-103 — the redesigned Softphoria homepage
+ * (docs/Reference UI/develop/home.png), seeded by HomePageSeeder and
+ * NavigationMenuSeeder through the same Page/Menu data an admin edits. See
+ * HomeController/resources/views/home.blade.php and
+ * resources/views/components/site/blocks/*.
  */
 class HomepageTest extends TestCase
 {
@@ -27,186 +35,243 @@ class HomepageTest extends TestCase
         $this->get('/')->assertOk();
     }
 
-    public function test_the_homepage_renders_the_real_softphoria_hero(): void
+    public function test_the_hero_renders_eyebrow_heading_highlight_buttons_and_stats(): void
     {
         $this->seedHomepage();
 
         $response = $this->get('/');
 
-        $response->assertOk();
-        $response->assertSee('Technology &amp; IT Solutions', false);
-        $response->assertSee('Excellent IT Services for your success');
-        $response->assertSee('Read More');
+        $response->assertSeeInOrder([
+            'Web · Software · Cloud · Integration',
+            'Technology that moves your',
+            'business forward.',
+            'We design, build and support high-performance websites',
+            'Start a Project',
+            'Our Services',
+            // Each stat's <dt> label precedes its <dd> value in the markup
+            // (flex-col-reverse shows the value on top).
+            'Years Experience',
+            '20+',
+            'Projects Delivered',
+            '100+',
+            'Client Relationships',
+            'Long-term',
+        ]);
     }
 
-    /**
-     * Browser-verification pass against the live reference site: its small
-     * "TECHNOLOGY & IT SOLUTION" label sits ABOVE the big "Excellent IT
-     * Services..." heading, not the other way around — assert the actual
-     * heading tag carries the big line, and the eyebrow renders separately.
-     */
-    public function test_the_hero_eyebrow_is_distinct_from_and_precedes_the_heading(): void
+    public function test_every_redesigned_block_renders_in_order(): void
+    {
+        $this->seedHomepage();
+
+        $this->get('/')->assertSeeInOrder([
+            'Trusted Technologies',
+            'Technology solutions built around your business.',
+            'More than a website.',
+            'Selected projects',
+            'Modern tools for modern solutions.',
+            'From idea to launch.',
+            'Trusted by businesses worldwide.',
+            'Ideas, tutorials and technology.',
+            'Let&#039;s build something great together.',
+        ], false);
+    }
+
+    public function test_the_services_block_renders_all_six_cards_with_links(): void
+    {
+        $this->seedHomepage();
+
+        $response = $this->get('/');
+
+        $response->assertSee('id="services"', false);
+        foreach (['Web Development', 'Custom Software', 'E-Commerce Solutions', 'Cloud &amp; DevOps', 'API &amp; System Integrations', 'CMS &amp; Content Platforms'] as $title) {
+            $response->assertSee($title, false);
+        }
+        $response->assertSee('View All Services');
+        $response->assertSee('Learn More');
+    }
+
+    public function test_technology_logos_render_as_inline_brand_svgs_grouped(): void
+    {
+        $this->seedHomepage();
+
+        $response = $this->get('/');
+
+        $response->assertSee('aria-label="Laravel"', false);
+        $response->assertSee('fill="#FF2D20"', false);
+        $response->assertSeeInOrder(['Backend', 'Frontend', 'Cloud &amp; DevOps', 'Databases'], false);
+        $response->assertSee('Kubernetes');
+        $response->assertSee('PostgreSQL');
+    }
+
+    public function test_the_process_steps_render_numbered_in_order(): void
     {
         $this->seedHomepage();
 
         $content = $this->get('/')->getContent();
 
         $this->assertNotFalse($content);
-        $eyebrow = strpos($content, 'Technology &amp; IT Solutions');
-        $heading = strpos($content, 'Excellent IT Services for your success');
+        // Searched from the Process heading on — "Build" is also a Why
+        // Softphoria feature title earlier on the page.
+        $start = strpos($content, 'From idea to launch.');
+        $this->assertNotFalse($start);
+        $positions = array_map(fn (string $step) => strpos($content, ">{$step}</h3>", $start), ['Discover', 'Plan', 'Build', 'Deliver']);
 
-        $this->assertNotFalse($heading, 'the H1 should contain the big headline');
-        $this->assertNotFalse($eyebrow);
-        $this->assertTrue($eyebrow < $heading, 'the eyebrow should render before the heading');
+        $this->assertNotContains(false, $positions);
+        $this->assertSame($positions, collect($positions)->sort()->values()->all());
+        $this->assertStringContainsString('>04</span>', $content);
     }
 
-    /**
-     * The "Explore Our Expert" / "Fully dedicated to the best solutions."
-     * section — present on the live homepage, missing entirely from the
-     * first WEB-102 pass.
-     */
-    public function test_the_homepage_renders_the_fully_dedicated_section(): void
+    public function test_the_testimonials_section_reads_enabled_testimonials_from_the_admin_resource_in_sort_order(): void
+    {
+        $this->seedHomepage();
+        Testimonial::query()->update(['is_enabled' => false]);
+        Testimonial::query()->create(['name' => 'Second Client', 'designation' => 'CTO, Beta', 'message' => 'Second quote.', 'sort_order' => 2]);
+        Testimonial::query()->create(['name' => 'First Client', 'designation' => 'CEO, Alpha', 'message' => 'First quote.', 'sort_order' => 1]);
+        Testimonial::query()->create(['name' => 'Hidden Client', 'message' => 'Hidden quote.', 'is_enabled' => false]);
+
+        $response = $this->get('/');
+
+        $response->assertSeeInOrder(['First quote.', 'First Client', 'CEO, Alpha', 'Second quote.', 'Second Client']);
+        $response->assertDontSee('Hidden quote.');
+        $response->assertSee('data-testimonial-slider', false);
+        $response->assertSee('data-testimonial-next', false);
+    }
+
+    public function test_the_testimonials_slider_autoplays_at_the_admin_configured_interval(): void
     {
         $this->seedHomepage();
 
         $response = $this->get('/');
+        $response->assertSee('data-autoplay="6"', false);
 
-        $response->assertSee('Explore Our Expert');
-        $response->assertSee('Fully dedicated to the best solutions.');
-        $response->assertSee('We specialize in crafting high-performance websites');
-        $response->assertSee('Learn More');
+        $section = Page::query()->where('slug', 'home')->firstOrFail()->sections()->where('section_type', PageSectionType::Testimonials->value)->firstOrFail();
+        $section->update(['content_json' => [...$section->content_json, 'autoplay_seconds' => 0]]);
+
+        $response = $this->get('/');
+        $response->assertSee('data-autoplay="0"', false);
     }
 
-    public function test_services_and_process_items_render_their_icons(): void
+    public function test_the_testimonials_section_shows_an_avatar_from_the_media_library(): void
     {
         $this->seedHomepage();
+        Testimonial::query()->update(['is_enabled' => false]);
+        $media = $this->imageMedia('avatars/jane.jpg');
+        Testimonial::query()->create(['name' => 'Jane', 'message' => 'Great work.', 'avatar_media_id' => $media->id]);
 
         $response = $this->get('/');
 
-        // x-site.icon renders nothing for an unknown/blank name, so seeing
-        // the svg markup at all confirms a recognized icon key was used.
-        $response->assertSee('<svg', false);
+        $response->assertSee('avatars/jane.jpg', false);
+        // A single testimonial needs no slider controls.
+        $response->assertDontSee('data-testimonial-next', false);
     }
 
-    public function test_the_header_shows_the_real_tagline_and_utility_bar(): void
+    public function test_the_testimonials_section_is_omitted_when_there_are_none(): void
+    {
+        $this->seedHomepage();
+        Testimonial::query()->delete();
+
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertDontSee('Trusted by businesses worldwide.');
+    }
+
+    public function test_the_seeder_moves_the_five_real_client_quotes_into_testimonials_without_duplicating(): void
+    {
+        $this->seedHomepage();
+        $this->seed(HomePageSeeder::class);
+
+        $this->assertSame(5, Testimonial::query()->count());
+        $this->assertDatabaseHas('testimonials', ['name' => 'Mark F.', 'designation' => 'CEO at Salus Technology Services Ltd']);
+        $this->get('/')->assertSee('This guy is amazing!');
+    }
+
+    public function test_reseeding_keeps_media_an_admin_picked(): void
+    {
+        $this->seedHomepage();
+        $hero = $this->imageMedia('media/images/hero.png');
+        $background = $this->imageMedia('media/images/mountains.png');
+
+        $page = Page::query()->where('slug', 'home')->with('sections')->firstOrFail();
+        $sections = $page->sections->sortBy('sort_order')->map(function ($section) use ($hero, $background) {
+            $content = $section->content_json;
+            match ($section->section_type) {
+                PageSectionType::Hero->value => $content['media_id'] = $hero->id,
+                PageSectionType::Testimonials->value, PageSectionType::Cta->value => $content['background_media_id'] = $background->id,
+                default => null,
+            };
+
+            return ['id' => $section->id, 'section_type' => $section->section_type, 'title' => $section->title, 'is_enabled' => $section->is_enabled, 'content_json' => $content];
+        })->values()->all();
+        app(UpdatePageAction::class)->handle($page, ['title' => 'Home', 'slug' => 'home', 'sections' => $sections], User::query()->firstOrFail());
+
+        $this->seed(HomePageSeeder::class);
+
+        $response = $this->get('/');
+        $response->assertSee('media/images/hero.png', false);
+        $response->assertSee("background-image: url('".asset('storage/media/images/mountains.png')."')", false);
+    }
+
+    public function test_the_header_shows_the_redesigned_nav_and_lets_talk_button(): void
     {
         $this->seedHomepage();
 
         $response = $this->get('/');
 
         $response->assertSee('Be your tech partner');
-        $response->assertSee('contact@softphoria.com');
-        $response->assertSee('Monalisa Mansion, Nayabad Ave, Kolkata, India');
+        $response->assertSeeInOrder(['Services', 'Solutions', 'Expertise', 'Work', 'About', 'Blog', 'Contact']);
+        $response->assertSee('href="/#services"', false);
+        $response->assertSee("Let's Talk");
+        $response->assertSee('href="'.route('contact.index').'"', false);
+        // WEB-102's utility bar and phone module were removed by the redesign.
+        $response->assertDontSee('Free Consultation');
+        $response->assertDontSee('Monalisa Mansion');
     }
 
-    public function test_the_header_shows_the_free_consultation_phone_module(): void
+    public function test_the_header_button_and_footer_headings_are_editable_in_website_setup(): void
+    {
+        $this->seedHomepage();
+        $settings = app(SettingsRepository::class);
+        $settings->set('general', 'header_cta_label', 'Book a Call');
+        $settings->set('general', 'header_cta_url', '/book');
+        $settings->set('footer', 'social_heading', 'Find Us');
+        $settings->set('footer', 'newsletter_heading', 'Stay in the Loop');
+
+        $response = $this->get('/');
+
+        $response->assertSee('Book a Call');
+        $response->assertSee('href="/book"', false);
+        $response->assertDontSee("Let's Talk");
+        $response->assertSee('Find Us');
+        $response->assertSee('Stay in the Loop');
+    }
+
+    public function test_the_footer_shows_menu_groups_legal_links_and_newsletter(): void
     {
         $this->seedHomepage();
 
         $response = $this->get('/');
 
-        $response->assertSee('Free Consultation');
-        $response->assertSee('tel:+91 9163270494', false);
+        $response->assertSee('Technology solutions for ambitious businesses.');
+        $response->assertSeeInOrder(['Services', 'Web Development', 'Company', 'Expertise', 'System Integration', 'Follow Us']);
+        $response->assertSeeInOrder(['Privacy Policy', 'Terms of Service', 'Sitemap', 'Cookie Settings']);
+        $response->assertSee(route('newsletter.subscribe'), false);
     }
 
-    public function test_the_homepage_renders_who_we_are(): void
+    public function test_the_menu_seeder_replaces_legacy_menus_but_never_an_admins_own(): void
     {
-        $this->seedHomepage();
+        $legacy = Menu::query()->create(['slug' => 'primary-navigation', 'name' => 'Primary Navigation', 'is_active' => true]);
+        $legacy->items()->create(['label' => 'Music', 'destination_type' => MenuItemDestinationType::Url, 'url' => '#', 'sort_order' => 0, 'is_enabled' => true]);
+        $custom = Menu::query()->create(['slug' => 'footer-legal', 'name' => 'Footer Legal Links', 'is_active' => true]);
+        $custom->items()->create(['label' => 'My Own Link', 'destination_type' => MenuItemDestinationType::Url, 'url' => '/mine', 'sort_order' => 0, 'is_enabled' => true]);
 
-        $response = $this->get('/');
+        $this->seed(NavigationMenuSeeder::class);
 
-        $response->assertSee('Who We Are');
-        $response->assertSee('Inspiring Spaces for Innovative Minds');
-        $response->assertSee('We specialize in delivering custom software, enterprise solutions, and digital transformation services across industries.');
-    }
-
-    public function test_the_homepage_renders_all_three_services(): void
-    {
-        $this->seedHomepage();
-
-        $response = $this->get('/');
-
-        $response->assertSee('Creative Design');
-        $response->assertSee('Web Development');
-        $response->assertSee('Mobile Application');
-        $response->assertSee('Build a distinctive brand identity');
-    }
-
-    public function test_the_homepage_renders_the_expertise_list(): void
-    {
-        $this->seedHomepage();
-
-        $response = $this->get('/');
-
-        $response->assertSee('Expertise');
-        $response->assertSee('Laravel');
-        $response->assertSee('React.js');
-        $response->assertSee('Docker');
-    }
-
-    public function test_the_homepage_renders_all_four_process_steps_in_order(): void
-    {
-        $this->seedHomepage();
-
-        $content = $this->get('/')->getContent();
-
-        $this->assertNotFalse($content);
-        // Matched against each step's own <h3> tag, not the bare word —
-        // "Deliver" also appears mid-sentence in the Services section's
-        // Mobile Application description, which renders earlier on the page.
-        $discovery = strpos($content, '>Discovery</h3>');
-        $planning = strpos($content, '>Planning</h3>');
-        $execute = strpos($content, '>Execute</h3>');
-        $deliver = strpos($content, '>Deliver</h3>');
-
-        $this->assertNotFalse($discovery);
-        $this->assertNotFalse($planning);
-        $this->assertNotFalse($execute);
-        $this->assertNotFalse($deliver);
-        $this->assertTrue($discovery < $planning && $planning < $execute && $execute < $deliver);
-    }
-
-    public function test_the_homepage_renders_all_five_testimonials(): void
-    {
-        $this->seedHomepage();
-
-        $response = $this->get('/');
-
-        $response->assertSee('John B. — Experienced Linux Administrator of @Brsox', false);
-        $response->assertSee('Mark F. — CEO at Salus Technology Services Ltd', false);
-        $response->assertSee('Saikiran');
-        $response->assertSee('Michael C. Gill');
-        $response->assertSee('Dr. Tano');
-        $response->assertSee('This guy is amazing!');
-    }
-
-    public function test_the_homepage_renders_the_contact_cta_with_real_contact_details_and_the_form(): void
-    {
-        $this->seedHomepage();
-
-        $response = $this->get('/');
-
-        $response->assertSee('Free Consultation');
-        $response->assertSee('contact@softphoria.com');
-        $response->assertSee('+91 9163270494');
-        $response->assertSee('hp_website', false);
-        $response->assertSee(route('contact.submit'), false);
-    }
-
-    public function test_submitting_the_homepage_contact_form_uses_the_real_contact_route_and_creates_a_request(): void
-    {
-        $this->seedHomepage();
-        $this->get('/');
-
-        $response = $this->post('/contact', [
-            'name' => 'Jane Visitor',
-            'email' => 'jane@example.com',
-            'message' => 'Interested in a free consultation.',
-        ]);
-
-        $response->assertSessionHas('status');
-        $this->assertDatabaseHas('contact_requests', ['email' => 'jane@example.com']);
-        $this->assertSame(1, ContactRequest::query()->count());
+        $this->assertSame(
+            ['Services', 'Solutions', 'Expertise', 'Work', 'About', 'Blog', 'Contact'],
+            $legacy->items()->orderBy('sort_order')->pluck('label')->all(),
+        );
+        $this->assertSame(['My Own Link'], $custom->items()->pluck('label')->all());
     }
 
     public function test_the_homepage_does_not_show_any_legacy_all_the_things_light_or_jacob_content(): void
@@ -221,6 +286,7 @@ class HomepageTest extends TestCase
         $response->assertDontSee("Jacob's words");
         $response->assertDontSee('Latest Community Comments');
         $response->assertDontSee('Join Our Community');
+        $response->assertDontSee('Poetry/Prose');
     }
 
     public function test_the_homepage_seo_metadata_is_present_and_correct(): void
@@ -283,12 +349,9 @@ class HomepageTest extends TestCase
     }
 
     /**
-     * The generic CMS Page-driven homepage behavior (WEB-001..005) is
-     * unchanged: with no "home" Page seeded at all (and nothing else
-     * seeded either), the route still resolves and falls back to neutral
-     * content instead of erroring — only the fallback's own copy changed
-     * (WEB-102: neutral config('app.name'), never another company's
-     * identity) from before.
+     * With no "home" Page seeded at all (and nothing else seeded either),
+     * the route still resolves and falls back to neutral content instead
+     * of erroring.
      */
     public function test_the_homepage_falls_back_gracefully_with_no_seeded_home_page(): void
     {
@@ -297,6 +360,21 @@ class HomepageTest extends TestCase
         $response->assertOk();
         $response->assertSee(config('app.name'));
         $response->assertDontSee('All The Things Light');
+    }
+
+    private function imageMedia(string $path): Media
+    {
+        $media = new Media;
+        $media->disk = 'public';
+        $media->path = $path;
+        $media->original_filename = basename($path);
+        $media->mime_type = 'image/png';
+        $media->size = 1;
+        $media->visibility = 'public';
+        $media->uploader_id = User::query()->firstOrFail()->id;
+        $media->save();
+
+        return $media;
     }
 
     private function admin(): User
@@ -316,6 +394,7 @@ class HomepageTest extends TestCase
     private function seedHomepage(): void
     {
         $this->admin();
+        $this->seed(NavigationMenuSeeder::class);
         $this->seed(HomePageSeeder::class);
     }
 }

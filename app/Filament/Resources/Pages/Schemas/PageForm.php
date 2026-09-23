@@ -208,31 +208,87 @@ class PageForm
             // "Excellent IT Services for your success") — the live reference
             // site uses this on both its Hero and its "Explore Our Expert"
             // CTA-style section. Optional; omitted when blank.
+            //
+            // WEB-103: Gallery and Testimonials sections share the same
+            // eyebrow/heading header as Hero/Cta — the redesigned homepage
+            // gives every block a small label + heading (e.g. "OUR SERVICES"
+            // / "Technology solutions built around your business.").
             TextInput::make('content_json.eyebrow')->label('Eyebrow (small label above the heading)')
-                ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
-            TextInput::make('content_json.heading')->label('Heading')
-                ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::Gallery, PageSectionType::Testimonials])),
+            Textarea::make('content_json.heading')->label('Heading')->rows(2)
+                ->helperText('Line breaks are kept.')
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::Gallery, PageSectionType::Testimonials])),
+            TextInput::make('content_json.heading_highlight')->label('Highlighted heading ending')
+                ->helperText('Optional — shown on its own line after the heading, in the accent color (e.g. "business forward.").')
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero])),
             Textarea::make('content_json.subheading')->label('Subheading')->rows(2)
-                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero])),
             // WEB-102: a body paragraph under the CTA heading, e.g. the
             // reference site's "Fully dedicated to the best solutions."
             // section. Cta previously had no body text field, only a
-            // heading + button.
+            // heading + button. WEB-103: also a Gallery's intro line.
             Textarea::make('content_json.description')->label('Description')->rows(3)
-                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Cta->value),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Cta, PageSectionType::Gallery])),
             MediaPicker::make('content_json.media_id', 'Image')
-                ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::ImageText->value], true)),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::ImageText])),
             TextInput::make('content_json.cta_label')->label('Button label')
-                ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta])),
             TextInput::make('content_json.cta_url')->label('Button URL')->maxLength(255)
                 ->helperText('An absolute URL, a relative path (e.g. /music), or # while the destination isn\'t built yet.')
-                ->visible(fn (Get $get): bool => in_array($get('section_type'), [PageSectionType::Hero->value, PageSectionType::Cta->value], true)),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta])),
 
             TextInput::make('content_json.secondary_cta_label')->label('Secondary button label')
                 ->helperText('Optional — a second, outlined button shown next to the primary one.')
-                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta])),
             TextInput::make('content_json.secondary_cta_url')->label('Secondary button URL')->maxLength(255)
-                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta])),
+
+            // WEB-103: the Hero's row of headline figures ("20+ Years
+            // Experience", ...). Optional; nothing renders when empty.
+            Repeater::make('content_json.stats')
+                ->label('Stats')
+                ->schema([
+                    TextInput::make('value')->required()->maxLength(40)->placeholder('20+'),
+                    TextInput::make('label')->required()->maxLength(80)->placeholder('Years Experience'),
+                ])
+                ->columns(2)
+                ->defaultItems(0)
+                ->maxItems(4)
+                ->columnSpanFull()
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero])),
+
+            // WEB-103: Cta's two looks — the original centered block, or the
+            // redesigned homepage's full-width dark closing banner.
+            Select::make('content_json.style')
+                ->label('Style')
+                ->options([
+                    'simple' => 'Simple (centered, light)',
+                    'banner' => 'Banner (full-width, dark)',
+                ])
+                ->default('simple')
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Cta])),
+            MediaPicker::make('content_json.background_media_id', 'Background image')
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Cta, PageSectionType::Testimonials])),
+            TextInput::make('content_json.autoplay_seconds')
+                ->label('Autoplay interval (seconds)')
+                ->numeric()
+                ->minValue(0)
+                ->maxValue(60)
+                ->default(6)
+                ->helperText('How long each testimonial shows before the next one fades in. 0 turns autoplay off. It pauses while a visitor hovers over the carousel or tabs into it with the keyboard.')
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Testimonials])),
+            Placeholder::make('testimonials_notice')
+                ->hiddenLabel()
+                ->content('Shows every enabled testimonial from Testimonials in the admin sidebar, in their sort order.')
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Testimonials])),
+
+            // WEB-103: an optional in-page anchor, so a menu item can link
+            // straight to a homepage block (e.g. /#services).
+            TextInput::make('content_json.anchor')->label('Anchor ID')
+                ->helperText('Optional — lowercase letters, numbers and dashes. Link to it as /#anchor (e.g. /#services).')
+                ->regex('/^[a-z0-9-]+$/')
+                ->maxLength(60)
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Gallery, PageSectionType::Cta, PageSectionType::Testimonials])),
             TextInput::make('content_json.tertiary_label')->label('Additional link label')
                 ->helperText('Optional — a plain link shown below the buttons (e.g. "Watch Introduction").')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
@@ -287,8 +343,34 @@ class PageForm
                     'grid' => 'Card grid (photos or titled cards)',
                     'steps' => 'Numbered steps (e.g. a process)',
                     'quotes' => 'Quotes (e.g. testimonials — title is used as the attribution)',
+                    // WEB-103 — the redesigned homepage's blocks, all the
+                    // same gallery_items shape presented differently.
+                    'logos' => 'Logo strip (icon/image + title)',
+                    'services' => 'Icon cards (icon, title, description, link)',
+                    'features' => 'Intro + features (heading/description/link on the left, icon items on the right)',
+                    'projects' => 'Project cards (image, title as category label, description, link)',
+                    'tech_groups' => 'Grouped logos (items grouped by their Group field)',
+                    'articles' => 'Article cards (image, title, description as the date line, link)',
                 ])
                 ->default('grid')
+                ->live()
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Gallery->value),
+            Select::make('content_json.background')
+                ->label('Background')
+                ->options([
+                    'white' => 'White',
+                    'tint' => 'Light tint',
+                ])
+                ->default('white')
+                ->helperText('Used by the full-width layouts (everything except Card grid and Quotes).')
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Gallery->value),
+            TextInput::make('content_json.link_label')->label('Header link label')
+                ->helperText('Optional — e.g. "View All Services". Shown beside the heading; for Intro + features it is the button under the intro.')
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Gallery->value),
+            TextInput::make('content_json.link_url')->label('Header link URL')->maxLength(255)
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Gallery->value),
+            TextInput::make('content_json.item_link_label')->label('Item link label')
+                ->helperText('Text for each item\'s link, e.g. "Learn More", "View Case Study", "Read More".')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Gallery->value),
 
             // WEB-101 item E: a structured repeater (same pattern as the FAQ
@@ -317,8 +399,11 @@ class PageForm
                     // set (x-site.icon), never arbitrary markup.
                     Select::make('icon')
                         ->label('Icon (used when there\'s no Image)')
-                        ->options(GalleryItemIcons::options())
+                        ->options(GalleryItemIcons::groupedOptions())
+                        ->searchable()
                         ->native(false),
+                    TextInput::make('group')->maxLength(60)
+                        ->helperText('Only used by the Grouped logos layout, e.g. "Backend".'),
                 ])
                 ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
                 ->defaultItems(0)
@@ -345,6 +430,14 @@ class PageForm
                 ->content('No configuration needed — renders the same Contact form as the dedicated Contact Us page. The "Admin label" field above is shown as an optional heading above the form.')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::ContactForm->value),
         ];
+    }
+
+    /**
+     * @param  array<int, PageSectionType>  $types
+     */
+    private static function typeIn(Get $get, array $types): bool
+    {
+        return in_array($get('section_type'), array_map(fn (PageSectionType $type): string => $type->value, $types), true);
     }
 
     private static function renderRevisions(?Page $record): HtmlString

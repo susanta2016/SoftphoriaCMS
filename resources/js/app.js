@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 other.classList.toggle('font-semibold', isActive);
                 other.classList.toggle('text-brand-navy', isActive);
                 other.classList.toggle('text-brand-navy/70', !isActive);
-                other.classList.toggle('sm:border-l-brand-gold', isActive);
+                other.classList.toggle('sm:border-l-brand-accent', isActive);
                 other.setAttribute('aria-selected', String(isActive));
             });
 
@@ -232,4 +232,119 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (!readConsent()) setBannerOpen(true);
+});
+
+// WEB-103 — the homepage Testimonials carousel (resources/views/components/site/blocks/testimonials.blade.php).
+// The slides sit side by side in a flex track that's slid with translateX.
+// A copy of the first slide is appended, so going "next" from the last slide
+// keeps sliding the same way onto that copy — then, once the slide finishes,
+// the track jumps back to the real first slide with no transition, making the
+// loop seamless (no rewind, no gap). Autoplays every data-autoplay seconds,
+// pausing while the pointer or keyboard focus is inside the carousel and never
+// autoplaying for prefers-reduced-motion visitors. Without JS the first slide
+// shows.
+document.addEventListener('DOMContentLoaded', () => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    document.querySelectorAll('[data-testimonial-slider]').forEach((slider) => {
+        const track = slider.querySelector('[data-testimonial-track]');
+        const slides = [...slider.querySelectorAll('[data-testimonial-slide]')];
+        const dots = [...slider.querySelectorAll('[data-testimonial-dot]')];
+        if (!track || slides.length < 2) return;
+
+        const count = slides.length;
+        const clone = slides[0].cloneNode(true);
+        clone.removeAttribute('data-testimonial-slide');
+        clone.setAttribute('aria-hidden', 'true');
+        clone.inert = true;
+        track.appendChild(clone);
+
+        const delay = Number(slider.dataset.autoplay || 0) * 1000;
+        const autoplay = !reducedMotion && delay > 0;
+        let position = 0; // 0..count, where count is the first-slide copy
+        let timer = null;
+        let hovering = false;
+        let focused = false;
+
+        const setPosition = (target, animate) => {
+            position = target;
+            track.style.transition = animate && !reducedMotion ? '' : 'none';
+            track.style.transform = `translateX(-${position * 100}%)`;
+
+            const current = position % count;
+            slides.forEach((slide, i) => {
+                slide.inert = i !== current;
+                slide.setAttribute('aria-hidden', String(i !== current));
+            });
+            dots.forEach((dot, i) => {
+                const active = i === current;
+                dot.classList.toggle('bg-white', active);
+                dot.classList.toggle('bg-transparent', !active);
+                if (active) dot.setAttribute('aria-current', 'true');
+                else dot.removeAttribute('aria-current');
+            });
+        };
+
+        // Instant jump, then force a reflow so the next animated move starts
+        // from the jumped-to position rather than being merged with it.
+        const jump = (target) => {
+            setPosition(target, false);
+            void track.offsetWidth;
+        };
+
+        const next = () => {
+            if (position === count) jump(0);
+            setPosition(position + 1, true);
+            if (reducedMotion && position === count) jump(0);
+        };
+
+        const previous = () => {
+            if (position === 0) jump(count);
+            setPosition(position - 1, true);
+        };
+
+        const goTo = (index) => {
+            if (position === count) jump(0);
+            setPosition(index, true);
+        };
+
+        // Landing on the first-slide copy: swap to the real first slide.
+        track.addEventListener('transitionend', (event) => {
+            if (event.target === track && event.propertyName === 'transform' && position === count) jump(0);
+        });
+
+        // (Re)starts the countdown — also after every manual move, so a slide
+        // a visitor just picked always gets the full interval.
+        const schedule = () => {
+            clearInterval(timer);
+            timer = null;
+            const running = autoplay && !hovering && !focused;
+            track.setAttribute('aria-live', running ? 'off' : 'polite');
+            if (running) timer = setInterval(next, delay);
+        };
+
+        const withReschedule = (move) => () => {
+            move();
+            schedule();
+        };
+
+        slider.querySelector('[data-testimonial-prev]')?.addEventListener('click', withReschedule(previous));
+        slider.querySelector('[data-testimonial-next]')?.addEventListener('click', withReschedule(next));
+        dots.forEach((dot, i) => dot.addEventListener('click', withReschedule(() => goTo(i))));
+
+        slider.addEventListener('mouseenter', () => { hovering = true; schedule(); });
+        slider.addEventListener('mouseleave', () => { hovering = false; schedule(); });
+        // Only keyboard focus pauses — a mouse click on an arrow also focuses it,
+        // and that shouldn't keep autoplay stopped after the pointer leaves.
+        slider.addEventListener('focusin', (event) => { focused = event.target.matches(':focus-visible'); schedule(); });
+        slider.addEventListener('focusout', (event) => {
+            if (!slider.contains(event.relatedTarget)) {
+                focused = false;
+                schedule();
+            }
+        });
+
+        setPosition(0, false);
+        schedule();
+    });
 });

@@ -20,7 +20,7 @@
     <label for="{{ $name }}" class="block text-sm font-semibold text-brand-navy">
         {{ $label }}
         @if ($required)
-            <span class="text-brand-gold" aria-hidden="true">*</span>
+            <span class="text-brand-accent" aria-hidden="true">*</span>
         @endif
     </label>
 

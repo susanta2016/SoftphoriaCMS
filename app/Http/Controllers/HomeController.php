@@ -22,10 +22,9 @@ use Illuminate\Support\Collection;
  * header logo and site_name/tagline read Website Setup's existing general
  * settings — this is site-wide chrome, not page content.
  *
- * The Hero section is rendered here with its own bespoke full-bleed banner
- * markup (resources/views/home.blade.php) since that look is specific to
- * the homepage; every other enabled section on the "home" Page (Who We Are,
- * Services, Expertise, Process, Testimonials, the Contact Form CTA — see
+ * The Hero section is rendered here with its own bespoke two-column markup
+ * (resources/views/home.blade.php) since that look is specific to the
+ * homepage; every other enabled section on the "home" Page (see
  * HomePageSeeder) is rendered generically through the same x-site.sections
  * component the rest of the public site uses (WEB-102), via $sections.
  */
@@ -139,7 +138,9 @@ class HomeController extends Controller
         $defaults = [
             'eyebrow' => null,
             'heading' => config('app.name'),
+            'heading_highlight' => null,
             'subheading' => null,
+            'stats' => [],
             'media_id' => null,
             'cta_label' => null,
             'cta_url' => null,
@@ -189,9 +190,8 @@ class HomeController extends Controller
 
     /**
      * Every enabled section on the "home" Page except Hero (rendered
-     * separately, see the class docblock) — Who We Are, Services,
-     * Expertise, Process, Testimonials, the Contact Form CTA, in
-     * sort_order. Rendered generically by x-site.sections, the same
+     * separately, see the class docblock), in sort_order. Rendered
+     * generically by x-site.sections, the same
      * component the rest of the public site uses (WEB-102) — no
      * homepage-specific rendering logic duplicated here.
      *

@@ -4,11 +4,91 @@
     is hand-drawn inline SVG (no icon library dependency); an unknown/blank
     `name` renders nothing.
 --}}
-@props(['name' => null])
+@props(['name' => null, 'mono' => false])
 
-@php $classes = $attributes->get('class') ?: 'h-6 w-6'; @endphp
+@php
+    $classes = $attributes->get('class') ?: 'h-6 w-6';
+    // WEB-103: technology brand logos (App\Shared\Support\Pages\TechLogos)
+    // share this component — brand-colored by default, or currentColor
+    // with `mono` (e.g. white on a dark article thumbnail).
+    $logo = \App\Shared\Support\Pages\TechLogos::find($name);
+@endphp
 
-@switch($name)
+@if ($logo)
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="{{ $mono ? 'currentColor' : $logo['color'] }}" class="{{ $classes }}" role="img" aria-label="{{ $logo['label'] }}">
+        <path d="{{ $logo['path'] }}"/>
+    </svg>
+@endif
+
+@switch($logo ? null : $name)
+    @case('monitor')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <rect x="2.5" y="4" width="19" height="12.5" rx="1.5"/>
+            <path d="M8.5 20.5h7M12 16.5v4" stroke-linecap="round"/>
+        </svg>
+        @break
+
+    @case('cart')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <path d="M2.5 3.5h2.6l2.3 11.2a1.5 1.5 0 0 0 1.5 1.2h8.7a1.5 1.5 0 0 0 1.5-1.2l1.4-7.2H6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="9.5" cy="19.8" r="1.4"/>
+            <circle cx="17" cy="19.8" r="1.4"/>
+        </svg>
+        @break
+
+    @case('cloud')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.4 9.1 4.75 4.75 0 0 0 7 18.5Z" stroke-linejoin="round"/>
+        </svg>
+        @break
+
+    @case('nodes')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <circle cx="6" cy="12" r="2.8"/>
+            <circle cx="18" cy="5.5" r="2.8"/>
+            <circle cx="18" cy="18.5" r="2.8"/>
+            <path d="m8.5 10.7 7-3.9M8.5 13.3l7 3.9"/>
+        </svg>
+        @break
+
+    @case('document')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <path d="M14 2.5H6.5A1.5 1.5 0 0 0 5 4v16a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 20V7.5l-5-5Z" stroke-linejoin="round"/>
+            <path d="M14 2.5v5h5M8.5 12.5h7M8.5 16h7M8.5 9h3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        @break
+
+    @case('users')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <circle cx="9" cy="8" r="3.5"/>
+            <path d="M2.5 20a6.5 6.5 0 0 1 13 0" stroke-linecap="round"/>
+            <path d="M15.5 4.7a3.5 3.5 0 0 1 0 6.6M18 14.2a6.5 6.5 0 0 1 3.5 5.8" stroke-linecap="round"/>
+        </svg>
+        @break
+
+    @case('cog')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <path d="M10.3 2.5h3.4l.5 2.6a7.5 7.5 0 0 1 1.9 1.1l2.5-.9 1.7 3-2 1.7a7.6 7.6 0 0 1 0 2.2l2 1.7-1.7 3-2.5-.9a7.5 7.5 0 0 1-1.9 1.1l-.5 2.6h-3.4l-.5-2.6a7.5 7.5 0 0 1-1.9-1.1l-2.5.9-1.7-3 2-1.7a7.6 7.6 0 0 1 0-2.2l-2-1.7 1.7-3 2.5.9a7.5 7.5 0 0 1 1.9-1.1l.5-2.6Z" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="3"/>
+        </svg>
+        @break
+
+    @case('link')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4L11.8 5.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.4-1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        @break
+
+    @case('headset')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <path d="M4 14v-2a8 8 0 0 1 16 0v2" stroke-linecap="round"/>
+            <rect x="3" y="13" width="4" height="6" rx="1.5"/>
+            <rect x="17" y="13" width="4" height="6" rx="1.5"/>
+            <path d="M19 19c0 1.7-2 2.5-5 2.5" stroke-linecap="round"/>
+        </svg>
+        @break
+
     @case('design')
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
             <path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.4-.3-.4-.5-.9-.5-1.4 0-1.1.9-2 2-2h2a4 4 0 0 0 4-4 8.98 8.98 0 0 0-9-7Z" stroke-linecap="round" stroke-linejoin="round"/>

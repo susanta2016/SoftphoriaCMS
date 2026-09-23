@@ -4,19 +4,48 @@
 @source '../../storage/framework/views/*.php';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
-    /* Softphoria public design system — brand color tokens (WEB-101).
-       Single source of truth for the public site's palette: every public
-       Blade view/component references these custom properties (via
-       Tailwind's brand-* utilities) instead of one-off hex values, so a
-       future brand refresh only ever touches this block. */
-    --color-brand-navy: #16324f;
-    --color-brand-navy-dark: #0f2237;
-    --color-brand-gold: #d99a3d;
-    --color-brand-gold-light: #f0c877;
-    --color-brand-sky: #dceafa;
+    /* Softphoria public design system — brand color tokens (WEB-101,
+       re-themed to the blue WEB-103 homepage design). Single source of
+       truth for the public site's palette: every public Blade
+       view/component references these custom properties (via Tailwind's
+       brand-* utilities) instead of one-off hex values, so a future brand
+       refresh only ever touches this block. */
+    --color-brand-navy: #0b1b36;
+    --color-brand-navy-dark: #061329;
+    --color-brand-accent: #1661e8;
+    --color-brand-accent-dark: #0f4fc4;
+    --color-brand-accent-light: #5b93f5;
+    --color-brand-sky: #eaf1fd;
+    --color-brand-mist: #f5f8fd;
+    /* The homepage hero band — a light blue, deep enough to read as its own
+       band against the white "Trusted technologies" strip below it. */
+    --color-brand-ice: #e1edfb;
+    --color-brand-ice-deep: #d3e3f7;
+}
+
+/* WEB-103 — feathers the homepage hero image into the ice-blue band, as in
+   the reference design: top/bottom edges on phones (image below the copy,
+   full width), left/top/bottom edges from lg up (image bleeding off the
+   right). mix-blend-mode: multiply lets the artwork's own pale backdrop
+   take on the band's deeper blue instead of showing as a lighter box. */
+@layer components {
+    .hero-image-fade {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 10%, #000 85%, transparent);
+        mask-image: linear-gradient(to bottom, transparent, #000 10%, #000 85%, transparent);
+        mix-blend-mode: multiply;
+    }
+
+    @media (width >= 64rem) {
+        .hero-image-fade {
+            -webkit-mask-image: linear-gradient(to right, transparent, #000 22%), linear-gradient(to bottom, transparent, #000 8%, #000 78%, transparent);
+            -webkit-mask-composite: source-in;
+            mask-image: linear-gradient(to right, transparent, #000 22%), linear-gradient(to bottom, transparent, #000 8%, #000 78%, transparent);
+            mask-composite: intersect;
+        }
+    }
 }
 
 @layer utilities {

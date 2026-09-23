@@ -2,9 +2,7 @@
 
 @php
     $siteName = $siteName ?: config('app.name');
-@endphp
 
-@php
     $primaryMenu = \App\Models\Menu::query()
         ->where('slug', 'primary-navigation')
         ->where('is_active', true)
@@ -17,202 +15,143 @@
 
     $navItems = $primaryMenu?->items ?? collect();
 
-    // WEB-102 browser-verification pass: the reference site's utility bar
-    // (contact email + address above the nav) and its header phone/"Free
-    // Consultation" module — both reuse the existing Website Setup ->
-    // Contact settings (WEB-101 item F), nothing new to configure.
-    $contactSettings = app(\App\Shared\Services\Settings\SettingsRepository::class);
-    $contactEmail = $contactSettings->get('contact', 'email');
-    $contactPhone = $contactSettings->get('contact', 'phone');
-    $contactAddress = $contactSettings->get('contact', 'address');
+    // WEB-103: the redesign's single header call-to-action — editable in
+    // Website Setup → General; defaults to "Let's Talk" → the Contact page.
+    $generalSettings = app(\App\Shared\Services\Settings\SettingsRepository::class);
+    $talkLabel = $generalSettings->get('general', 'header_cta_label') ?: "Let's Talk";
+    $talkUrl = $generalSettings->get('general', 'header_cta_url')
+        ?: (Route::has('contact.index') ? route('contact.index') : '#');
 @endphp
 
 {{--
-    One fixed wrapper holds both the utility bar and the nav row, so they
-    stack in normal flow inside it rather than needing two independently
-    coordinated fixed offsets. The utility bar only takes up space when
-    there's contact info to show — pages/show.blade.php's and home.blade.php's
-    own top padding already has enough buffer for either case.
+    WEB-103 redesign — a plain white bar: logo, primary nav (Menus →
+    Primary Navigation) and a "Let's Talk" button. The WEB-102 gold
+    utility bar and phone module were dropped to match the design; the
+    Contact page still shows those contact details. Account links stay
+    (a quiet "Log In" for guests, profile/logout when signed in) since
+    they're the only way into AUTH-002/AUTH-005.
 --}}
 <div class="fixed inset-x-0 top-0 z-30 w-full">
-    @if ($contactEmail || $contactAddress)
-        <div class="hidden bg-brand-gold px-4 py-2 text-xs text-white sm:block sm:px-6 lg:px-8">
-            <div class="mx-auto flex max-w-7xl items-center justify-between gap-4">
-                <span class="truncate">
-                    @if ($contactEmail)
-                        <a href="mailto:{{ $contactEmail }}" class="font-medium hover:underline">{{ $contactEmail }}</a>
-                    @endif
-                </span>
-                @if ($contactAddress)
-                    <span class="hidden truncate lg:inline">{{ $contactAddress }}</span>
-                @endif
-            </div>
-        </div>
-    @endif
-
     <header
         @if ($transparent) data-transparent-header @endif
         {{ $attributes->class([
-            'w-full transition-colors duration-200',
-            'bg-transparent' => $transparent,
-            'bg-white shadow-sm' => ! $transparent,
+            'w-full border-b transition-colors duration-200',
+            'border-transparent bg-transparent' => $transparent,
+            'border-brand-navy/5 bg-white/95 shadow-sm backdrop-blur' => ! $transparent,
         ]) }}
     >
-    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-3 gap-y-3 px-4 py-4 sm:gap-x-6 sm:px-6 lg:flex-nowrap lg:px-8">
-        <a href="{{ route('home') }}" class="min-w-0 shrink">
-            @if ($logo)
-                {{-- The uploaded lockup has a lot of empty canvas above/below the ring+wordmark, so a plain height cap renders it unreadably small. Cropping to the artwork's own aspect ratio keeps the header compact while showing it at a legible size. --}}
-                <img
-                    src="{{ \Illuminate\Support\Facades\Storage::disk($logo->disk)->url($logo->path) }}"
-                    alt="{{ $siteName }}"
-                    class="h-12 w-auto object-cover sm:h-14"
-                    style="aspect-ratio: 4.7 / 1; object-position: 50% 45%;"
-                >
-            @else
-                <x-site.brand-mark :site-name="$siteName" :tagline="$tagline" :on-dark="false" class="min-w-0"/>
-            @endif
-        </a>
-
-        {{--
-            Nav/icon/button colors are deliberately NOT conditioned on
-            $transparent — always the navy palette, matching every other
-            page. Home's own hero art (a bright sky/sun image, not a dark
-            overlay) made the old $transparent ? white : navy branches here
-            render near-invisible white-on-white text against it. $transparent
-            still only controls the header's own background fill below
-            (bg-transparent lets that hero image show through at the very
-            top of Home), which is an unrelated, still-correct effect.
-        --}}
-        <nav aria-label="Primary" class="hidden lg:flex lg:items-center lg:gap-7">
-            @foreach ($navItems as $item)
-                <a
-                    href="{{ $item->resolvedUrl() ?? '#' }}"
-                    class="text-sm font-medium whitespace-nowrap text-brand-navy transition hover:text-brand-gold"
-                >
-                    {{ $item->label }}
-                </a>
-            @endforeach
-        </nav>
-
-        @if ($contactPhone)
-            <div class="hidden shrink-0 items-center gap-2 lg:flex">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="h-6 w-6 text-brand-navy">
-                    <path d="M4 5c0 8.3 6.7 15 15 15l2-3.5-5-2-1.5 2A12 12 0 0 1 7.5 9.5l2-1.5-2-5L4 5Z" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <a href="tel:{{ $contactPhone }}" class="leading-tight">
-                    <span class="block text-xs text-brand-navy/60">Free Consultation</span>
-                    <span class="block text-sm font-semibold text-brand-navy">{{ $contactPhone }}</span>
-                </a>
-            </div>
-        @endif
-
-        <div class="flex shrink-0 items-center gap-2 sm:gap-3">
-            <a
-                href="#"
-                aria-label="Search"
-                class="hidden h-9 w-9 items-center justify-center rounded-md border border-brand-navy/20 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold sm:inline-flex"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
-                    <circle cx="11" cy="11" r="7"/>
-                    <path d="m21 21-4.35-4.35" stroke-linecap="round"/>
-                </svg>
-            </a>
-            {{--
-                AUTH-002: these were dead "#" links until login/register
-                existed. @guest/@auth here are the only auth-state-aware
-                markup in this component — no cart/search/membership
-                additions beyond wiring these two links plus a logout form.
-            --}}
-            @guest
-                <a
-                    href="{{ route('login') }}"
-                    class="hidden rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold sm:inline-block"
-                >
-                    Log In
-                </a>
-                <a href="{{ route('register') }}" class="inline-flex items-center gap-1.5 rounded-md bg-brand-gold px-3 py-2 text-sm font-semibold whitespace-nowrap text-white transition hover:bg-brand-gold-light sm:px-4">
-                    Enter Here <span aria-hidden="true">→</span>
-                </a>
-            @else
-                @if (Route::has('account.profile.edit'))
-                    <a
-                        href="{{ route('account.profile.edit') }}"
-                        class="hidden rounded-md border border-brand-navy/20 px-4 py-2 text-sm font-medium text-brand-navy transition hover:border-brand-gold hover:text-brand-gold sm:inline-block"
+        <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+            <a href="{{ route('home') }}" class="min-w-0 shrink">
+                @if ($logo)
+                    {{-- The uploaded lockup has a lot of empty canvas above/below the ring+wordmark, so a plain height cap renders it unreadably small. Cropping to the artwork's own aspect ratio keeps the header compact while showing it at a legible size. --}}
+                    <img
+                        src="{{ \Illuminate\Support\Facades\Storage::disk($logo->disk)->url($logo->path) }}"
+                        alt="{{ $siteName }}"
+                        class="h-11 w-auto object-cover sm:h-12"
+                        style="aspect-ratio: 4.7 / 1; object-position: 50% 45%;"
                     >
-                        My Profile
-                    </a>
+                @else
+                    <x-site.brand-mark :site-name="$siteName" :tagline="$tagline" :on-dark="false" class="min-w-0"/>
                 @endif
-                <form method="POST" action="{{ route('logout') }}" class="hidden sm:block">
-                    @csrf
-                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-md bg-brand-gold px-3 py-2 text-sm font-semibold whitespace-nowrap text-white transition hover:bg-brand-gold-light sm:px-4">
-                        Log Out
-                    </button>
-                </form>
-            @endguest
-
-            <button
-                type="button"
-                data-mobile-menu-toggle
-                aria-label="Toggle menu"
-                aria-expanded="false"
-                aria-controls="mobile-menu"
-                class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-brand-navy/20 text-brand-navy transition hover:border-brand-gold hover:text-brand-gold lg:hidden"
-            >
-                <svg data-mobile-menu-icon-open xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
-                    <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/>
-                </svg>
-                <svg data-mobile-menu-icon-close xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden h-4 w-4">
-                    <path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/>
-                </svg>
-            </button>
-        </div>
-    </div>
-
-    <div id="mobile-menu" data-mobile-menu class="hidden border-t border-brand-navy/10 bg-white lg:hidden">
-        <nav aria-label="Primary" class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 sm:px-6">
-            @foreach ($navItems as $item)
-                <a href="{{ $item->resolvedUrl() ?? '#' }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
-                    {{ $item->label }}
-                </a>
-            @endforeach
-        </nav>
-
-        {{--
-            Search and Log In are already visible as standalone header
-            controls from the sm breakpoint up (classes above), so they'd
-            be redundant here at sm+. Below sm — genuinely small/mobile
-            screens — those controls are hidden entirely, so this is their
-            only way in: surfaced here instead, alongside the nav links.
-        --}}
-        <div class="mx-auto flex max-w-7xl flex-col gap-1 border-t border-brand-navy/10 px-4 py-3 sm:hidden">
-            <a href="#" class="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
-                    <circle cx="11" cy="11" r="7"/>
-                    <path d="m21 21-4.35-4.35" stroke-linecap="round"/>
-                </svg>
-                Search
             </a>
-            @guest
-                <a href="{{ route('login') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
-                    Log In
-                </a>
-                <a href="{{ route('register') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
-                    Register
-                </a>
-            @else
-                @if (Route::has('account.profile.edit'))
-                    <a href="{{ route('account.profile.edit') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
-                        My Profile
+
+            <nav aria-label="Primary" class="hidden lg:flex lg:items-center lg:gap-8">
+                @foreach ($navItems as $item)
+                    <a
+                        href="{{ $item->resolvedUrl() ?? '#' }}"
+                        class="text-sm font-medium whitespace-nowrap text-brand-navy transition hover:text-brand-accent"
+                    >
+                        {{ $item->label }}
                     </a>
-                @endif
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="w-full rounded-md px-3 py-2.5 text-left text-sm font-medium text-brand-navy transition hover:bg-brand-gold/10 hover:text-brand-gold">
-                        Log Out
-                    </button>
-                </form>
-            @endguest
+                @endforeach
+            </nav>
+
+            <div class="flex shrink-0 items-center gap-2 sm:gap-4">
+                {{--
+                    AUTH-002: these were dead "#" links until login/register
+                    existed. @guest/@auth here are the only auth-state-aware
+                    markup in this component.
+                --}}
+                @guest
+                    <a href="{{ route('login') }}" class="hidden text-sm font-medium text-brand-navy transition hover:text-brand-accent sm:inline-block">
+                        Log In
+                    </a>
+                @else
+                    @if (Route::has('account.profile.edit'))
+                        <a href="{{ route('account.profile.edit') }}" class="hidden text-sm font-medium text-brand-navy transition hover:text-brand-accent sm:inline-block">
+                            My Profile
+                        </a>
+                    @endif
+                    <form method="POST" action="{{ route('logout') }}" class="hidden sm:block">
+                        @csrf
+                        <button type="submit" class="text-sm font-medium text-brand-navy transition hover:text-brand-accent">
+                            Log Out
+                        </button>
+                    </form>
+                @endguest
+
+                <span class="hidden sm:block">
+                    <x-site.button :href="$talkUrl" class="whitespace-nowrap">
+                        {{ $talkLabel }} <x-site.arrow class="h-4 w-4"/>
+                    </x-site.button>
+                </span>
+
+                <button
+                    type="button"
+                    data-mobile-menu-toggle
+                    aria-label="Toggle menu"
+                    aria-expanded="false"
+                    aria-controls="mobile-menu"
+                    class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-brand-navy/15 text-brand-navy transition hover:border-brand-accent hover:text-brand-accent lg:hidden"
+                >
+                    <svg data-mobile-menu-icon-open xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5">
+                        <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/>
+                    </svg>
+                    <svg data-mobile-menu-icon-close xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden h-5 w-5">
+                        <path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
         </div>
-    </div>
+
+        <div id="mobile-menu" data-mobile-menu class="hidden max-h-[calc(100vh-4.5rem)] overflow-y-auto border-t border-brand-navy/10 bg-white lg:hidden">
+            <nav aria-label="Primary" class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 sm:px-6">
+                @foreach ($navItems as $item)
+                    <a href="{{ $item->resolvedUrl() ?? '#' }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent">
+                        {{ $item->label }}
+                    </a>
+                @endforeach
+            </nav>
+
+            {{-- From sm up the header row already shows these (except Register), so a signed-in user's copy would just be an empty bordered row there. --}}
+            <div @class([
+                'mx-auto flex max-w-7xl flex-col gap-1 border-t border-brand-navy/10 px-4 py-3 sm:px-6',
+                'sm:hidden' => auth()->check(),
+            ])>
+                @guest
+                    <a href="{{ route('login') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent sm:hidden">
+                        Log In
+                    </a>
+                    <a href="{{ route('register') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent">
+                        Register
+                    </a>
+                @else
+                    @if (Route::has('account.profile.edit'))
+                        <a href="{{ route('account.profile.edit') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent sm:hidden">
+                            My Profile
+                        </a>
+                    @endif
+                    <form method="POST" action="{{ route('logout') }}" class="sm:hidden">
+                        @csrf
+                        <button type="submit" class="w-full rounded-md px-3 py-2.5 text-left text-sm font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent">
+                            Log Out
+                        </button>
+                    </form>
+                @endguest
+                <x-site.button :href="$talkUrl" class="mt-2 sm:hidden">
+                    {{ $talkLabel }} <x-site.arrow class="h-4 w-4"/>
+                </x-site.button>
+            </div>
+        </div>
     </header>
 </div>

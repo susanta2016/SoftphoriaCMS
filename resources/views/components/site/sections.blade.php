@@ -18,7 +18,44 @@
 @props(['sections'])
 
 @forelse ($sections as $section)
-    @php $content = $section->content_json ?? []; @endphp
+    @php
+        $content = $section->content_json ?? [];
+
+        // WEB-103: the redesigned homepage's full-width blocks render
+        // through their own components (resources/views/components/site/blocks/*)
+        // inside an edge-to-edge x-site.band rather than the narrow
+        // x-site.section below. Everything else keeps its existing markup.
+        $block = match (true) {
+            $section->section_type === \App\Enums\PageSectionType::Testimonials->value => 'testimonials',
+            $section->section_type === \App\Enums\PageSectionType::Cta->value && ($content['style'] ?? null) === 'banner' => 'cta-banner',
+            $section->section_type === \App\Enums\PageSectionType::Gallery->value => match ($content['display'] ?? 'grid') {
+                'logos' => 'logos',
+                'services' => 'services',
+                'features' => 'features',
+                'projects' => 'projects',
+                'tech_groups' => 'tech-groups',
+                'steps' => 'steps',
+                'articles' => 'articles',
+                default => null,
+            },
+            default => null,
+        };
+    @endphp
+
+    @if ($block === 'testimonials' || $block === 'cta-banner')
+        <x-dynamic-component :component="'site.blocks.'.$block" :section="$section" :content="$content"/>
+        @continue
+    @elseif ($block)
+        @php
+            $blockMedia = \App\Models\Media::query()
+                ->whereIn('id', collect($content['gallery_items'] ?? [])->pluck('media_id')->filter()->all())
+                ->get()
+                ->keyBy('id');
+        @endphp
+        <x-dynamic-component :component="'site.blocks.'.$block" :section="$section" :content="$content" :media="$blockMedia"/>
+        @continue
+    @endif
+
     <x-site.section>
         @switch($section->section_type)
             @case('hero')
@@ -31,7 +68,7 @@
                         >
                     @endif
                     @if (!empty($content['eyebrow']))
-                        <p class="text-sm font-semibold tracking-[0.15em] text-brand-gold uppercase">{{ $content['eyebrow'] }}</p>
+                        <p class="text-sm font-semibold tracking-[0.15em] text-brand-accent uppercase">{{ $content['eyebrow'] }}</p>
                     @endif
                     @if (!empty($content['heading']))
                         <h2 class="text-2xl font-bold text-brand-navy">{{ $content['heading'] }}</h2>
@@ -49,7 +86,7 @@
                     </div>
                     @if (!empty($content['tertiary_label']) && !empty($content['tertiary_url']))
                         <p class="mt-3">
-                            <a href="{{ $content['tertiary_url'] }}" class="text-sm font-medium text-brand-navy underline decoration-brand-navy/30 underline-offset-2 hover:text-brand-gold">{{ $content['tertiary_label'] }}</a>
+                            <a href="{{ $content['tertiary_url'] }}" class="text-sm font-medium text-brand-navy underline decoration-brand-navy/30 underline-offset-2 hover:text-brand-accent">{{ $content['tertiary_label'] }}</a>
                         </p>
                     @endif
                 </div>
@@ -59,7 +96,7 @@
                 @if ($section->title)
                     <h2 class="text-2xl font-bold text-brand-navy">{{ $section->title }}</h2>
                 @endif
-                <div @class(['max-w-none text-brand-navy [&_a]:text-brand-gold [&_a]:underline [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-brand-navy [&_p]:mt-3 [&_ul]:mt-4 [&_ul]:flex [&_ul]:flex-wrap [&_ul]:list-none [&_ul]:gap-2 [&_ul]:p-0 [&_li]:rounded-full [&_li]:border [&_li]:border-brand-navy/15 [&_li]:bg-brand-sky/40 [&_li]:px-3.5 [&_li]:py-1.5 [&_li]:text-sm [&_li]:text-brand-navy [&_h3]:mt-4 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-brand-navy', 'mt-3' => (bool) $section->title])>
+                <div @class(['max-w-none text-brand-navy [&_a]:text-brand-accent [&_a]:underline [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-brand-navy [&_p]:mt-3 [&_ul]:mt-4 [&_ul]:flex [&_ul]:flex-wrap [&_ul]:list-none [&_ul]:gap-2 [&_ul]:p-0 [&_li]:rounded-full [&_li]:border [&_li]:border-brand-navy/15 [&_li]:bg-brand-sky/40 [&_li]:px-3.5 [&_li]:py-1.5 [&_li]:text-sm [&_li]:text-brand-navy [&_h3]:mt-4 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-brand-navy', 'mt-3' => (bool) $section->title])>
                     {!! $content['body'] ?? '' !!}
                 </div>
                 @break
@@ -89,7 +126,7 @@
                 @break
 
             @case('quote')
-                <blockquote class="border-l-4 border-brand-gold pl-4 text-xl text-brand-navy italic">
+                <blockquote class="border-l-4 border-brand-accent pl-4 text-xl text-brand-navy italic">
                     {{ $content['quote'] ?? '' }}
                     @if (!empty($content['attribution']))
                         <span class="mt-2 block text-sm font-normal text-brand-navy/60 not-italic">{{ $content['attribution'] }}</span>
@@ -100,7 +137,7 @@
             @case('cta')
                 <div class="text-center">
                     @if (!empty($content['eyebrow']))
-                        <p class="text-sm font-semibold tracking-[0.15em] text-brand-gold uppercase">{{ $content['eyebrow'] }}</p>
+                        <p class="text-sm font-semibold tracking-[0.15em] text-brand-accent uppercase">{{ $content['eyebrow'] }}</p>
                     @endif
                     @if (!empty($content['heading']))
                         <h2 class="mt-1 text-2xl font-bold text-brand-navy">{{ $content['heading'] }}</h2>
@@ -123,24 +160,8 @@
 
                 @php $display = $content['display'] ?? 'grid'; @endphp
 
-                @if ($display === 'steps' && !empty($content['gallery_items']))
-                    <ol class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                        @foreach ($content['gallery_items'] as $item)
-                            <li>
-                                @if (!empty($item['icon']))
-                                    <x-site.icon :name="$item['icon']" class="mb-2 h-8 w-8 text-brand-gold"/>
-                                @endif
-                                <span class="text-sm font-bold text-brand-gold">{{ sprintf('%02d', $loop->iteration) }}</span>
-                                @if (!empty($item['title']))
-                                    <h3 class="mt-1 font-semibold text-brand-navy">{{ $item['title'] }}</h3>
-                                @endif
-                                @if (!empty($item['description']))
-                                    <p class="mt-1.5 text-sm text-brand-navy/70">{{ $item['description'] }}</p>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ol>
-                @elseif ($display === 'quotes' && !empty($content['gallery_items']))
+                {{-- 'steps' and WEB-103's other full-width displays are dispatched to site.blocks.* above. --}}
+                @if ($display === 'quotes' && !empty($content['gallery_items']))
                     <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         @foreach ($content['gallery_items'] as $item)
                             <x-site.card>

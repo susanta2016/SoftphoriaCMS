@@ -8,31 +8,31 @@ use App\Enums\PageSectionType;
 use App\Enums\PageStatus;
 use App\Enums\PageTemplate;
 use App\Models\Page;
+use App\Models\Testimonial;
 use App\Models\User;
 use App\Shared\Services\Settings\SettingsRepository;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Collection;
 
 /**
- * Seeds the "home" CMS Page with Softphoria's real homepage content
- * (WEB-102), through the same CreatePageAction/UpdatePageAction the Pages
- * admin UI uses, so it behaves exactly like an admin-authored page —
- * sections, revision snapshot, SEO — rather than a second, parallel content
- * path. Idempotent: re-running it updates the existing "home" page instead
- * of duplicating it.
+ * Seeds the "home" CMS Page with Softphoria's homepage content through the
+ * same CreatePageAction/UpdatePageAction the Pages admin UI uses, so it
+ * behaves exactly like an admin-authored page — sections, revision
+ * snapshot, SEO — rather than a second, parallel content path.
+ * Idempotent: re-running it updates the existing "home" page instead of
+ * duplicating it.
  *
- * Content below is transcribed from the live https://softphoria.com/ (and,
- * for the Expertise list only, https://softphoria.com/about-us — the live
- * homepage itself has no dedicated Expertise section) as the authoritative
- * source, per WEB-102. Two verbatim wording issues were left uncorrected
- * deliberately — see the Process/Testimonials sections below — and two
- * trivial fixes were made: the hero headline's capitalization/grammar
- * ("Technology & it solution" → "Technology & IT Solutions") and a
- * duplicated-word typo in the "Who We Are" paragraph ("We are the
- * specializes in..." → "We specialize in..."). Nothing else was reworded,
- * and no services/testimonials/stats/technologies were invented.
+ * WEB-103: copy and section order follow the approved redesign
+ * (docs/Reference UI/develop/home.png). Every media reference (hero image,
+ * testimonial/CTA backgrounds, item images) is carried forward from what's
+ * already saved rather than hardcoded, since Media IDs differ per
+ * environment — pick them once in Admin → Pages → Home.
  *
- * Replaces WEB-001..005's previous "All The Things Light" placeholder
- * content entirely — see PR/commit history for that prior version.
+ * Client testimonials now live in the admin Testimonials resource (the
+ * Testimonials section reads them live). The five below are the real,
+ * verbatim quotes from https://softphoria.com/ that WEB-102 transcribed;
+ * no testimonial is invented here — the redesign mockup's sample quote is
+ * not seeded.
  */
 class HomePageSeeder extends Seeder
 {
@@ -46,21 +46,14 @@ class HomePageSeeder extends Seeder
         }
 
         $existingPage = Page::query()->where('slug', 'home')->with('sections')->first();
-
-        // WEB-102 browser-verification pass: re-running this seeder used to
-        // silently wipe out a hero image an admin had since uploaded through
-        // the Pages editor, since this array below never set media_id itself
-        // — carrying forward whatever is already saved avoids that.
-        $existingHeroMediaId = $existingPage?->sections
-            ->firstWhere('section_type', PageSectionType::Hero->value)
-            ?->content_json['media_id'] ?? null;
+        $existingSections = $existingPage?->sections ?? new Collection;
 
         $data = [
             'title' => 'Home',
             'slug' => 'home',
             'template' => PageTemplate::Custom->value,
             'status' => PageStatus::Published->value,
-            'summary' => 'We specialize in delivering custom software, enterprise solutions, and digital transformation services across industries.',
+            'summary' => 'We design, build and support high-performance websites, custom software, cloud infrastructure and integrations — helping businesses turn ideas into real world solutions.',
             'publish_at' => now(),
             'sections' => [
                 [
@@ -68,154 +61,160 @@ class HomePageSeeder extends Seeder
                     'title' => 'Homepage Hero',
                     'is_enabled' => true,
                     'content_json' => [
-                        // WEB-102 browser-verification pass: the live site's
-                        // small "TECHNOLOGY & IT SOLUTION" label sits ABOVE
-                        // its big "Excellent IT Services for your success"
-                        // heading — the first pass had these two swapped.
-                        'eyebrow' => 'Technology & IT Solutions',
-                        'heading' => 'Excellent IT Services for your success',
-                        'cta_label' => 'Read More',
-                        'cta_url' => '#',
-                        'media_id' => $existingHeroMediaId,
-                    ],
-                ],
-                [
-                    'section_type' => PageSectionType::RichText->value,
-                    'title' => null,
-                    'is_enabled' => true,
-                    'content_json' => [
-                        'body' => '<h2>Who We Are</h2>'
-                            .'<p><strong>Inspiring Spaces for Innovative Minds</strong></p>'
-                            .'<p>We specialize in delivering custom software, enterprise solutions, and digital transformation services across industries.</p>',
-                    ],
-                ],
-                [
-                    'section_type' => PageSectionType::Gallery->value,
-                    'title' => 'Services',
-                    'is_enabled' => true,
-                    'content_json' => [
-                        'display' => 'grid',
-                        'gallery_items' => [
-                            [
-                                'title' => 'Creative Design',
-                                'description' => 'Build a distinctive brand identity that captures attention, engages your audience, and leaves a memorable impression.',
-                                'url' => '#',
-                                'icon' => 'design',
-                            ],
-                            [
-                                'title' => 'Web Development',
-                                'description' => 'Bring your vision to life with a beautifully crafted, user-centric website—designed for seamless performance and modern appeal.',
-                                'url' => '#',
-                                'icon' => 'code',
-                            ],
-                            [
-                                'title' => 'Mobile Application',
-                                'description' => 'Develop powerful, intuitive apps customized to your needs. Deliver exceptional user experiences and grow your digital impact.',
-                                'url' => '#',
-                                'icon' => 'mobile',
-                            ],
+                        'eyebrow' => 'Web · Software · Cloud · Integration',
+                        'heading' => 'Technology that moves your',
+                        'heading_highlight' => 'business forward.',
+                        'subheading' => 'We design, build and support high-performance websites, custom software, cloud infrastructure and integrations — helping businesses turn ideas into real world solutions.',
+                        'cta_label' => 'Start a Project',
+                        'cta_url' => '/contact',
+                        'secondary_cta_label' => 'Our Services',
+                        'secondary_cta_url' => '/#services',
+                        'stats' => [
+                            ['value' => '20+', 'label' => 'Years Experience'],
+                            ['value' => '100+', 'label' => 'Projects Delivered'],
+                            ['value' => 'Long-term', 'label' => 'Client Relationships'],
                         ],
+                        'media_id' => $this->existingValue($existingSections, PageSectionType::Hero, null, 'media_id'),
                     ],
                 ],
+                $this->gallery($existingSections, 'Trusted Technologies', 'logos', [
+                    'eyebrow' => 'Trusted Technologies',
+                    'background' => 'white',
+                ], [
+                    ['title' => 'Laravel', 'icon' => 'laravel'],
+                    ['title' => 'Python', 'icon' => 'python'],
+                    ['title' => 'Django', 'icon' => 'django'],
+                    ['title' => 'AWS', 'icon' => 'aws'],
+                    ['title' => 'Docker', 'icon' => 'docker'],
+                    ['title' => 'NGINX', 'icon' => 'nginx'],
+                    ['title' => 'MySQL', 'icon' => 'mysql'],
+                    ['title' => 'PostgreSQL', 'icon' => 'postgresql'],
+                ]),
+                $this->gallery($existingSections, 'Services', 'services', [
+                    'anchor' => 'services',
+                    'eyebrow' => 'Our Services',
+                    'heading' => 'Technology solutions built around your business.',
+                    'description' => 'From idea to implementation, we deliver reliable, scalable and maintainable solutions.',
+                    'link_label' => 'View All Services',
+                    'link_url' => '#',
+                    'item_link_label' => 'Learn More',
+                    'background' => 'tint',
+                ], [
+                    ['title' => 'Web Development', 'description' => 'Modern, responsive and high-performance websites tailored to your business goals.', 'icon' => 'monitor', 'url' => '#'],
+                    ['title' => 'Custom Software', 'description' => 'Business applications designed around your specific workflow and requirements.', 'icon' => 'code', 'url' => '#'],
+                    ['title' => 'E-Commerce Solutions', 'description' => 'Scalable e-commerce platforms with integrations and automation.', 'icon' => 'cart', 'url' => '#'],
+                    ['title' => 'Cloud & DevOps', 'description' => 'AWS infrastructure, migration, monitoring, security and performance optimization.', 'icon' => 'cloud', 'url' => '#'],
+                    ['title' => 'API & System Integrations', 'description' => 'Connect your website, applications, ERP, CRM and third-party services.', 'icon' => 'nodes', 'url' => '#'],
+                    ['title' => 'CMS & Content Platforms', 'description' => 'Flexible and easy-to-manage content solutions for your team.', 'icon' => 'document', 'url' => '#'],
+                ]),
+                $this->gallery($existingSections, 'Why Softphoria', 'features', [
+                    'anchor' => 'why-softphoria',
+                    'eyebrow' => 'Why Softphoria?',
+                    'heading' => "More than a website.\nA technology partner.",
+                    'description' => 'We combine technical expertise with practical business understanding to deliver solutions that make a real difference. From planning to launch and beyond, we\'re with you at every step.',
+                    'link_label' => 'About Softphoria',
+                    'link_url' => '/about',
+                    'background' => 'white',
+                ], [
+                    ['title' => 'Understand', 'description' => 'We learn about your business, users and objectives.', 'icon' => 'users'],
+                    ['title' => 'Build', 'description' => 'We create solutions using proven technologies.', 'icon' => 'cog'],
+                    ['title' => 'Integrate', 'description' => 'We connect your digital systems so they work together.', 'icon' => 'link'],
+                    ['title' => 'Support', 'description' => 'We stay involved beyond launch to maintain and improve your platform.', 'icon' => 'headset'],
+                ]),
+                $this->gallery($existingSections, 'Featured Work', 'projects', [
+                    'anchor' => 'work',
+                    'eyebrow' => 'Featured Work',
+                    'heading' => 'Selected projects',
+                    'link_label' => 'View All Projects',
+                    'link_url' => '#',
+                    'item_link_label' => 'View Case Study',
+                    'background' => 'tint',
+                ], [
+                    ['title' => 'B2B E-Commerce Platform', 'description' => 'A large scale e-commerce platform with complex product management, pricing and ERP integration.', 'icon' => 'cart', 'url' => '#'],
+                    ['title' => '3D Configurator Application', 'description' => 'Interactive 3D product configurator with backend integration and cloud deployment.', 'icon' => 'cog', 'url' => '#'],
+                    ['title' => 'Cloud Migration & Modernization', 'description' => 'Migration and modernization of existing applications to AWS with improved scalability and security.', 'icon' => 'aws', 'url' => '#'],
+                ]),
+                $this->gallery($existingSections, 'Technologies', 'tech_groups', [
+                    'anchor' => 'technologies',
+                    'eyebrow' => 'Technologies We Work With',
+                    'heading' => 'Modern tools for modern solutions.',
+                    'link_label' => 'View All Technologies',
+                    'link_url' => '#',
+                    'background' => 'white',
+                ], [
+                    ['group' => 'Backend', 'title' => 'Python', 'icon' => 'python'],
+                    ['group' => 'Backend', 'title' => 'Django', 'icon' => 'django'],
+                    ['group' => 'Backend', 'title' => 'Flask', 'icon' => 'flask'],
+                    ['group' => 'Backend', 'title' => 'Laravel', 'icon' => 'laravel'],
+                    ['group' => 'Backend', 'title' => 'PHP', 'icon' => 'php'],
+                    ['group' => 'Frontend', 'title' => 'HTML', 'icon' => 'html5'],
+                    ['group' => 'Frontend', 'title' => 'CSS3', 'icon' => 'css3'],
+                    ['group' => 'Frontend', 'title' => 'JavaScript', 'icon' => 'javascript'],
+                    ['group' => 'Frontend', 'title' => 'Tailwind', 'icon' => 'tailwind'],
+                    ['group' => 'Cloud & DevOps', 'title' => 'AWS', 'icon' => 'aws'],
+                    ['group' => 'Cloud & DevOps', 'title' => 'Docker', 'icon' => 'docker'],
+                    ['group' => 'Cloud & DevOps', 'title' => 'Kubernetes', 'icon' => 'kubernetes'],
+                    ['group' => 'Cloud & DevOps', 'title' => 'Nginx', 'icon' => 'nginx'],
+                    ['group' => 'Databases', 'title' => 'MySQL', 'icon' => 'mysql'],
+                    ['group' => 'Databases', 'title' => 'PostgreSQL', 'icon' => 'postgresql'],
+                    ['group' => 'Databases', 'title' => 'Redis', 'icon' => 'redis'],
+                ]),
+                $this->gallery($existingSections, 'Our Process', 'steps', [
+                    'anchor' => 'process',
+                    'eyebrow' => 'Our Process',
+                    'heading' => 'From idea to launch.',
+                    'background' => 'tint',
+                ], [
+                    ['title' => 'Discover', 'description' => 'Understand your business, users and requirements.', 'icon' => 'search'],
+                    ['title' => 'Plan', 'description' => 'Architecture, technology and implementation plan.', 'icon' => 'plan'],
+                    ['title' => 'Build', 'description' => 'Design, development, integration and testing.', 'icon' => 'code'],
+                    ['title' => 'Deliver', 'description' => 'Launch, optimization, and ongoing support.', 'icon' => 'rocket'],
+                ]),
                 [
-                    // WEB-102 browser-verification pass: the live homepage's
-                    // "Explore Our Expert" / "Fully dedicated to the best
-                    // solutions." section — missing from the first pass
-                    // entirely. Cta's new eyebrow/description fields exist
-                    // specifically for this.
+                    'section_type' => PageSectionType::Testimonials->value,
+                    'title' => 'Testimonials',
+                    'is_enabled' => true,
+                    'content_json' => [
+                        'anchor' => 'testimonials',
+                        'eyebrow' => 'What Our Clients Say',
+                        'heading' => 'Trusted by businesses worldwide.',
+                        'autoplay_seconds' => 6,
+                        'background_media_id' => $this->existingValue($existingSections, PageSectionType::Testimonials, null, 'background_media_id'),
+                    ],
+                ],
+                $this->gallery($existingSections, 'Latest Insights', 'articles', [
+                    'anchor' => 'insights',
+                    'eyebrow' => 'Latest Insights',
+                    'heading' => 'Ideas, tutorials and technology.',
+                    'link_label' => 'View All Articles',
+                    'link_url' => '#',
+                    'item_link_label' => 'Read More',
+                    'background' => 'white',
+                ], [
+                    ['title' => 'A Practical Guide to Migrating Applications to AWS', 'description' => 'Aug 20, 2026', 'icon' => 'aws', 'url' => '#'],
+                    ['title' => 'Django vs Flask: Which is Right for Your Project?', 'description' => 'Aug 12, 2026', 'icon' => 'django', 'url' => '#'],
+                    ['title' => 'Building Scalable APIs with Laravel', 'description' => 'Aug 05, 2026', 'icon' => 'laravel', 'url' => '#'],
+                ]),
+                [
                     'section_type' => PageSectionType::Cta->value,
-                    'title' => null,
+                    'title' => 'Closing Call to Action',
                     'is_enabled' => true,
                     'content_json' => [
-                        'eyebrow' => 'Explore Our Expert',
-                        'heading' => 'Fully dedicated to the best solutions.',
-                        'description' => 'We specialize in crafting high-performance websites that bring your vision to life. From sleek, responsive designs to robust backend development, we build tailored web solutions that deliver results. Whether you\'re launching a startup or scaling an enterprise, our web development services are designed to grow with you.',
-                        'cta_label' => 'Learn More',
-                        'cta_url' => '#',
+                        'style' => 'banner',
+                        'eyebrow' => 'Have a project in mind?',
+                        'heading' => 'Let\'s build something great together.',
+                        'description' => 'Tell us about your business, your challenge and how we can help.',
+                        'cta_label' => 'Start a Conversation',
+                        'cta_url' => '/contact',
+                        'secondary_cta_label' => 'View Our Services',
+                        'secondary_cta_url' => '/#services',
+                        'background_media_id' => $this->existingValue($existingSections, PageSectionType::Cta, null, 'background_media_id'),
                     ],
-                ],
-                [
-                    'section_type' => PageSectionType::RichText->value,
-                    'title' => null,
-                    'is_enabled' => true,
-                    'content_json' => [
-                        // From https://softphoria.com/about-us's "Our Technical
-                        // Expertise" list — the live homepage has no Expertise
-                        // section of its own.
-                        'body' => '<h2>Expertise</h2><ul>'
-                            .'<li>Laravel</li><li>WordPress</li><li>WooCommerce</li>'
-                            .'<li>Shopify</li><li>Magento</li>'
-                            .'<li>Python (Django, Flask, FastAPI)</li>'
-                            .'<li>React.js</li><li>Next.js</li><li>Angular.js</li>'
-                            .'<li>Express.js</li><li>Node.js</li>'
-                            .'<li>REST APIs</li><li>GraphQL</li>'
-                            .'<li>MySQL</li><li>PostgreSQL</li><li>MongoDB</li>'
-                            .'<li>Git</li><li>Docker</li><li>Webpack</li>'
-                            .'</ul>',
-                    ],
-                ],
-                [
-                    'section_type' => PageSectionType::Gallery->value,
-                    'title' => 'Helping Your Business Grow and Succeed',
-                    'is_enabled' => true,
-                    'content_json' => [
-                        'display' => 'steps',
-                        // Verbatim from the live site — the Planning/Execute
-                        // step descriptions read like they may be swapped
-                        // relative to their titles, but this was consistent
-                        // across independent reads of the live page, so it
-                        // was preserved rather than "corrected" (WEB-102:
-                        // preserve actual content, don't rewrite claims).
-                        'gallery_items' => [
-                            ['title' => 'Discovery', 'description' => 'We dive deep to understand your goals, audience, and challenges.', 'icon' => 'search'],
-                            ['title' => 'Planning', 'description' => 'We bring ideas to life with precision, creativity, and agility.', 'icon' => 'plan'],
-                            ['title' => 'Execute', 'description' => 'We craft a clear, strategic roadmap tailored to your vision.', 'icon' => 'gear'],
-                            ['title' => 'Deliver', 'description' => 'We launch with impact, ensuring quality, performance, and satisfaction.', 'icon' => 'rocket'],
-                        ],
-                    ],
-                ],
-                [
-                    'section_type' => PageSectionType::Gallery->value,
-                    'title' => 'What Clients Say',
-                    'is_enabled' => true,
-                    'content_json' => [
-                        'display' => 'quotes',
-                        // Verbatim client quotes — not reworded, since these
-                        // are third-party statements, not our own copy.
-                        'gallery_items' => [
-                            [
-                                'title' => 'John B. — Experienced Linux Administrator of @Brsox',
-                                'description' => 'This guy is amazing! Did exactly as I wanted and impressed me every bit of the way. If you need some work done, this guy is the man for the job! A++',
-                            ],
-                            [
-                                'title' => 'Mark F. — CEO at Salus Technology Services Ltd',
-                                'description' => 'Susanta is a talented and dedicated professional. He successfully delivered our complex Student Management Application and consistently brought passion and enthusiasm to every project. Highly recommended!',
-                            ],
-                            [
-                                'title' => 'Saikiran',
-                                'description' => 'Susanta, the most impressive programmer. We can just leave him works and can relax. He could do tasks very well than we expect from him. Even he faced many obstacles from my coding, he can over ride them and successfully completed my tasks very well.',
-                            ],
-                            [
-                                'title' => 'Michael C. Gill — Founder & CEO of 2K Computer Solutions',
-                                'description' => 'Excellent programmer, very good work with fast communication, highly recommended.',
-                            ],
-                            [
-                                'title' => 'Dr. Tano — Founder of Integrative Immunity Health System',
-                                'description' => 'Susanta has built strong, long-term relationships across multiple technologies and programming languages. He manages them efficiently and consistently delivers with excellence.',
-                            ],
-                        ],
-                    ],
-                ],
-                [
-                    'section_type' => PageSectionType::ContactForm->value,
-                    'title' => 'Free Consultation',
-                    'is_enabled' => true,
-                    'content_json' => [],
                 ],
             ],
             'seo' => [
-                'meta_title' => 'Softphoria — Technology & IT Solutions',
-                'meta_description' => 'We specialize in delivering custom software, enterprise solutions, and digital transformation services across industries.',
+                'meta_title' => 'Softphoria — Technology that moves your business forward',
+                'meta_description' => 'We design, build and support high-performance websites, custom software, cloud infrastructure and integrations — helping businesses turn ideas into real world solutions.',
             ],
         ];
 
@@ -225,21 +224,84 @@ class HomePageSeeder extends Seeder
             app(CreatePageAction::class)->handle($data, $actor);
         }
 
+        $this->seedTestimonials();
         $this->seedContactSettingsIfUnset();
     }
 
     /**
+     * One Gallery section in the given display, carrying forward any item
+     * images an admin has since picked (matched by item title).
+     *
+     * @param  array<string, mixed>  $content
+     * @param  array<int, array<string, string>>  $items
+     * @return array<string, mixed>
+     */
+    private function gallery(Collection $existingSections, string $title, string $display, array $content, array $items): array
+    {
+        $existingItems = collect($existingSections
+            ->first(fn ($section) => $section->section_type === PageSectionType::Gallery->value
+                && ($section->content_json['display'] ?? null) === $display)
+            ?->content_json['gallery_items'] ?? [])
+            ->keyBy('title');
+
+        return [
+            'section_type' => PageSectionType::Gallery->value,
+            'title' => $title,
+            'is_enabled' => true,
+            'content_json' => [
+                'display' => $display,
+                ...$content,
+                'gallery_items' => array_map(fn (array $item): array => [
+                    'media_id' => $existingItems->get($item['title'])['media_id'] ?? null,
+                    'url' => null,
+                    ...$item,
+                ], $items),
+            ],
+        ];
+    }
+
+    /**
+     * WEB-102 browser-verification pass: re-running this seeder used to
+     * silently wipe out media an admin had since picked through the Pages
+     * editor — carrying forward whatever is already saved avoids that.
+     */
+    private function existingValue(Collection $existingSections, PageSectionType $type, ?string $display, string $key): mixed
+    {
+        return $existingSections
+            ->first(fn ($section) => $section->section_type === $type->value
+                && ($display === null || ($section->content_json['display'] ?? null) === $display))
+            ?->content_json[$key] ?? null;
+    }
+
+    /**
+     * The real client quotes from https://softphoria.com/ (verbatim — these
+     * are third-party statements, not our own copy). Matched by name, so a
+     * re-seed never duplicates them or overwrites an admin's later edits.
+     */
+    private function seedTestimonials(): void
+    {
+        $testimonials = [
+            ['name' => 'John B.', 'designation' => 'Experienced Linux Administrator of @Brsox', 'message' => 'This guy is amazing! Did exactly as I wanted and impressed me every bit of the way. If you need some work done, this guy is the man for the job! A++'],
+            ['name' => 'Mark F.', 'designation' => 'CEO at Salus Technology Services Ltd', 'message' => 'Susanta is a talented and dedicated professional. He successfully delivered our complex Student Management Application and consistently brought passion and enthusiasm to every project. Highly recommended!'],
+            ['name' => 'Saikiran', 'designation' => null, 'message' => 'Susanta, the most impressive programmer. We can just leave him works and can relax. He could do tasks very well than we expect from him. Even he faced many obstacles from my coding, he can over ride them and successfully completed my tasks very well.'],
+            ['name' => 'Michael C. Gill', 'designation' => 'Founder & CEO of 2K Computer Solutions', 'message' => 'Excellent programmer, very good work with fast communication, highly recommended.'],
+            ['name' => 'Dr. Tano', 'designation' => 'Founder of Integrative Immunity Health System', 'message' => 'Susanta has built strong, long-term relationships across multiple technologies and programming languages. He manages them efficiently and consistently delivers with excellence.'],
+        ];
+
+        foreach ($testimonials as $index => $testimonial) {
+            Testimonial::query()->firstOrCreate(
+                ['name' => $testimonial['name']],
+                [...$testimonial, 'sort_order' => $index, 'is_enabled' => true],
+            );
+        }
+    }
+
+    /**
      * The real Softphoria contact details (also from https://softphoria.com/),
-     * shown on both the dedicated Contact page and the homepage's Free
-     * Consultation section (WEB-101 items C/D/F). Only fills in a value
+     * shown on the Contact page (WEB-101 items C/D/F). Only fills in a value
      * that's genuinely unset, so re-seeding never overwrites anything an
-     * admin has since edited through Website Setup — except the four
-     * General/Footer values handled in resetLegacyJacobBrandingIfPresent()
-     * below, which this environment had literally saved as "All The Things
-     * Light" / its uploaded logo+footer-background images (leftover from
-     * this Page's previous content, not something a Softphoria admin
-     * chose), and which WEB-102 explicitly requires removing wherever
-     * found — see that method's own docblock.
+     * admin has since edited through Website Setup — see also
+     * resetLegacyJacobBrandingIfPresent() below.
      */
     private function seedContactSettingsIfUnset(): void
     {
@@ -262,50 +324,42 @@ class HomePageSeeder extends Seeder
 
     /**
      * WEB-102: site_name/logo/footer-background were saved as literal
-     * "All The Things Light" values and its uploaded imagery (not merely
-     * empty — they'd have passed a blank() guard) — the exact "homepage-
-     * specific Jacob fallbacks" this ticket requires removing, since they
-     * render directly on the homepage via the shared header/footer chrome.
-     * Cleared to null rather than replaced with a fabricated Softphoria
-     * logo/background (no real asset available to upload here) — the
-     * header/footer already fall back to a plain text brand-mark
-     * (x-site.brand-mark) once no logo is set, and site_name/footer
-     * subheading get real Softphoria text below. Only touches these exact
-     * known-stale values, never anything an admin has genuinely set since.
+     * "All The Things Light" values and its uploaded imagery — the exact
+     * "homepage-specific Jacob fallbacks" that ticket required removing.
+     * WEB-103: the logo/footer images are now only cleared while the
+     * legacy site name is still in place, i.e. once on a leftover Jacob
+     * install — previously every re-seed wiped out whatever logo a
+     * Softphoria admin had since uploaded.
      */
     private function resetLegacyJacobBrandingIfPresent(SettingsRepository $settings): void
     {
-        if (in_array($settings->get('general', 'site_name'), [null, '', 'All The Things Light'], true)) {
+        $siteName = $settings->get('general', 'site_name');
+
+        if ($siteName === 'All The Things Light') {
+            $settings->set('general', 'logo_media_id', null, 'integer');
+            $settings->set('footer', 'logo_media_id', null, 'integer');
+            $settings->set('footer', 'background_media_id', null, 'integer');
+        }
+
+        if (in_array($siteName, [null, '', 'All The Things Light'], true)) {
             $settings->set('general', 'site_name', 'Softphoria');
         }
 
         // WEB-102 browser-verification pass: "Be your tech partner" is the
         // real tagline shown under the logo on the live site — verified via
         // browser, not fabricated. Never overwrites a tagline an admin has
-        // since set (including intentionally clearing it back to blank —
-        // there's no way to distinguish that from "never set" here, so this
-        // only ever fires once on a fresh/never-touched install).
+        // since set.
         if (blank($settings->get('general', 'tagline'))) {
             $settings->set('general', 'tagline', 'Be your tech partner');
-        }
-
-        if ($settings->get('general', 'logo_media_id')) {
-            $settings->set('general', 'logo_media_id', null, 'integer');
-        }
-
-        if ($settings->get('footer', 'logo_media_id')) {
-            $settings->set('footer', 'logo_media_id', null, 'integer');
-        }
-
-        if ($settings->get('footer', 'background_media_id')) {
-            $settings->set('footer', 'background_media_id', null, 'integer');
         }
 
         if (in_array($settings->get('footer', 'subheading'), [
             null,
             'A creative home for music, writing, reflection, thinking, and community.',
+            // WEB-102's own earlier seeded value, superseded by the redesign.
+            'We specialize in delivering custom software, enterprise solutions, and digital transformation services across industries.',
         ], true)) {
-            $settings->set('footer', 'subheading', 'We specialize in delivering custom software, enterprise solutions, and digital transformation services across industries.');
+            $settings->set('footer', 'subheading', 'Technology solutions for ambitious businesses.');
         }
     }
 }
