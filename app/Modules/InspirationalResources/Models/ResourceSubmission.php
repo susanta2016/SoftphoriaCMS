@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Laravel\Scout\Builder as ScoutBuilder;
 use Laravel\Scout\Searchable;
 
@@ -112,6 +113,28 @@ class ResourceSubmission extends Model implements SearchResultRepresentable, Sit
     public function excerpt(int $length = 160): string
     {
         return str($this->message)->limit($length)->toString();
+    }
+
+    /**
+     * Shared by CreateResourceSubmissionAction (public form) and
+     * CreateAdminResourceSubmissionAction (admin "Add Resource"). "submit"
+     * is reserved — it's the literal path segment the submission-form page
+     * lives at (routes/web.php registers it before the
+     * {resourceSubmission:slug} wildcard route), so a submission can never
+     * end up parked there.
+     */
+    public static function uniqueSlug(string $title): string
+    {
+        $base = Str::slug($title) ?: 'resource-submission';
+        $slug = $base;
+        $suffix = 1;
+
+        while ($slug === 'submit' || static::query()->where('slug', $slug)->exists()) {
+            $slug = "{$base}-{$suffix}";
+            $suffix++;
+        }
+
+        return $slug;
     }
 
     /**

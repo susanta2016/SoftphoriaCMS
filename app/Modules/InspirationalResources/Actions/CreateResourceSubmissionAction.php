@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use App\Shared\Services\Notifications\TemplatedMailer;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -42,34 +41,13 @@ class CreateResourceSubmissionAction
         // Approved submission's public detail page URL uses (see
         // ResourceSubmission::sitemapEntries() / routes/web.php's
         // inspirational-resources.show).
-        $submission->slug = $this->uniqueSlug($submission->subject ?: $submission->name);
+        $submission->slug = ResourceSubmission::uniqueSlug($submission->subject ?: $submission->name);
         $submission->save();
 
         $this->notifyAdmins($submission);
         $this->notifySubmitter($submission);
 
         return $submission;
-    }
-
-    /**
-     * Mirrors CreatePoetryProseFromSubmissionAction's own uniqueSlug()
-     * helper. "submit" is reserved — it's the literal path segment the
-     * submission-form page lives at (routes/web.php registers it before
-     * the {resourceSubmission:slug} wildcard route), so a submission can
-     * never end up parked there.
-     */
-    private function uniqueSlug(string $title): string
-    {
-        $base = Str::slug($title) ?: 'resource-submission';
-        $slug = $base;
-        $suffix = 1;
-
-        while ($slug === 'submit' || ResourceSubmission::query()->where('slug', $slug)->exists()) {
-            $slug = "{$base}-{$suffix}";
-            $suffix++;
-        }
-
-        return $slug;
     }
 
     private function notifyAdmins(ResourceSubmission $submission): void

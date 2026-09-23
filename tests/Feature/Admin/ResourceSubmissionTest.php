@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Modules\InspirationalResources\Actions\ApproveResourceSubmissionAction;
 use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
+use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Pages\CreateResourceSubmission;
 use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Pages\ListResourceSubmissions;
 use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Pages\ViewResourceSubmission;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
@@ -19,8 +20,8 @@ use Mockery;
 use Tests\TestCase;
 
 /**
- * List-only + View (submissions are created exclusively by
- * CreateResourceSubmissionAction from the public form) — a pure review
+ * List + View, plus an env-gated admin "Add Resource" create page
+ * (INSPIRATIONAL_RESOURCES_ADMIN_CREATE_ENABLED) — a pure review
  * queue (client-confirmed, final): Submitted → In Review → Approved →
  * Archived, with no editorial conversion or relation to any other module.
  */
@@ -46,9 +47,82 @@ class ResourceSubmissionTest extends TestCase
             ->assertCanSeeTableRecords([$submission]);
     }
 
-    public function test_no_create_or_edit_route_exists(): void
+    public function test_create_page_is_refused_when_the_env_flag_is_off(): void
     {
+        config(['features.inspirational_resources_admin_create_enabled' => false]);
+
         $response = $this->actingAs($this->admin())->get('/admin/resource-submissions/create');
+
+        $response->assertForbidden();
+
+        Livewire::actingAs($this->admin())
+            ->test(ListResourceSubmissions::class)
+            ->assertActionHidden('create');
+    }
+
+    public function test_create_page_is_available_when_the_env_flag_is_on(): void
+    {
+        config(['features.inspirational_resources_admin_create_enabled' => true]);
+
+        $response = $this->actingAs($this->admin())->get('/admin/resource-submissions/create');
+
+        $response->assertOk();
+
+        Livewire::actingAs($this->admin())
+            ->test(ListResourceSubmissions::class)
+            ->assertActionVisible('create');
+    }
+
+    public function test_admin_can_add_an_approved_resource_without_sending_emails(): void
+    {
+        config(['features.inspirational_resources_admin_create_enabled' => true]);
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+        $admin = $this->admin();
+
+        Livewire::actingAs($admin)
+            ->test(CreateResourceSubmission::class)
+            ->assertSchemaStateSet(['email' => $admin->email, 'status' => ResourceSubmissionStatus::Approved->value])
+            ->fillForm([
+                'name' => 'Cory Gold',
+                'subject' => 'Submit',
+                'category' => 'Encouragement',
+                'message' => 'A few words of light.',
+                'reference_url' => 'https://example.com/story',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $submission = ResourceSubmission::query()->where('category', 'Encouragement')->firstOrFail();
+
+        $this->assertSame(ResourceSubmissionStatus::Approved, $submission->status);
+        $this->assertSame($admin->id, $submission->user_id);
+        $this->assertSame('Cory Gold', $submission->name);
+        $this->assertSame('submit-1', $submission->slug);
+        Mail::assertNothingSent();
+        Mail::assertNothingQueued();
+
+        $this->get(route('inspirational-resources.show', $submission))->assertOk()->assertSee('A few words of light.');
+    }
+
+    public function test_admin_create_validates_required_fields(): void
+    {
+        config(['features.inspirational_resources_admin_create_enabled' => true]);
+
+        Livewire::actingAs($this->admin())
+            ->test(CreateResourceSubmission::class)
+            ->fillForm(['category' => '', 'message' => ''])
+            ->call('create')
+            ->assertHasFormErrors(['category' => 'required', 'message' => 'required']);
+
+        $this->assertSame(0, ResourceSubmission::query()->count());
+    }
+
+    public function test_no_edit_route_exists(): void
+    {
+        $submission = $this->createSubmission();
+
+        $response = $this->actingAs($this->admin())->get("/admin/resource-submissions/{$submission->id}/edit");
 
         $response->assertNotFound();
     }

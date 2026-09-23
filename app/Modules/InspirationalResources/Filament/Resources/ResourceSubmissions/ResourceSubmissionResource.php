@@ -7,8 +7,10 @@ use App\Modules\InspirationalResources\Actions\ApproveResourceSubmissionAction;
 use App\Modules\InspirationalResources\Actions\ArchiveResourceSubmissionAction;
 use App\Modules\InspirationalResources\Actions\MarkResourceSubmissionInReviewAction;
 use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
+use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Pages\CreateResourceSubmission;
 use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Pages\ListResourceSubmissions;
 use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Pages\ViewResourceSubmission;
+use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Schemas\ResourceSubmissionForm;
 use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Schemas\ResourceSubmissionInfolist;
 use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Tables\ResourceSubmissionsTable;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
@@ -23,9 +25,11 @@ use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 /**
- * List-only + View — submissions are created exclusively by
- * CreateResourceSubmissionAction from the public form, never hand-built in
- * the admin panel (mirrors OrderResource's exact reasoning). Client-
+ * List + View, plus an optional "Add Resource" create page (no edit page)
+ * that only exists while
+ * config('features.inspirational_resources_admin_create_enabled') is on —
+ * see canCreate(). Otherwise submissions come exclusively from
+ * CreateResourceSubmissionAction via the public form. Client-
  * confirmed final workflow: Submitted → In Review → Approved → Archived,
  * a pure review queue with no editorial conversion or relation to any other
  * module (the earlier "Create Poetry/Prose Draft" action was removed
@@ -45,9 +49,24 @@ class ResourceSubmissionResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function form(Schema $schema): Schema
+    {
+        return ResourceSubmissionForm::configure($schema);
+    }
+
     public static function infolist(Schema $schema): Schema
     {
         return ResourceSubmissionInfolist::configure($schema);
+    }
+
+    /**
+     * Env-driven (INSPIRATIONAL_RESOURCES_ADMIN_CREATE_ENABLED) — hides the
+     * "Add Resource" button and refuses the create route itself (403) while
+     * off.
+     */
+    public static function canCreate(): bool
+    {
+        return (bool) config('features.inspirational_resources_admin_create_enabled') && parent::canCreate();
     }
 
     public static function table(Table $table): Table
@@ -59,6 +78,7 @@ class ResourceSubmissionResource extends Resource
     {
         return [
             'index' => ListResourceSubmissions::route('/'),
+            'create' => CreateResourceSubmission::route('/create'),
             'view' => ViewResourceSubmission::route('/{record}'),
         ];
     }

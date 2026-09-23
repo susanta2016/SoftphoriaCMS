@@ -19,9 +19,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * List-only (mirrors OrdersTable) — submissions are created exclusively by
- * CreateResourceSubmissionAction from the public form, never hand-created
- * in the admin panel.
+ * No edit action — submissions come from the public form, or from the
+ * env-gated admin "Add Resource" page (see ResourceSubmissionResource::canCreate()).
  */
 class ResourceSubmissionsTable
 {

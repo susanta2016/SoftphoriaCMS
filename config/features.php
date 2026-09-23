@@ -232,4 +232,21 @@ return [
 
     'music_track_suggestions_enabled' => env('MUSIC_TRACK_SUGGESTIONS_ENABLED', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Inspirational Resources: Admin "Add Resource"
+    |--------------------------------------------------------------------------
+    |
+    | When true, Admin > Inspirational Resources > Submissions gets an "Add
+    | Resource" button and create page, so an admin can add a resource
+    | directly instead of only reviewing public-form submissions
+    | (App\Modules\InspirationalResources\Actions\CreateAdminResourceSubmissionAction).
+    | Enforced by ResourceSubmissionResource::canCreate(), so the create
+    | route itself is refused (403) while off — not just a hidden button.
+    | Turning it off never touches resources an admin already added.
+    |
+    */
+
+    'inspirational_resources_admin_create_enabled' => env('INSPIRATIONAL_RESOURCES_ADMIN_CREATE_ENABLED', false),
+
 ];
