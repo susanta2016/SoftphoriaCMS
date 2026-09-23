@@ -135,6 +135,65 @@ class AboutPageTest extends TestCase
      * deliberately excluding its heading/decorative ornament and any video
      * player, so emptiness assertions are about written content only.
      */
+    public function test_a_leading_image_in_the_all_the_things_light_body_renders_above_its_heading(): void
+    {
+        $body = '<p><img src="/storage/media/images/portrait.jpg"></p>'.$this->allTheThingsLightBody();
+        $page = $this->aboutPage($body);
+
+        $response = $this->get(route('pages.show', $page));
+
+        $response->assertOk();
+        $response->assertSeeInOrder([
+            'data-section-lead-image',
+            '/storage/media/images/portrait.jpg',
+            'About All the Things Light',
+            'All the Things Light is a place to come and gather.',
+        ], false);
+
+        // The first text paragraph (not the image) keeps the lede styling.
+        $this->assertMatchesRegularExpression(
+            '/font-serif text-2xl leading-snug[^"]*">\s*All the Things Light is a place to come and gather\./',
+            $response->getContent(),
+        );
+    }
+
+    public function test_an_additional_section_like_about_music_gets_the_same_card_treatment_in_admin_order(): void
+    {
+        $page = $this->aboutPage();
+        $page->sections()->where('title', "About Jacob d'IAWARII")->update(['sort_order' => 3]);
+        $page->sections()->create([
+            'section_type' => PageSectionType::RichText->value,
+            'title' => 'About Music',
+            'sort_order' => 2,
+            'is_enabled' => true,
+            'content_json' => ['body' => ''],
+        ]);
+
+        $response = $this->get(route('pages.show', $page));
+
+        $response->assertOk();
+        $response->assertSeeInOrder(['About Cory Gold', 'data-section="About Music"', 'About Music', "About Jacob d'IAWARII"], false);
+        $this->assertMatchesRegularExpression(
+            '/data-section="About Music">.*?tracking-wide text-brand-gold uppercase">About Music</s',
+            $response->getContent(),
+        );
+    }
+
+    public function test_section_body_paragraphs_keep_their_spacing(): void
+    {
+        $page = $this->aboutPage();
+        $page->sections()->where('title', 'About Cory Gold')->update([
+            'content_json' => ['body' => '<p>First.</p><p>Second.</p>'],
+        ]);
+
+        $response = $this->get(route('pages.show', $page));
+
+        $response->assertOk();
+        $response->assertSee('[&_p]:mb-4', false);
+        $response->assertSee('[&_p:last-child]:mb-0', false);
+        $response->assertDontSee('last:[&_p]:mb-0', false);
+    }
+
     private function extractSectionBodyHtml(string $html, string $title): string
     {
         $sectionPattern = '/data-section="'.preg_quote(e($title), '/').'".*?<\/section>/s';

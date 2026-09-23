@@ -2,13 +2,13 @@
     Bespoke public renderer for the About CMS Page (PageTemplate::About only
     — every other template still renders through pages.show unchanged, see
     PageContentRenderer). Reads the same Page/PageSection data pages.show
-    reads; nothing here is hardcoded content — only presentation is chosen
-    per section, matched by the section's own title, so the three required
-    About sections (About All the Things Light / About Cory Gold / About
-    Jacob d'IAWARII) get distinct visual treatment while staying fully
-    admin-editable. Any section title/type outside that known set falls
-    back to a plain generic card so nothing an admin adds is ever silently
-    dropped.
+    reads; nothing here is hardcoded content. "About All the Things Light"
+    (matched by title) gets its own lede/idea-box/closing treatment and
+    shows a leading image-only paragraph above its heading; every other
+    rich-text section (About Cory Gold, About Music, About Jacob d'IAWARII,
+    or anything an admin adds) shares one eyebrow-heading card, in the
+    admin-set section order. Non-rich-text blocks render a placeholder so
+    nothing an admin adds is ever silently dropped.
 --}}
 @php
     use App\Enums\MediaCategory;
@@ -170,7 +170,27 @@
                             {{ $section->title ?: PageSectionType::from($section->section_type)->getLabel() }} — no rendering yet for this block type.
                         </p>
                     @elseif ($section->title === 'About All the Things Light')
+                        @php
+                            // A body that opens with an image-only paragraph
+                            // (the client's portrait, inserted through the rich
+                            // editor) shows that image above the section heading
+                            // instead of as the "lede" — client-requested order:
+                            // picture, then heading, then text. The lede role
+                            // then falls to the first real text paragraph.
+                            $paragraphs = $splitParagraphs($content['body'] ?? '');
+                            $leadImage = null;
+                            if ($paragraphs && $paragraphs[0]['text'] === '' && str_contains($paragraphs[0]['html'], '<img')) {
+                                $leadImage = array_shift($paragraphs)['html'];
+                            }
+                        @endphp
+
                         <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-brand-navy/5 sm:p-12">
+                            @if ($leadImage)
+                                <div data-section-lead-image class="mx-auto mb-10 max-w-sm overflow-hidden rounded-2xl shadow-lg ring-1 ring-brand-navy/10 [&_img]:block [&_img]:h-auto [&_img]:w-full">
+                                    {!! $leadImage !!}
+                                </div>
+                            @endif
+
                             <div class="text-center">
                                 <span class="text-xs font-semibold tracking-wide text-brand-gold uppercase">{{ $section->title }}</span>
                                 <div class="mx-auto mt-4 mb-8 flex items-center justify-center gap-3" aria-hidden="true">
@@ -184,7 +204,7 @@
                                 @include('pages.partials.about-video')
                             @endif
 
-                            @php $chunks = $buildChunks($splitParagraphs($content['body'] ?? '')); @endphp
+                            @php $chunks = $buildChunks($paragraphs); @endphp
 
                             <div data-section-body>
                                 @foreach ($chunks as $chunk)
@@ -223,69 +243,40 @@
                                 <div class="mt-8">@include('pages.partials.about-video')</div>
                             @endunless
                         </div>
-                    @elseif ($section->title === 'About Cory Gold')
-                        <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-brand-navy/5 sm:p-12">
-                            <div class="text-center">
-                                <span class="text-xs font-semibold tracking-wide text-brand-gold uppercase">{{ $section->title }}</span>
-                                <div class="mx-auto mt-4 mb-8 flex items-center justify-center gap-3" aria-hidden="true">
-                                    <span class="h-px w-10 bg-brand-gold/60"></span>
-                                    <span class="text-sm text-brand-gold">✦</span>
-                                    <span class="h-px w-10 bg-brand-gold/60"></span>
-                                </div>
-                            </div>
-
-                            @if ($videoBeforeContent)
-                                @include('pages.partials.about-video')
-                            @endif
-
-                            <div data-section-body class="mx-auto mt-8 max-w-xl text-left [&_p]:mb-4 [&_p]:leading-relaxed [&_p]:text-brand-navy/80 last:[&_p]:mb-0">
-                                @if (trim(strip_tags($content['body'] ?? '')) !== '')
-                                    {!! $content['body'] !!}
-                                @endif
-                            </div>
-
-                            @unless ($videoBeforeContent)
-                                <div class="mt-8">@include('pages.partials.about-video')</div>
-                            @endunless
-                        </div>
-                    @elseif ($section->title === "About Jacob d'IAWARII")
-                        <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-brand-navy/5 sm:p-12">
-                            <div class="text-center">
-                                <span class="text-xs font-semibold tracking-wide text-brand-gold uppercase">{{ $section->title }}</span>
-                                <div class="mx-auto mt-4 mb-8 flex items-center justify-center gap-3" aria-hidden="true">
-                                    <span class="h-px w-10 bg-brand-gold/60"></span>
-                                    <span class="text-sm text-brand-gold">✦</span>
-                                    <span class="h-px w-10 bg-brand-gold/60"></span>
-                                </div>
-                            </div>
-
-                            @if ($videoBeforeContent)
-                                @include('pages.partials.about-video')
-                            @endif
-
-                            <div data-section-body class="mx-auto mt-8 max-w-xl text-left [&_p]:mb-4 [&_p]:leading-relaxed [&_p]:text-brand-navy/80 last:[&_p]:mb-0">
-                                @if (trim(strip_tags($content['body'] ?? '')) !== '')
-                                    {!! $content['body'] !!}
-                                @endif
-                            </div>
-
-                            @unless ($videoBeforeContent)
-                                <div class="mt-8">@include('pages.partials.about-video')</div>
-                            @endunless
-                        </div>
                     @else
+                        {{-- Every other rich-text section (About Cory Gold,
+                            About Music, About Jacob d'IAWARII, or anything an
+                            admin adds later) shares one card treatment:
+                            eyebrow heading, optional video, then body. --}}
                         <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-brand-navy/5 sm:p-12">
                             @if ($section->title)
-                                <h2 class="text-center font-serif text-2xl text-brand-navy">{{ $section->title }}</h2>
+                                <div class="text-center">
+                                    <span class="text-xs font-semibold tracking-wide text-brand-gold uppercase">{{ $section->title }}</span>
+                                    <div class="mx-auto mt-4 mb-8 flex items-center justify-center gap-3" aria-hidden="true">
+                                        <span class="h-px w-10 bg-brand-gold/60"></span>
+                                        <span class="text-sm text-brand-gold">✦</span>
+                                        <span class="h-px w-10 bg-brand-gold/60"></span>
+                                    </div>
+                                </div>
                             @endif
+
                             @if ($videoBeforeContent)
-                                <div class="mt-6">@include('pages.partials.about-video')</div>
+                                @include('pages.partials.about-video')
                             @endif
-                            <div data-section-body class="mx-auto mt-6 max-w-xl text-left [&_p]:mb-4 [&_p]:leading-relaxed [&_p]:text-brand-navy/80 last:[&_p]:mb-0">
-                                {!! $content['body'] ?? '' !!}
+
+                            {{-- [&_p:last-child]:mb-0 trims only the final
+                                paragraph's gap. The previous last:[&_p]:mb-0
+                                matched whenever this wrapper was the card's
+                                last child, zeroing every paragraph's margin. --}}
+                            @php $hasBody = trim(strip_tags($content['body'] ?? '', '<img>')) !== ''; @endphp
+                            <div data-section-body @class(['mx-auto max-w-xl text-left [&_p]:mb-4 [&_p]:leading-relaxed [&_p]:text-brand-navy/80 [&_p:last-child]:mb-0', 'mt-8' => $hasBody && $hasVideo && $videoBeforeContent])>
+                                @if ($hasBody)
+                                    {!! $content['body'] !!}
+                                @endif
                             </div>
+
                             @unless ($videoBeforeContent)
-                                <div class="mt-6">@include('pages.partials.about-video')</div>
+                                <div class="mt-8">@include('pages.partials.about-video')</div>
                             @endunless
                         </div>
                     @endif
