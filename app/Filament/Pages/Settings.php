@@ -79,6 +79,8 @@ class Settings extends Page
                         ->schema($this->podcastTabSchema()),
                     Tab::make('Poetry/Prose')
                         ->schema($this->poetryProseTabSchema()),
+                    Tab::make('Inspirational Resources')
+                        ->schema($this->inspirationalResourcesTabSchema()),
                     Tab::make('Contact')
                         ->schema($this->contactTabSchema()),
                     Tab::make('Email')
@@ -251,6 +253,39 @@ class Settings extends Page
                 ->label('Sidebar Submit CTA Label')
                 ->maxLength(255)
                 ->helperText('Links to the existing Inspirational Resources submission page.'),
+        ];
+    }
+
+    /**
+     * The public Inspirational Resources landing page's hero banner + copy
+     * and the listing/detail sidebar's "About" block — same shape as
+     * poetryProseTabSchema() above.
+     *
+     * @return array<int, Component>
+     */
+    protected function inspirationalResourcesTabSchema(): array
+    {
+        return [
+            MediaPicker::make('inspirational_resources.hero_banner_media_id', 'Inspirational Resources Hero Banner', MediaCategory::Image),
+            TextInput::make('inspirational_resources.hero_eyebrow')
+                ->label('Hero Eyebrow')
+                ->maxLength(255),
+            TextInput::make('inspirational_resources.hero_heading')
+                ->label('Hero Heading')
+                ->maxLength(255),
+            Textarea::make('inspirational_resources.hero_description')
+                ->label('Hero Description')
+                ->rows(2)
+                ->maxLength(500),
+            Textarea::make('inspirational_resources.about_body')
+                ->label('Sidebar "About Inspirational Resources" Text')
+                ->rows(4)
+                ->maxLength(1000)
+                ->helperText('Shown in the "About Inspirational Resources" sidebar block on the listing and detail pages. Separate paragraphs with a blank line.'),
+            TextInput::make('inspirational_resources.submit_cta_label')
+                ->label('Sidebar Submit CTA Label')
+                ->maxLength(255)
+                ->helperText('Links to the Inspirational Resources submission page.'),
         ];
     }
 
@@ -467,6 +502,14 @@ class Settings extends Page
         $settings->set('poetry_prose', 'about_body', $poetryProse['about_body']);
         $settings->set('poetry_prose', 'submit_cta_label', $poetryProse['submit_cta_label']);
 
+        $inspirationalResources = $state['inspirational_resources'];
+        $settings->set('inspirational_resources', 'hero_banner_media_id', $inspirationalResources['hero_banner_media_id'], 'integer');
+        $settings->set('inspirational_resources', 'hero_eyebrow', $inspirationalResources['hero_eyebrow']);
+        $settings->set('inspirational_resources', 'hero_heading', $inspirationalResources['hero_heading']);
+        $settings->set('inspirational_resources', 'hero_description', $inspirationalResources['hero_description']);
+        $settings->set('inspirational_resources', 'about_body', $inspirationalResources['about_body']);
+        $settings->set('inspirational_resources', 'submit_cta_label', $inspirationalResources['submit_cta_label']);
+
         $contact = $state['contact'];
         $settings->set('contact', 'email', $contact['email']);
         $settings->set('contact', 'address', $contact['address']);
@@ -501,6 +544,7 @@ class Settings extends Page
         $this->recordAudit('footer', array_keys($footer));
         $this->recordAudit('podcast', array_keys($podcast));
         $this->recordAudit('poetry_prose', array_keys($poetryProse));
+        $this->recordAudit('inspirational_resources', array_keys($inspirationalResources));
         $this->recordAudit('contact', array_keys($contact));
         // Never log the password value itself, even in metadata.
         $this->recordAudit('email', array_keys(array_diff_key($email, ['smtp_password' => true])));
@@ -575,6 +619,22 @@ class Settings extends Page
                     "Here you'll find words to reflect on, return to, and carry with you.\n\nPoems, reflections, and essays that speak to the heart and awaken the soul.",
                 ),
                 'submit_cta_label' => $settings->get('poetry_prose', 'submit_cta_label', 'Submit Your Writing'),
+            ],
+            'inspirational_resources' => [
+                'hero_banner_media_id' => $settings->get('inspirational_resources', 'hero_banner_media_id'),
+                'hero_eyebrow' => $settings->get('inspirational_resources', 'hero_eyebrow', 'Inspirational Resources'),
+                'hero_heading' => $settings->get('inspirational_resources', 'hero_heading', 'Stories that awaken and inspire.'),
+                'hero_description' => $settings->get(
+                    'inspirational_resources',
+                    'hero_description',
+                    'Has a song, an album, or a moment of reflection touched your life in a meaningful way? Explore the stories, testimonies, and reflections shared by our community.',
+                ),
+                'about_body' => $settings->get(
+                    'inspirational_resources',
+                    'about_body',
+                    "Real stories, testimonies, and reflections shared by our community — a song, an album, or a moment that touched someone's life in a meaningful way.",
+                ),
+                'submit_cta_label' => $settings->get('inspirational_resources', 'submit_cta_label', 'Submit Your Writing'),
             ],
             'contact' => [
                 'email' => $settings->get('contact', 'email', 'jacobdiawarii@gmail.com'),

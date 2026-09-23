@@ -6,6 +6,7 @@ use App\Models\Media;
 use App\Models\User;
 use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
+use App\Shared\Services\Settings\SettingsRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -213,6 +214,56 @@ class InspirationalResourceListingTest extends TestCase
         $this->get(route('inspirational-resources.index'))->assertOk()->assertSee($avatarUrl, false);
         $this->get(route('inspirational-resources.index', ['view' => 'grid']))->assertOk()->assertSee($avatarUrl, false);
         $this->get(route('inspirational-resources.show', $submission))->assertOk()->assertSee($avatarUrl, false);
+    }
+
+    public function test_the_landing_page_uses_the_default_hero_copy_and_no_banner_when_nothing_is_configured(): void
+    {
+        $response = $this->get(route('inspirational-resources.index'));
+
+        $response->assertOk();
+        $response->assertSee('Stories that awaken and inspire.');
+        $response->assertSee('About Inspirational Resources');
+        $response->assertDontSee('background-image:', false);
+    }
+
+    public function test_the_landing_page_shows_the_admin_configured_hero_banner_and_copy(): void
+    {
+        $banner = new Media;
+        $banner->disk = 'public';
+        $banner->path = 'media/images/resources-hero.jpg';
+        $banner->original_filename = 'resources-hero.jpg';
+        $banner->mime_type = 'image/jpeg';
+        $banner->size = 100;
+        $banner->visibility = 'public';
+        $banner->uploader_id = User::factory()->create()->id;
+        $banner->save();
+
+        $settings = app(SettingsRepository::class);
+        $settings->set('inspirational_resources', 'hero_banner_media_id', $banner->id, 'integer');
+        $settings->set('inspirational_resources', 'hero_eyebrow', 'Community Stories');
+        $settings->set('inspirational_resources', 'hero_heading', 'Light shared by many.');
+        $settings->set('inspirational_resources', 'hero_description', 'Real moments from real people.');
+        $settings->set('inspirational_resources', 'about_body', "Custom about paragraph one.\n\nCustom about paragraph two.");
+        $settings->set('inspirational_resources', 'submit_cta_label', 'Share Your Story');
+
+        $response = $this->get(route('inspirational-resources.index'));
+
+        $response->assertOk();
+        $response->assertSee('media/images/resources-hero.jpg', false);
+        $response->assertSee('Community Stories');
+        $response->assertSee('Light shared by many.');
+        $response->assertSee('Real moments from real people.');
+        $response->assertSee('Custom about paragraph one.');
+        $response->assertSee('Custom about paragraph two.');
+        $response->assertSee('Share Your Story');
+        $response->assertDontSee('Stories that awaken and inspire.');
+
+        // The async results partial re-renders the sidebar, so it must
+        // carry the same configured copy.
+        $this->get(route('inspirational-resources.index'), ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()
+            ->assertSee('Custom about paragraph one.')
+            ->assertSee('Share Your Story');
     }
 
     public function test_the_listing_page_does_not_show_the_submitters_name(): void

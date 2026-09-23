@@ -82,6 +82,44 @@ class WebsiteSetupTest extends TestCase
         $this->assertSame('Share Your Own Light', $settings->get('home', 'gratitude_cta_label'));
     }
 
+    public function test_admin_can_save_the_inspirational_resources_hero_and_sidebar_copy(): void
+    {
+        Livewire::actingAs($this->admin())
+            ->test(Settings::class)
+            ->fillForm([
+                'general' => [
+                    'site_name' => 'Softphoria',
+                    'site_url' => 'https://softphoria.test',
+                    'maintenance_mode' => false,
+                ],
+                'inspirational_resources' => [
+                    'hero_eyebrow' => 'Community Stories',
+                    'hero_heading' => 'Light shared by many.',
+                    'hero_description' => 'Real moments from real people.',
+                    'about_body' => 'First paragraph.',
+                    'submit_cta_label' => 'Share Your Story',
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $settings = app(SettingsRepository::class);
+        $this->assertSame('Community Stories', $settings->get('inspirational_resources', 'hero_eyebrow'));
+        $this->assertSame('Light shared by many.', $settings->get('inspirational_resources', 'hero_heading'));
+        $this->assertSame('Real moments from real people.', $settings->get('inspirational_resources', 'hero_description'));
+        $this->assertSame('First paragraph.', $settings->get('inspirational_resources', 'about_body'));
+        $this->assertSame('Share Your Story', $settings->get('inspirational_resources', 'submit_cta_label'));
+    }
+
+    public function test_the_inspirational_resources_tab_prefills_the_current_default_copy(): void
+    {
+        Livewire::actingAs($this->admin())
+            ->test(Settings::class)
+            ->assertSet('data.inspirational_resources.hero_eyebrow', 'Inspirational Resources')
+            ->assertSet('data.inspirational_resources.hero_heading', 'Stories that awaken and inspire.')
+            ->assertSet('data.inspirational_resources.submit_cta_label', 'Submit Your Writing');
+    }
+
     public function test_maintenance_page_is_required_when_maintenance_mode_is_enabled(): void
     {
         Livewire::actingAs($this->admin())

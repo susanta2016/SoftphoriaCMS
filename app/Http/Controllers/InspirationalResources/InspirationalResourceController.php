@@ -18,9 +18,10 @@ use Illuminate\Support\Collection;
  * submissions only (client-confirmed reversal, 2026-09-02: previously
  * there was no public listing/detail at all — see
  * ResourceSubmission's own docblock). Mirrors PoetryProseController's
- * listing/detail shape (search/category/sort/pagination, sidebar), minus
- * the hero banner image (client-confirmed: this landing page doesn't get
- * one) and minus the content-type/collection filters PoetryProse has,
+ * listing/detail shape (search/category/sort/pagination, sidebar), including
+ * the admin-configurable hero banner + copy (added 2026-09-23 at the
+ * client's request, reversing the earlier "no hero banner here" decision),
+ * minus the content-type/collection filters PoetryProse has,
  * since a submission has neither. `category` here is a free-text column,
  * not a Category-model relation, so the category filter/sidebar work off
  * distinct string values rather than a taxonomy table.
@@ -51,6 +52,7 @@ class InspirationalResourceController extends Controller
         $categories = $this->categoryCounts();
         $totalApproved = ResourceSubmission::query()->approved()->count();
         $recent = $this->recentSubmissions();
+        $copy = $this->landingCopy($settings);
 
         // The filter form, sort, view toggle, category links, and
         // pagination all submit here asynchronously (see the
@@ -67,6 +69,8 @@ class InspirationalResourceController extends Controller
                 'categories' => $categories,
                 'totalApproved' => $totalApproved,
                 'recent' => $recent,
+                'aboutBody' => $copy['aboutBody'],
+                'submitCtaLabel' => $copy['submitCtaLabel'],
             ]);
         }
 
@@ -74,14 +78,16 @@ class InspirationalResourceController extends Controller
 
         $seo = SeoTagBuilder::build(null, [
             'title' => "Inspirational Resources — {$chrome['siteName']}",
-            'description' => 'Stories, testimonies, and reflections shared by our community.',
+            'description' => $copy['heroDescription'],
             'canonical' => route('inspirational-resources.index'),
             'type' => 'website',
         ], $chrome['general']);
 
         return view('inspirational-resources.index', [
             ...$chrome,
+            ...$copy,
             'seo' => $seo,
+            'heroBanner' => $this->heroBanner($settings),
             'submissions' => $submissions,
             'filters' => $filters,
             'categories' => $categories,
@@ -127,6 +133,7 @@ class InspirationalResourceController extends Controller
 
         return view('inspirational-resources.show', [
             ...$chrome,
+            ...$this->landingCopy($settings),
             'seo' => $seo,
             'submission' => $resourceSubmission,
             'previous' => $previous,
@@ -172,6 +179,43 @@ class InspirationalResourceController extends Controller
             ->orderByDesc('id')
             ->limit(3)
             ->get();
+    }
+
+    /**
+     * Admin-configurable via Website Setup → Settings → Inspirational
+     * Resources, same shape as PoetryProseController::heroBanner().
+     */
+    private function heroBanner(SettingsRepository $settings): ?Media
+    {
+        $mediaId = $settings->get('inspirational_resources', 'hero_banner_media_id');
+
+        return $mediaId ? Media::find($mediaId) : null;
+    }
+
+    /**
+     * Defaults must stay in sync with Settings::loadFormState()'s
+     * `inspirational_resources` group, same as PoetryProseController::
+     * landingCopy().
+     *
+     * @return array{heroEyebrow: string, heroHeading: string, heroDescription: string, aboutBody: string, submitCtaLabel: string}
+     */
+    private function landingCopy(SettingsRepository $settings): array
+    {
+        return [
+            'heroEyebrow' => $settings->get('inspirational_resources', 'hero_eyebrow', 'Inspirational Resources'),
+            'heroHeading' => $settings->get('inspirational_resources', 'hero_heading', 'Stories that awaken and inspire.'),
+            'heroDescription' => $settings->get(
+                'inspirational_resources',
+                'hero_description',
+                'Has a song, an album, or a moment of reflection touched your life in a meaningful way? Explore the stories, testimonies, and reflections shared by our community.',
+            ),
+            'aboutBody' => $settings->get(
+                'inspirational_resources',
+                'about_body',
+                "Real stories, testimonies, and reflections shared by our community — a song, an album, or a moment that touched someone's life in a meaningful way.",
+            ),
+            'submitCtaLabel' => $settings->get('inspirational_resources', 'submit_cta_label', 'Submit Your Writing'),
+        ];
     }
 
     /**
