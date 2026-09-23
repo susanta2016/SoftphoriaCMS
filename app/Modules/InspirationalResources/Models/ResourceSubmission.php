@@ -86,6 +86,29 @@ class ResourceSubmission extends Model implements SearchResultRepresentable, Sit
         return $this->subject ?: "A Story from {$this->name}";
     }
 
+    /**
+     * The submitter's avatar for public display — same real-upload-or-
+     * placeholder resolution as a Light Post / Review (see
+     * User::avatarUrl()). A guest submission (`user_id` is nullable) falls
+     * back to the same placeholder.
+     */
+    public function submitterAvatarUrl(): string
+    {
+        return $this->user?->avatarUrl() ?? User::defaultAvatarUrl();
+    }
+
+    /**
+     * Same 200-words-per-minute estimate as PoetryProse::readingTimeMinutes(),
+     * so the two listing pages show comparable figures. `message` is plain
+     * text already (no HTML to strip).
+     */
+    public function readingTimeMinutes(): int
+    {
+        $words = str($this->message)->explode(' ')->filter()->count();
+
+        return max(1, (int) ceil($words / 200));
+    }
+
     public function excerpt(int $length = 160): string
     {
         return str($this->message)->limit($length)->toString();

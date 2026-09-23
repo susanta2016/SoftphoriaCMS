@@ -39,6 +39,7 @@ class InspirationalResourceController extends Controller
 
         $submissions = ResourceSubmission::query()
             ->approved()
+            ->with('user.profile.avatar')
             ->when($search !== '', fn (Builder $query) => $query->search($search))
             ->when($category !== '', fn (Builder $query) => $query->where('category', $category))
             ->orderBy('created_at', $sort === 'oldest' ? 'asc' : 'desc')
@@ -92,6 +93,8 @@ class InspirationalResourceController extends Controller
     public function show(ResourceSubmission $resourceSubmission, SettingsRepository $settings): View
     {
         abort_unless($resourceSubmission->status === ResourceSubmissionStatus::Approved, 404);
+
+        $resourceSubmission->loadMissing('user.profile.avatar');
 
         $chrome = $this->siteChrome($settings);
 
@@ -163,6 +166,7 @@ class InspirationalResourceController extends Controller
     {
         return ResourceSubmission::query()
             ->approved()
+            ->with('user.profile.avatar')
             ->when($excludeId, fn (Builder $query) => $query->where('id', '!=', $excludeId))
             ->orderByDesc('created_at')
             ->orderByDesc('id')

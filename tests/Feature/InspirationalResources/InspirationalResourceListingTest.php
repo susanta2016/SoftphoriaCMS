@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\InspirationalResources;
 
+use App\Models\Media;
+use App\Models\User;
 use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -191,6 +193,45 @@ class InspirationalResourceListingTest extends TestCase
     /**
      * @param  array<string, mixed>  $overrides
      */
+    public function test_the_listing_and_detail_pages_show_the_submitters_profile_avatar(): void
+    {
+        $user = User::factory()->create();
+        $avatar = new Media;
+        $avatar->disk = 'public';
+        $avatar->path = 'media/images/submitter-avatar.jpg';
+        $avatar->original_filename = 'submitter-avatar.jpg';
+        $avatar->mime_type = 'image/jpeg';
+        $avatar->size = 100;
+        $avatar->visibility = 'public';
+        $avatar->uploader_id = $user->id;
+        $avatar->save();
+        $user->profile()->create(['avatar_media_id' => $avatar->id]);
+
+        $submission = $this->submission(['user_id' => $user->id, 'status' => ResourceSubmissionStatus::Approved]);
+        $avatarUrl = $user->fresh()->avatarUrl();
+
+        $this->get(route('inspirational-resources.index'))->assertOk()->assertSee($avatarUrl, false);
+        $this->get(route('inspirational-resources.index', ['view' => 'grid']))->assertOk()->assertSee($avatarUrl, false);
+        $this->get(route('inspirational-resources.show', $submission))->assertOk()->assertSee($avatarUrl, false);
+    }
+
+    public function test_the_listing_page_does_not_show_the_submitters_name(): void
+    {
+        $this->submission(['name' => 'Hidden Submitter Name', 'status' => ResourceSubmissionStatus::Approved]);
+
+        $this->get(route('inspirational-resources.index'))->assertOk()->assertDontSee('Hidden Submitter Name');
+        $this->get(route('inspirational-resources.index', ['view' => 'grid']))->assertOk()->assertDontSee('Hidden Submitter Name');
+    }
+
+    public function test_a_guest_submission_falls_back_to_the_placeholder_avatar(): void
+    {
+        $submission = $this->submission(['status' => ResourceSubmissionStatus::Approved]);
+
+        $this->get(route('inspirational-resources.show', $submission))
+            ->assertOk()
+            ->assertSee(User::defaultAvatarUrl(), false);
+    }
+
     private function submission(array $overrides = []): ResourceSubmission
     {
         return ResourceSubmission::query()->create([

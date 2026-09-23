@@ -29,8 +29,8 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
                                 {{ $submission->created_at->format('F j, Y') }}
                             </span>
-                            <span class="inline-flex items-center gap-1.5">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><circle cx="12" cy="8" r="3"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" stroke-linecap="round"/></svg>
+                            <span class="inline-flex items-center gap-2">
+                                <img src="{{ $submission->submitterAvatarUrl() }}" alt="" class="h-8 w-8 shrink-0 rounded-full object-cover">
                                 Shared by {{ $submission->name }}
                             </span>
                         </div>
