@@ -446,6 +446,27 @@ class MusicControllerTest extends TestCase
         $response->assertRedirect(route('music.singles.show', $single));
     }
 
+    public function test_a_track_on_both_a_published_album_and_single_keeps_its_own_page(): void
+    {
+        $album = $this->album(['status' => ReleaseStatus::Published]);
+        $single = $this->single(['status' => ReleaseStatus::Published]);
+        $track = $this->track($album, $single, ['status' => TrackStatus::Published]);
+
+        $this->get(route('music.tracks.show', $track))->assertOk();
+        $this->get(route('music.singles.show', $single))->assertOk()->assertSee($track->title);
+        $this->assertSame(route('music.tracks.show', $track), $track->publicUrl());
+    }
+
+    public function test_a_track_on_an_unpublished_album_and_a_published_single_redirects_to_the_single(): void
+    {
+        $album = $this->album(['status' => ReleaseStatus::Draft]);
+        $single = $this->single(['status' => ReleaseStatus::Published]);
+        $track = $this->track($album, $single, ['status' => TrackStatus::Published]);
+
+        $this->get(route('music.tracks.show', $track))->assertRedirect(route('music.singles.show', $single));
+        $this->assertSame(route('music.singles.show', $single), $track->publicUrl());
+    }
+
     public function test_sitemap_includes_an_album_owned_published_track(): void
     {
         $album = $this->album(['status' => ReleaseStatus::Published]);

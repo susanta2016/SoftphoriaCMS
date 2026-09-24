@@ -6,8 +6,8 @@ use RuntimeException;
 
 /**
  * Thrown by Track's model-level saving guard (see Track::booted()) when a
- * save would leave the record with both album_id and single_id set, or
- * neither. This is the backstop that fires regardless of how the record is
+ * save would leave the record with neither album_id nor single_id set — a
+ * track may belong to an Album, a Single, or both. This is the backstop that fires regardless of how the record is
  * being saved — Filament form, Create/UpdateTrackAction, Tinker, a seeder,
  * a queued job, or a future importer/API — since it hooks Eloquent's
  * saving event rather than living only in the Action/UI layer. See also the
@@ -18,8 +18,8 @@ use RuntimeException;
  */
 class InvalidTrackReleaseException extends RuntimeException
 {
-    public static function mustBelongToExactlyOne(): self
+    public static function mustBelongToAtLeastOne(): self
     {
-        return new self('A track must belong to exactly one of an Album or a Single — never both, never neither.');
+        return new self('A track must belong to an Album, a Single, or both — never neither.');
     }
 }

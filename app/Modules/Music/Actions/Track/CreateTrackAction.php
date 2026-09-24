@@ -23,7 +23,7 @@ class CreateTrackAction
         return DB::transaction(function () use ($data, $actor): Track {
             $track = new Track;
             $track->fill([
-                ...collect($data)->except(['release', 'lyrics', 'song_story', 'credits', 'categoryIds', 'tagIds', 'seo'])->all(),
+                ...collect($data)->except(['lyrics', 'song_story', 'credits', 'categoryIds', 'tagIds', 'seo'])->all(),
                 ...$this->resolveRelease($data),
             ]);
             $track->status ??= TrackStatus::Draft;

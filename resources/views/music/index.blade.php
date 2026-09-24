@@ -137,10 +137,10 @@
                     <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-3">
                         @foreach ($songStories as $story)
                             @php
-                                $release = $story->track->album ?: $story->track->single;
-                                $storyRoute = $story->track->album
-                                    ? route('music.albums.show', $story->track->album)
-                                    : route('music.singles.show', $story->track->single);
+                                $release = $story->track->publishedRelease();
+                                $storyRoute = $release instanceof \App\Modules\Music\Models\Album
+                                    ? route('music.albums.show', $release)
+                                    : route('music.singles.show', $release);
                             @endphp
                             <a href="{{ $storyRoute }}" class="block rounded-xl bg-white/95 p-5 shadow-xl transition hover:bg-white">
                                 <h3 class="font-serif text-lg text-brand-navy">{{ $story->track->title }}</h3>

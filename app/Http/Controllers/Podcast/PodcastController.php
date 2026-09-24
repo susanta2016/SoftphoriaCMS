@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Podcast;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Media;
-use App\Modules\Music\Enums\ReleaseStatus;
 use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Models\Track;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
@@ -217,7 +216,7 @@ class PodcastController extends Controller implements Sitemapable
 
         return $episode->trackSuggestions()->with(['album.cover', 'single.cover'])->get()
             ->filter(fn (Track $track): bool => $track->status === TrackStatus::Published
-                && $track->release()?->status === ReleaseStatus::Published)
+                && $track->publishedRelease() !== null)
             ->values();
     }
 

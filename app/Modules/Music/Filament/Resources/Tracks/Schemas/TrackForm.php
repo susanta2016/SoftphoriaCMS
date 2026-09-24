@@ -35,8 +35,8 @@ use Illuminate\Validation\Rules\Unique;
  * Lyrics/song story/credits/categoryIds/tagIds/seo are all separate tables,
  * not tracks columns, so — same reasoning as Podcast's PodcastEpisodeForm —
  * Create/UpdateTrackAction (not Filament's automatic relationship save) own
- * reconciling them. "release" is a virtual field only; see
- * SavesTrackRelations::resolveRelease().
+ * reconciling them. album_id/single_id are independent — a track can be on
+ * either or both; see SavesTrackRelations::resolveRelease().
  */
 class TrackForm
 {
@@ -218,33 +218,43 @@ class TrackForm
                         Group::make([
                             Section::make('Release')
                                 ->schema([
-                                    Select::make('release')
-                                        ->label('Album / Single')
-                                        ->options(fn (): array => self::releaseOptions())
+                                    Text::make('A track can be on an Album, released as a Single, or both. Create the Album or Single first under Music > Albums / Music > Singles.')
+                                        ->size(TextSize::Small)
+                                        ->color('gray'),
+                                    Select::make('album_id')
+                                        ->label('Album')
+                                        ->options(fn (): array => Album::query()->orderBy('title')->pluck('title', 'id')->all())
                                         ->searchable()
-                                        ->required()
                                         ->live()
-                                        ->helperText('Create the Album or Single first under Music > Albums / Music > Singles.'),
+                                        ->requiredWithout('single_id')
+                                        ->validationMessages(['required_without' => 'Choose an Album, a Single, or both.']),
                                     TextInput::make('track_number')
                                         ->label('Track Number')
                                         ->numeric()
                                         ->minValue(1)
-                                        ->visible(fn (Get $get): bool => str_starts_with((string) $get('release'), 'album:'))
+                                        ->visible(fn (Get $get): bool => filled($get('album_id')))
                                         ->unique(
                                             table: Track::class,
                                             column: 'track_number',
                                             ignoreRecord: true,
-                                            modifyRuleUsing: function (Unique $rule, Get $get): Unique {
-                                                $release = (string) $get('release');
-
-                                                if (! str_starts_with($release, 'album:')) {
-                                                    return $rule->where('id', 0);
-                                                }
-
-                                                return $rule->where('album_id', (int) substr($release, strlen('album:')));
-                                            },
+                                            modifyRuleUsing: fn (Unique $rule, Get $get): Unique => $rule->where('album_id', (int) $get('album_id')),
                                         )
-                                        ->helperText('Position within the album\'s tracklist. Must be unique within the album. Hidden for singles.'),
+                                        ->helperText('Position within the album\'s tracklist. Must be unique within the album.'),
+                                    Select::make('single_id')
+                                        ->label('Single')
+                                        ->options(fn (): array => Single::query()->orderBy('title')->pluck('title', 'id')->all())
+                                        ->searchable()
+                                        ->requiredWithout('album_id')
+                                        ->unique(
+                                            table: Track::class,
+                                            column: 'single_id',
+                                            ignoreRecord: true,
+                                            modifyRuleUsing: fn (Unique $rule): Unique => $rule->whereNull('deleted_at'),
+                                        )
+                                        ->validationMessages([
+                                            'required_without' => 'Choose an Album, a Single, or both.',
+                                            'unique' => 'This Single already has a track.',
+                                        ]),
                                     Select::make('status')
                                         ->options(TrackStatus::options())
                                         ->default(TrackStatus::Draft->value)
@@ -253,26 +263,5 @@ class TrackForm
                         ])->columnSpan(['default' => 12, 'lg' => 5]),
                     ]),
             ]);
-    }
-
-    /**
-     * Grouped Select options shaped "album:{id}"/"single:{id}" — the only
-     * way this schema represents "belongs to exactly one of two parent
-     * tables" without introducing true polymorphism into a schema that
-     * elsewhere (music_categories, music_tags, music_streaming_links) has
-     * consistently used a dual nullable FK instead.
-     *
-     * @return array<string, array<string, string>>
-     */
-    public static function releaseOptions(): array
-    {
-        return [
-            'Albums' => Album::query()->orderBy('title')->get()
-                ->mapWithKeys(fn (Album $album): array => ["album:{$album->id}" => $album->title])
-                ->all(),
-            'Singles' => Single::query()->orderBy('title')->get()
-                ->mapWithKeys(fn (Single $single): array => ["single:{$single->id}" => $single->title])
-                ->all(),
-        ];
     }
 }

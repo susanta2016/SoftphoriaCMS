@@ -164,7 +164,7 @@ class CartController extends Controller
                 'showRoute' => match (true) {
                     $entry['type'] === 'album' => route('music.albums.show', $model),
                     $entry['type'] === 'single' => route('music.singles.show', $model),
-                    default => $model->single_id !== null ? route('music.singles.show', $model->single) : route('music.tracks.show', $model),
+                    default => $model->publicUrl(),
                 },
             ]);
         }

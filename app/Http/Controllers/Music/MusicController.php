@@ -160,24 +160,25 @@ class MusicController extends Controller implements Sitemapable
     }
 
     /**
-     * A single track's own listening page — only meaningful for an
-     * Album-owned track (a Single-owned track already IS that Single's
-     * listening page, so visiting one here 301-redirects to it rather than
-     * publishing the same song at two URLs).
+     * A single track's own listening page — only meaningful while the
+     * track's Album is published. A track with no published Album but a
+     * published Single (Single-only, or also on a still-unpublished Album)
+     * already IS that Single's listening page, so visiting one here
+     * 301-redirects to it rather than publishing the same song at two URLs.
+     * See Track::publishedRelease()/publicUrl().
      */
     public function showTrack(Track $track, SettingsRepository $settings): View|RedirectResponse
     {
         abort_unless($track->status === TrackStatus::Published, 404);
 
-        if ($track->single_id !== null) {
-            $single = $track->single;
-            abort_unless($single && $single->status === ReleaseStatus::Published, 404);
+        $release = $track->publishedRelease();
+        abort_if($release === null, 404);
 
-            return redirect()->route('music.singles.show', $single, 301);
+        if ($release instanceof Single) {
+            return redirect()->route('music.singles.show', $release, 301);
         }
 
-        $album = $track->album;
-        abort_unless($album && $album->status === ReleaseStatus::Published, 404);
+        $album = $release;
 
         $chrome = $this->siteChrome($settings);
         $track->load(['lyrics', 'songStory', 'credits', 'categories', 'audio']);

@@ -24,7 +24,7 @@ class TracksTable
                 TextColumn::make('title')
                     ->searchable()
                     ->sortable()
-                    ->description(fn ($record): ?string => $record->album?->title ?? $record->single?->title),
+                    ->description(fn ($record): ?string => collect([$record->album?->title, $record->single?->title])->filter()->unique()->implode(' · ') ?: null),
                 TextColumn::make('audio_preview')
                     ->label('Audio')
                     ->html()
@@ -37,9 +37,12 @@ class TracksTable
                         : MediaPreview::empty('No audio')),
                 TextColumn::make('release')
                     ->label('Release')
-                    ->state(fn ($record): string => $record->album ? 'Album' : 'Single')
+                    ->state(fn ($record): array => array_values(array_filter([
+                        $record->album_id !== null ? 'Album' : null,
+                        $record->single_id !== null ? 'Single' : null,
+                    ])))
                     ->badge()
-                    ->color(fn ($record): string => $record->album ? 'info' : 'gray'),
+                    ->color(fn (string $state): string => $state === 'Album' ? 'info' : 'gray'),
                 TextColumn::make('track_number')
                     ->label('#')
                     ->sortable(),

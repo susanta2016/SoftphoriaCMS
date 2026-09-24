@@ -6,10 +6,11 @@
     this mirrors podcast.partials.episode-card's exact visual structure/
     classes rather than inventing a new design. Links to the track's own
     existing detail page (music.tracks.show — redirects to the parent Single
-    when single-owned) rather than embedding a second inline player.
+    when it has no published Album) rather than embedding a second inline
+    player.
 --}}
 @php
-    $trackRelease = $track->release();
+    $trackRelease = $track->publishedRelease();
     $trackCoverUrl = $trackRelease?->cover ? \Illuminate\Support\Facades\Storage::disk($trackRelease->cover->disk)->url($trackRelease->cover->path) : null;
 @endphp
 

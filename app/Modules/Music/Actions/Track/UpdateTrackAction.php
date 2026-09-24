@@ -21,7 +21,7 @@ class UpdateTrackAction
     {
         return DB::transaction(function () use ($track, $data, $actor): Track {
             $track->fill([
-                ...collect($data)->except(['release', 'lyrics', 'song_story', 'credits', 'categoryIds', 'tagIds', 'seo'])->all(),
+                ...collect($data)->except(['lyrics', 'song_story', 'credits', 'categoryIds', 'tagIds', 'seo'])->all(),
                 ...$this->resolveRelease($data),
             ]);
             $track->save();

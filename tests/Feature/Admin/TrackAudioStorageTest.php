@@ -73,7 +73,7 @@ class TrackAudioStorageTest extends TestCase
         Livewire::actingAs($this->admin())
             ->test(CreateTrack::class)
             ->fillForm([
-                'release' => "single:{$single->id}",
+                'single_id' => $single->id,
                 'title' => 'Storage Flow Track',
                 'slug' => 'storage-flow-track',
                 'status' => 'draft',

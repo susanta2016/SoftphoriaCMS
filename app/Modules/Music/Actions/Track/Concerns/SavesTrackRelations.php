@@ -14,39 +14,39 @@ use InvalidArgumentException;
  * SavesPodcastEpisodeRelations. SEO uses the shared SavesMusicSeo trait
  * (also used by Album/Single) rather than a track-local copy.
  *
- * A track belongs to exactly one of an Album or a Single — enforced here at
- * the Action layer via resolveRelease(), by Track's own model-level
- * saving() guard as a backstop (see Track::booted()), and by a MariaDB-only
- * CHECK constraint at the raw-SQL layer. The form exposes this as a single
- * grouped Select named "release" with option keys shaped
- * "album:{id}"/"single:{id}" (TrackForm::releaseOptions()) rather than two
- * separate album_id/single_id selects, since exactly one may ever be set —
- * resolveRelease() below is the only place that string is parsed back into
- * the two real FK columns.
+ * A track belongs to an Album, a Single, or both — "at least one" is
+ * enforced here at the Action layer via resolveRelease(), by Track's own
+ * model-level saving() guard as a backstop (see Track::booted()), and by a
+ * MariaDB-only CHECK constraint at the raw-SQL layer. The form exposes this
+ * as two independent album_id/single_id selects (TrackForm).
  */
 trait SavesTrackRelations
 {
     use SavesMusicSeo;
 
     /**
+     * Normalizes the two release FKs (blank → null) and clears
+     * track_number once the track is no longer on an Album — the form
+     * hides that field without an Album, so it would otherwise keep a
+     * stale position from a previous Album.
+     *
      * @param  array<string, mixed>  $data
-     * @return array{album_id: ?int, single_id: ?int}
+     * @return array<string, ?int>
      */
     protected function resolveRelease(array $data): array
     {
-        $release = (string) ($data['release'] ?? '');
+        $albumId = filled($data['album_id'] ?? null) ? (int) $data['album_id'] : null;
+        $singleId = filled($data['single_id'] ?? null) ? (int) $data['single_id'] : null;
 
-        if (! str_contains($release, ':')) {
-            throw new InvalidArgumentException('A track must belong to either an Album or a Single.');
+        if ($albumId === null && $singleId === null) {
+            throw new InvalidArgumentException('A track must belong to an Album, a Single, or both.');
         }
 
-        [$type, $id] = explode(':', $release, 2);
-
-        return match ($type) {
-            'album' => ['album_id' => (int) $id, 'single_id' => null],
-            'single' => ['album_id' => null, 'single_id' => (int) $id],
-            default => throw new InvalidArgumentException("Unknown release type \"{$type}\"."),
-        };
+        return [
+            'album_id' => $albumId,
+            'single_id' => $singleId,
+            ...($albumId === null ? ['track_number' => null] : []),
+        ];
     }
 
     /**

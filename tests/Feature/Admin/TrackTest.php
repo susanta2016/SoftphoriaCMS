@@ -19,12 +19,11 @@ use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * One song (Database Specification §19's `tracks` table) — belongs to
- * exactly one of an Album or a Single. Covers the release-relationship
- * hardening pass: a Track must never be saveable with both album_id and
- * single_id set, or neither, at the model layer (Track::booted()), on top
- * of the Filament form/Action-layer enforcement already covered by the
- * "for an album"/"for a single" creation tests below.
+ * One song (Database Specification §19's `tracks` table) — belongs to an
+ * Album, a Single, or both. A Track must never be saveable with neither
+ * album_id nor single_id set at the model layer (Track::booted()), on top
+ * of the Filament form/Action-layer enforcement covered by the creation
+ * tests below.
  */
 class TrackTest extends TestCase
 {
@@ -48,7 +47,7 @@ class TrackTest extends TestCase
         Livewire::actingAs($this->admin())
             ->test(CreateTrack::class)
             ->fillForm([
-                'release' => "album:{$album->id}",
+                'album_id' => $album->id,
                 'title' => 'Here I Am',
                 'slug' => 'here-i-am-track',
                 'description' => 'An invitation to presence.',
@@ -90,7 +89,7 @@ class TrackTest extends TestCase
         Livewire::actingAs($this->admin())
             ->test(CreateTrack::class)
             ->fillForm([
-                'release' => "single:{$single->id}",
+                'single_id' => $single->id,
                 'title' => 'Still Water',
                 'slug' => 'still-water-track',
                 'status' => 'published',
@@ -119,27 +118,72 @@ class TrackTest extends TestCase
             ->fillForm([
                 'title' => 'Orphan Track',
                 'slug' => 'orphan-track',
-                'release' => null,
+                'album_id' => null,
+                'single_id' => null,
             ])
             ->call('create')
-            ->assertHasFormErrors(['release']);
+            ->assertHasFormErrors(['album_id', 'single_id']);
 
         $this->assertDatabaseMissing('tracks', ['slug' => 'orphan-track']);
     }
 
-    public function test_track_cannot_be_saved_with_both_album_and_single(): void
+    public function test_admin_can_create_a_track_for_both_an_album_and_a_single(): void
     {
         $album = $this->createAlbum();
         $single = $this->createSingle();
 
-        $this->expectException(InvalidTrackReleaseException::class);
+        Livewire::actingAs($this->admin())
+            ->test(CreateTrack::class)
+            ->fillForm([
+                'album_id' => $album->id,
+                'single_id' => $single->id,
+                'title' => 'Both Ways',
+                'slug' => 'both-ways-track',
+                'track_number' => 2,
+                'status' => 'published',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
 
-        Track::query()->create([
+        $track = Track::query()->where('slug', 'both-ways-track')->firstOrFail();
+
+        $this->assertSame($album->id, $track->album_id);
+        $this->assertSame($single->id, $track->single_id);
+        $this->assertSame(2, $track->track_number);
+        $this->assertTrue($track->release()->is($album));
+        $this->assertTrue($single->track->is($track));
+        $this->assertTrue($album->tracks->contains($track));
+    }
+
+    public function test_a_single_that_already_has_a_track_cannot_take_a_second_one(): void
+    {
+        $single = $this->createSingle();
+        Track::query()->create(['single_id' => $single->id, 'title' => 'First', 'slug' => 'single-first-track']);
+
+        Livewire::actingAs($this->admin())
+            ->test(CreateTrack::class)
+            ->fillForm([
+                'single_id' => $single->id,
+                'title' => 'Second',
+                'slug' => 'single-second-track',
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['single_id' => 'unique']);
+    }
+
+    public function test_track_can_be_saved_with_both_album_and_single_at_the_model_layer(): void
+    {
+        $album = $this->createAlbum();
+        $single = $this->createSingle();
+
+        $track = Track::query()->create([
             'album_id' => $album->id,
             'single_id' => $single->id,
-            'title' => 'Invalid Track',
-            'slug' => 'invalid-track-both',
+            'title' => 'Valid Track',
+            'slug' => 'valid-track-both',
         ]);
+
+        $this->assertTrue($track->exists);
     }
 
     public function test_track_cannot_be_saved_with_neither_album_nor_single(): void
@@ -165,13 +209,38 @@ class TrackTest extends TestCase
 
         Livewire::actingAs($this->admin())
             ->test(EditTrack::class, ['record' => $track->getRouteKey()])
-            ->fillForm(['release' => "single:{$single->id}"])
+            ->fillForm(['album_id' => null, 'single_id' => $single->id])
             ->call('save')
             ->assertHasNoFormErrors();
 
         $track->refresh();
         $this->assertNull($track->album_id);
         $this->assertSame($single->id, $track->single_id);
+        $this->assertNull($track->track_number);
+    }
+
+    public function test_admin_can_add_an_album_track_to_a_single_too(): void
+    {
+        $album = $this->createAlbum();
+        $single = $this->createSingle();
+        $track = Track::query()->create([
+            'album_id' => $album->id,
+            'title' => 'Album Track',
+            'slug' => 'album-track-also-single',
+            'track_number' => 4,
+        ]);
+
+        Livewire::actingAs($this->admin())
+            ->test(EditTrack::class, ['record' => $track->getRouteKey()])
+            ->assertFormSet(['album_id' => $album->id, 'single_id' => null])
+            ->fillForm(['single_id' => $single->id])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $track->refresh();
+        $this->assertSame($album->id, $track->album_id);
+        $this->assertSame($single->id, $track->single_id);
+        $this->assertSame(4, $track->track_number);
     }
 
     public function test_admin_can_move_a_track_from_single_to_album(): void
@@ -186,7 +255,7 @@ class TrackTest extends TestCase
 
         Livewire::actingAs($this->admin())
             ->test(EditTrack::class, ['record' => $track->getRouteKey()])
-            ->fillForm(['release' => "album:{$album->id}", 'track_number' => 3])
+            ->fillForm(['album_id' => $album->id, 'single_id' => null, 'track_number' => 3])
             ->call('save')
             ->assertHasNoFormErrors();
 
@@ -209,7 +278,7 @@ class TrackTest extends TestCase
         Livewire::actingAs($this->admin())
             ->test(CreateTrack::class)
             ->fillForm([
-                'release' => "album:{$album->id}",
+                'album_id' => $album->id,
                 'title' => 'Duplicate Number Track',
                 'slug' => 'duplicate-number-track',
                 'track_number' => 1,
@@ -232,7 +301,7 @@ class TrackTest extends TestCase
         Livewire::actingAs($this->admin())
             ->test(CreateTrack::class)
             ->fillForm([
-                'release' => "album:{$albumTwo->id}",
+                'album_id' => $albumTwo->id,
                 'title' => 'Track One Again',
                 'slug' => 'album-two-track-1',
                 'track_number' => 1,
@@ -255,7 +324,7 @@ class TrackTest extends TestCase
         Livewire::actingAs($this->admin())
             ->test(CreateTrack::class)
             ->fillForm([
-                'release' => "album:{$album->id}",
+                'album_id' => $album->id,
                 'title' => 'Here I Am',
                 'slug' => 'here-i-am-track',
                 'embed_video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
@@ -274,7 +343,7 @@ class TrackTest extends TestCase
         Livewire::actingAs($this->admin())
             ->test(CreateTrack::class)
             ->fillForm([
-                'release' => "album:{$album->id}",
+                'album_id' => $album->id,
                 'title' => 'Here I Am',
                 'slug' => 'here-i-am-track',
                 'embed_video_url' => 'https://vimeo.com/12345678',

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Music;
 use App\Actions\Reaction\ToggleReactionAction;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Modules\Music\Enums\ReleaseStatus;
 use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Models\Track;
 use Illuminate\Http\JsonResponse;
@@ -42,8 +41,7 @@ class TrackReactionController extends Controller
         abort_unless($track->status === TrackStatus::Published, 404);
         abort_unless(config('features.music_reactions_enabled'), 404);
 
-        $release = $track->release();
-        abort_unless($release?->status === ReleaseStatus::Published, 404);
+        abort_if($track->publishedRelease() === null, 404);
 
         /** @var User $user */
         $user = $request->user();

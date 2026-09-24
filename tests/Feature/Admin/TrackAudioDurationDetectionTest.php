@@ -43,7 +43,7 @@ class TrackAudioDurationDetectionTest extends TestCase
         Livewire::actingAs($this->admin())
             ->test(CreateTrack::class)
             ->fillForm([
-                'release' => "single:{$single->id}",
+                'single_id' => $single->id,
                 'title' => 'Auto Duration Track',
                 'slug' => 'auto-duration-track',
                 'status' => 'draft',
@@ -78,7 +78,7 @@ class TrackAudioDurationDetectionTest extends TestCase
         Livewire::actingAs($this->admin())
             ->test(CreateTrack::class)
             ->fillForm([
-                'release' => "single:{$single->id}",
+                'single_id' => $single->id,
                 'title' => 'Ignored Duration Track',
                 'slug' => 'ignored-duration-track',
                 'status' => 'draft',
@@ -160,7 +160,7 @@ class TrackAudioDurationDetectionTest extends TestCase
         Livewire::actingAs($this->admin())
             ->test(CreateTrack::class)
             ->fillForm([
-                'release' => "single:{$single->id}",
+                'single_id' => $single->id,
                 'title' => 'No Audio Track',
                 'slug' => 'no-audio-track',
                 'status' => 'draft',

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Music;
 use App\Actions\Review\SubmitReviewAction;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Modules\Music\Enums\ReleaseStatus;
 use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Models\Track;
 use Illuminate\Http\RedirectResponse;
@@ -40,8 +39,7 @@ class TrackReviewController extends Controller
         abort_unless($track->status === TrackStatus::Published, 404);
         abort_unless(config('features.music_comments_enabled'), 404);
 
-        $release = $track->release();
-        abort_unless($release?->status === ReleaseStatus::Published, 404);
+        abort_if($track->publishedRelease() === null, 404);
 
         // A real visitor never sees or fills in this field — see the
         // honeypot markup in resources/views/music/listening.blade.php.

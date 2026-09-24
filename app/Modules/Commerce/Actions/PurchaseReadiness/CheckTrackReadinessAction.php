@@ -4,7 +4,6 @@ namespace App\Modules\Commerce\Actions\PurchaseReadiness;
 
 use App\Enums\MediaCategory;
 use App\Modules\Commerce\Support\PurchaseReadinessResult;
-use App\Modules\Music\Enums\ReleaseStatus;
 use App\Modules\Music\Enums\TrackStatus;
 use App\Modules\Music\Models\Track;
 
@@ -33,9 +32,7 @@ class CheckTrackReadinessAction
             $issues[] = 'Track\'s audio file is not a valid audio asset.';
         }
 
-        $release = $track->release();
-
-        if ($release === null || $release->status !== ReleaseStatus::Published) {
+        if ($track->publishedRelease() === null) {
             $issues[] = 'Track\'s Album or Single is not published.';
         }
 

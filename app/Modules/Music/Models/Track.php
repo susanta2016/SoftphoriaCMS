@@ -31,10 +31,11 @@ use Laravel\Scout\Builder as ScoutBuilder;
 use Laravel\Scout\Searchable;
 
 /**
- * One song (Database Specification §19's `tracks` table) — belongs to
- * exactly one of an Album or a Single (album_id/single_id are both
- * nullable). The Filament form and Create/UpdateTrackAction (see
- * SavesTrackRelations::resolveRelease()) enforce "exactly one" at the
+ * One song (Database Specification §19's `tracks` table) — belongs to an
+ * Album, a Single, or both at once (album_id/single_id are both nullable;
+ * the same song can be released as a Single and also appear on an Album).
+ * The Filament form and Create/UpdateTrackAction (see
+ * SavesTrackRelations::resolveRelease()) enforce "at least one" at the
  * UI/Action layer; booted() below is the model-level backstop that fires on
  * every save regardless of caller (Tinker, seeders, jobs, future imports),
  * and a MariaDB-only CHECK constraint backs it at the raw-SQL layer — see
@@ -54,11 +55,8 @@ class Track extends Model implements Reviewable, SearchResultRepresentable, Site
     protected static function booted(): void
     {
         static::saving(function (Track $track): void {
-            $hasAlbum = $track->album_id !== null;
-            $hasSingle = $track->single_id !== null;
-
-            if ($hasAlbum === $hasSingle) {
-                throw InvalidTrackReleaseException::mustBelongToExactlyOne();
+            if ($track->album_id === null && $track->single_id === null) {
+                throw InvalidTrackReleaseException::mustBelongToAtLeastOne();
             }
         });
     }
@@ -88,14 +86,42 @@ class Track extends Model implements Reviewable, SearchResultRepresentable, Site
     /**
      * The track's parent release, whichever type it is — the single
      * accessor future listening-page code should call instead of repeating
-     * `$track->album ?: $track->single`. Returns the already-loaded relation
-     * when eager-loaded, otherwise lazy-loads whichever side is set. Never
-     * duplicates Album/Single data onto Track — this only resolves to the
-     * existing related record.
+     * `$track->album ?: $track->single`. The Album wins when the track is on
+     * both. Returns the already-loaded relation when eager-loaded, otherwise
+     * lazy-loads whichever side is set. Never duplicates Album/Single data
+     * onto Track — this only resolves to the existing related record.
      */
     public function release(): Album|Single|null
     {
         return $this->album ?: $this->single;
+    }
+
+    /**
+     * Like release(), but only a Published parent counts — a track on both
+     * an unpublished Album and a published Single is still publicly
+     * reachable through the Single. The Album wins when both are published,
+     * matching MusicController::showTrack()'s canonical-URL rule.
+     */
+    public function publishedRelease(): Album|Single|null
+    {
+        if ($this->album?->status === ReleaseStatus::Published) {
+            return $this->album;
+        }
+
+        return $this->single?->status === ReleaseStatus::Published ? $this->single : null;
+    }
+
+    /**
+     * The one public URL this song lives at: its own track page while its
+     * Album is published, otherwise its Single's page — showTrack()
+     * 301-redirects there in that case rather than publishing the same song
+     * at two URLs.
+     */
+    public function publicUrl(): string
+    {
+        return $this->publishedRelease() instanceof Single
+            ? route('music.singles.show', $this->single)
+            : route('music.tracks.show', $this);
     }
 
     /**
@@ -178,16 +204,12 @@ class Track extends Model implements Reviewable, SearchResultRepresentable, Site
     }
 
     /**
-     * A Single-owned track's reviews live on its Single's own listening
-     * page (there is no separate public page for the track itself — see
-     * MusicController::showTrack()'s redirect); an Album-owned track's
-     * reviews live on its own track page.
+     * Reviews show on whichever page the song publicly lives at — see
+     * publicUrl().
      */
     public function reviewUrl(): string
     {
-        return $this->single_id !== null
-            ? route('music.singles.show', $this->single)
-            : route('music.tracks.show', $this);
+        return $this->publicUrl();
     }
 
     /**

@@ -29,16 +29,12 @@ class EditTrack extends EditRecord
     }
 
     /**
-     * release/lyrics/song_story/credits/categoryIds/tagIds/seo aren't real
+     * lyrics/song_story/credits/categoryIds/tagIds/seo aren't real
      * form-bound columns or relationships (see TrackForm's docblock), so
      * their state has to be filled in manually.
      */
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $data['release'] = $this->record->album_id
-            ? "album:{$this->record->album_id}"
-            : "single:{$this->record->single_id}";
-
         $data['lyrics'] = [
             'content' => $this->record->lyrics?->content,
             'visibility' => $this->record->lyrics?->visibility ?? 'public',
