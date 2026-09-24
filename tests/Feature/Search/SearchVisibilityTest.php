@@ -149,6 +149,30 @@ class SearchVisibilityTest extends TestCase
         $this->assertSearchContainsUrl('A Story of Grace', route('inspirational-resources.show', $submission));
     }
 
+    public function test_an_approved_resource_submission_is_found_by_its_theme_category_or_byline(): void
+    {
+        $submission = $this->submission([
+            'subject' => 'Plain Subject '.uniqid(),
+            'name' => 'Marigold Weatherby',
+            'category' => 'Podcasts',
+            'theme' => 'Forgiveness',
+            'message' => 'Nothing else matches here.',
+            'status' => ResourceSubmissionStatus::Approved,
+        ]);
+        $url = route('inspirational-resources.show', $submission);
+
+        $this->assertSearchContainsUrl('Forgiveness', $url);
+        $this->assertSearchContainsUrl('Podcasts', $url);
+        $this->assertSearchContainsUrl('Marigold Weatherby', $url);
+    }
+
+    public function test_an_unapproved_resource_submission_is_not_found_by_its_theme(): void
+    {
+        $submission = $this->submission(['subject' => 'Hidden Theme Story '.uniqid(), 'theme' => 'Forgiveness', 'status' => ResourceSubmissionStatus::Submitted]);
+
+        $this->assertSearchExcludesTitle('Forgiveness', $submission->subject);
+    }
+
     public function test_a_pending_resource_submission_does_not_appear_in_search_results(): void
     {
         $submission = $this->submission(['subject' => 'Pending Story '.uniqid(), 'status' => ResourceSubmissionStatus::Submitted]);

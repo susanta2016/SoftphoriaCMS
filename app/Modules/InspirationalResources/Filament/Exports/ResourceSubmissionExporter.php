@@ -25,6 +25,7 @@ class ResourceSubmissionExporter extends Exporter
             ExportColumn::make('email'),
             ExportColumn::make('subject')->formatStateUsing(fn (?string $state): string => self::sanitize($state)),
             ExportColumn::make('category'),
+            ExportColumn::make('theme'),
             ExportColumn::make('message')->formatStateUsing(fn (?string $state): string => self::sanitize($state)),
             ExportColumn::make('status')->formatStateUsing(fn ($state): string => $state?->getLabel() ?? ''),
             ExportColumn::make('reference_url')->label('Reference URL'),

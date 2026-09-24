@@ -59,6 +59,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'email' => 'jane@example.com',
             'subject' => 'My Story',
             'category' => 'Books',
+            'theme' => 'Gratitude',
             'message' => 'Something meaningful happened.',
         ]);
 
@@ -87,6 +88,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Other',
+            'theme' => 'Gratitude',
             'category_other' => '  Music  ',
             'message' => 'Something meaningful happened.',
         ])->assertRedirect(route('inspirational-resources.create'));
@@ -100,6 +102,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Other',
+            'theme' => 'Gratitude',
             'message' => 'Something meaningful happened.',
         ])->assertSessionHasErrors('category_other');
 
@@ -112,8 +115,37 @@ class InspirationalResourceSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Testimony',
+            'theme' => 'Gratitude',
             'message' => 'Something meaningful happened.',
         ])->assertSessionHasErrors('category');
+
+        $this->assertSame(0, ResourceSubmission::query()->count());
+    }
+
+    public function test_the_form_offers_the_theme_dropdown_and_stores_the_choice(): void
+    {
+        $this->get(route('inspirational-resources.create'))
+            ->assertOk()
+            ->assertSee('name="theme"', false)
+            ->assertSeeInOrder(['Inspiration', 'Love', 'Faith', 'Forgiveness', 'Giving', 'Gratitude']);
+
+        $this->post(route('inspirational-resources.submit'), [
+            'name' => 'Jane Doe',
+            'email' => 'jane@example.com',
+            'category' => 'Books',
+            'theme' => 'Forgiveness',
+            'message' => 'Something meaningful happened.',
+        ])->assertRedirect(route('inspirational-resources.create'));
+
+        $this->assertSame('Forgiveness', ResourceSubmission::query()->firstOrFail()->theme);
+    }
+
+    public function test_a_missing_or_unknown_theme_is_rejected(): void
+    {
+        $base = ['name' => 'Jane Doe', 'email' => 'jane@example.com', 'category' => 'Books', 'message' => 'Hello.'];
+
+        $this->post(route('inspirational-resources.submit'), $base)->assertSessionHasErrors('theme');
+        $this->post(route('inspirational-resources.submit'), [...$base, 'theme' => 'Anger'])->assertSessionHasErrors('theme');
 
         $this->assertSame(0, ResourceSubmission::query()->count());
     }
@@ -124,6 +156,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Books',
+            'theme' => 'Gratitude',
             'message' => 'Something meaningful happened.',
             'reference_url' => 'https://example.com/the-story',
         ]);
@@ -140,6 +173,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Books',
+            'theme' => 'Gratitude',
             'message' => 'Something meaningful happened.',
             'reference_url' => 'not-a-url',
         ]);
@@ -154,6 +188,7 @@ class InspirationalResourceSubmissionTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('inspirational-resources.submit'), [
             'category' => 'Books',
+            'theme' => 'Gratitude',
             'message' => 'Something meaningful happened.',
         ]);
 
@@ -195,6 +230,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'name' => 'Spoofed Name',
             'email' => 'spoofed@example.com',
             'category' => 'Books',
+            'theme' => 'Gratitude',
             'message' => 'Trying to submit under a different identity.',
         ]);
 
@@ -223,6 +259,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Books',
+            'theme' => 'Gratitude',
             'message' => 'Something meaningful happened.',
         ]);
 
@@ -240,6 +277,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'email' => 'jane@example.com',
             'subject' => 'My Story',
             'category' => 'Books',
+            'theme' => 'Gratitude',
             'message' => 'Something meaningful happened.',
         ]);
 
@@ -262,6 +300,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane.resilient@example.com',
             'category' => 'Books',
+            'theme' => 'Gratitude',
             'message' => 'Something meaningful happened even when email is down.',
         ]);
 
@@ -275,6 +314,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Books',
+            'theme' => 'Gratitude',
             'message' => 'Private message.',
             'slug' => 'a-private-submission',
         ]);
@@ -291,6 +331,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'email' => 'jane@example.com',
             'subject' => 'A Very Distinctive Sitemap Subject',
             'category' => 'Books',
+            'theme' => 'Gratitude',
             'message' => 'Private message.',
             'slug' => 'a-very-distinctive-sitemap-subject',
         ]);

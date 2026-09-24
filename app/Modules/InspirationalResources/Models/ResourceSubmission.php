@@ -37,7 +37,7 @@ use Laravel\Scout\Searchable;
  * same as before.
  */
 #[Fillable([
-    'user_id', 'name', 'email', 'subject', 'category', 'message',
+    'user_id', 'name', 'email', 'subject', 'category', 'theme', 'message',
     'reference_url', 'status', 'slug',
 ])]
 class ResourceSubmission extends Model implements SearchResultRepresentable, Sitemapable
@@ -54,6 +54,14 @@ class ResourceSubmission extends Model implements SearchResultRepresentable, Sit
     public const CATEGORY_OPTIONS = ['Books', 'Authors', 'Podcasts', 'Videos'];
 
     public const OTHER_CATEGORY = 'Other';
+
+    /**
+     * The submit form's Theme dropdown (2026-09-24) — a fixed list, unlike
+     * category there is no free-text "Other".
+     *
+     * @var list<string>
+     */
+    public const THEME_OPTIONS = ['Inspiration', 'Love', 'Faith', 'Forgiveness', 'Giving', 'Gratitude'];
 
     protected function casts(): array
     {
@@ -175,8 +183,14 @@ class ResourceSubmission extends Model implements SearchResultRepresentable, Sit
      */
     public function toSearchableArray(): array
     {
+        // name is the public byline (publicTitle() falls back to it);
+        // category/theme let a search for e.g. "faith" or "books" find the
+        // resources tagged that way. email is never searchable.
         return [
             'subject' => $this->subject,
+            'name' => $this->name,
+            'category' => $this->category,
+            'theme' => $this->theme,
             'message' => $this->message,
         ];
     }

@@ -4,6 +4,7 @@ namespace App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissi
 
 use App\Models\User;
 use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
+use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -42,6 +43,10 @@ class ResourceSubmissionForm
                     ->required()
                     ->maxLength(255)
                     ->placeholder('e.g. Testimony, Encouragement'),
+                Select::make('theme')
+                    ->options(array_combine(ResourceSubmission::THEME_OPTIONS, ResourceSubmission::THEME_OPTIONS))
+                    ->required()
+                    ->native(false),
                 Textarea::make('message')
                     ->required()
                     ->maxLength(5000)

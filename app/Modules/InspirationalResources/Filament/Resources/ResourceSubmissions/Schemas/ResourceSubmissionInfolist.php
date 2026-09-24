@@ -30,6 +30,7 @@ class ResourceSubmissionInfolist
                         TextEntry::make('user.name')->label('Account')->placeholder('Guest'),
                         TextEntry::make('subject')->placeholder('—'),
                         TextEntry::make('category'),
+                        TextEntry::make('theme')->placeholder('—'),
                         TextEntry::make('status')->badge(),
                         TextEntry::make('created_at')->label('Submitted')->dateTime(),
                     ]),

@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Actions\Page\CreatePageAction;
 use App\Enums\PageTemplate;
 use App\Filament\Pages\Settings;
+use App\Http\Controllers\InspirationalResources\InspirationalResourceSubmissionController;
 use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
@@ -98,10 +99,18 @@ class WebsiteSetupTest extends TestCase
                     'hero_description' => 'Real moments from real people.',
                     'about_body' => 'First paragraph.',
                     'submit_cta_label' => 'Share Your Story',
+                    'submit_page_heading' => 'Share Your Light',
+                    'submit_page_intro' => 'Tell us what moved you.',
                 ],
             ])
             ->call('save')
             ->assertHasNoFormErrors();
+
+        $this->get(route('inspirational-resources.create'))
+            ->assertOk()
+            ->assertSee('Share Your Light')
+            ->assertSee('Tell us what moved you.')
+            ->assertDontSee('our team reads every submission');
 
         $settings = app(SettingsRepository::class);
         $this->assertSame('Community Stories', $settings->get('inspirational_resources', 'hero_eyebrow'));
@@ -117,7 +126,9 @@ class WebsiteSetupTest extends TestCase
             ->test(Settings::class)
             ->assertSet('data.inspirational_resources.hero_eyebrow', 'Inspirational Resources')
             ->assertSet('data.inspirational_resources.hero_heading', 'Stories that awaken and inspire.')
-            ->assertSet('data.inspirational_resources.submit_cta_label', 'Submit Your Writing');
+            ->assertSet('data.inspirational_resources.submit_cta_label', 'Submit Your Writing')
+            ->assertSet('data.inspirational_resources.submit_page_heading', 'Submit Your Writing')
+            ->assertSet('data.inspirational_resources.submit_page_intro', InspirationalResourceSubmissionController::DEFAULT_INTRO);
     }
 
     public function test_maintenance_page_is_required_when_maintenance_mode_is_enabled(): void

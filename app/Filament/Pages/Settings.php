@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Enums\MediaCategory;
 use App\Filament\Support\Media\MediaPicker;
+use App\Http\Controllers\InspirationalResources\InspirationalResourceSubmissionController;
 use App\Models\Page as PageModel;
 use App\Models\Setting;
 use App\Shared\Services\AuditLogService;
@@ -286,6 +287,15 @@ class Settings extends Page
                 ->label('Sidebar Submit CTA Label')
                 ->maxLength(255)
                 ->helperText('Links to the Inspirational Resources submission page.'),
+            TextInput::make('inspirational_resources.submit_page_heading')
+                ->label('Submit Page Heading')
+                ->maxLength(255)
+                ->helperText('The heading at the top of the "Submit Your Writing" page.'),
+            Textarea::make('inspirational_resources.submit_page_intro')
+                ->label('Submit Page Introduction')
+                ->rows(3)
+                ->maxLength(1000)
+                ->helperText('The text under the heading on the "Submit Your Writing" page.'),
         ];
     }
 
@@ -509,6 +519,8 @@ class Settings extends Page
         $settings->set('inspirational_resources', 'hero_description', $inspirationalResources['hero_description']);
         $settings->set('inspirational_resources', 'about_body', $inspirationalResources['about_body']);
         $settings->set('inspirational_resources', 'submit_cta_label', $inspirationalResources['submit_cta_label']);
+        $settings->set('inspirational_resources', 'submit_page_heading', $inspirationalResources['submit_page_heading']);
+        $settings->set('inspirational_resources', 'submit_page_intro', $inspirationalResources['submit_page_intro']);
 
         $contact = $state['contact'];
         $settings->set('contact', 'email', $contact['email']);
@@ -635,6 +647,8 @@ class Settings extends Page
                     "Real stories, testimonies, and reflections shared by our community — a song, an album, or a moment that touched someone's life in a meaningful way.",
                 ),
                 'submit_cta_label' => $settings->get('inspirational_resources', 'submit_cta_label', 'Submit Your Writing'),
+                'submit_page_heading' => $settings->get('inspirational_resources', 'submit_page_heading', InspirationalResourceSubmissionController::DEFAULT_HEADING),
+                'submit_page_intro' => $settings->get('inspirational_resources', 'submit_page_intro', InspirationalResourceSubmissionController::DEFAULT_INTRO),
             ],
             'contact' => [
                 'email' => $settings->get('contact', 'email', 'jacobdiawarii@gmail.com'),

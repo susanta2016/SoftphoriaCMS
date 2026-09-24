@@ -25,12 +25,23 @@ use Illuminate\Validation\Rule;
  */
 class InspirationalResourceSubmissionController extends Controller
 {
+    /**
+     * Fallback copy for the page heading/intro, admin-editable via Website
+     * Setup → Settings → Inspirational Resources (which shows these same
+     * defaults until saved).
+     */
+    public const DEFAULT_HEADING = 'Submit Your Writing';
+
+    public const DEFAULT_INTRO = "Has a song, an album, or a moment of reflection touched your life in a meaningful way? We'd love to hear about it. Share your story below — our team reads every submission.";
+
     public function create(SettingsRepository $settings): View
     {
         $chrome = $this->siteChrome($settings);
+        $heading = $settings->get('inspirational_resources', 'submit_page_heading') ?: self::DEFAULT_HEADING;
+        $intro = $settings->get('inspirational_resources', 'submit_page_intro') ?: self::DEFAULT_INTRO;
 
         $seo = SeoTagBuilder::build(null, [
-            'title' => "Submit Your Writing — {$chrome['siteName']}",
+            'title' => "{$heading} — {$chrome['siteName']}",
             'description' => 'Share your story with us.',
             'canonical' => route('inspirational-resources.create'),
             'type' => 'website',
@@ -39,6 +50,8 @@ class InspirationalResourceSubmissionController extends Controller
         return view('inspirational-resources.create', [
             ...$chrome,
             'seo' => $seo,
+            'heading' => $heading,
+            'intro' => $intro,
         ]);
     }
 
@@ -55,6 +68,7 @@ class InspirationalResourceSubmissionController extends Controller
             'subject' => ['nullable', 'string', 'max:255'],
             'category' => ['required', 'string', Rule::in([...ResourceSubmission::CATEGORY_OPTIONS, ResourceSubmission::OTHER_CATEGORY])],
             'category_other' => ['nullable', 'required_if:category,'.ResourceSubmission::OTHER_CATEGORY, 'string', 'max:255'],
+            'theme' => ['required', 'string', Rule::in(ResourceSubmission::THEME_OPTIONS)],
             'message' => ['required', 'string', 'max:5000'],
             'reference_url' => ['nullable', 'url', 'max:2048'],
         ]);

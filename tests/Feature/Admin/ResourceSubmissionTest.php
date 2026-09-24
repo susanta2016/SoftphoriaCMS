@@ -87,6 +87,7 @@ class ResourceSubmissionTest extends TestCase
                 'name' => 'Cory Gold',
                 'subject' => 'Submit',
                 'category' => 'Encouragement',
+                'theme' => 'Faith',
                 'message' => 'A few words of light.',
                 'reference_url' => 'https://example.com/story',
             ])
@@ -111,9 +112,9 @@ class ResourceSubmissionTest extends TestCase
 
         Livewire::actingAs($this->admin())
             ->test(CreateResourceSubmission::class)
-            ->fillForm(['category' => '', 'message' => ''])
+            ->fillForm(['category' => '', 'theme' => null, 'message' => ''])
             ->call('create')
-            ->assertHasFormErrors(['category' => 'required', 'message' => 'required']);
+            ->assertHasFormErrors(['category' => 'required', 'theme' => 'required', 'message' => 'required']);
 
         $this->assertSame(0, ResourceSubmission::query()->count());
     }

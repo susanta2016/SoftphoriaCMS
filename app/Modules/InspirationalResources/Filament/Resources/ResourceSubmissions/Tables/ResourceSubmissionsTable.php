@@ -32,6 +32,7 @@ class ResourceSubmissionsTable
                 TextColumn::make('email')->searchable(),
                 TextColumn::make('subject')->searchable()->placeholder('—'),
                 TextColumn::make('category')->searchable(),
+                TextColumn::make('theme')->placeholder('—'),
                 TextColumn::make('status')->badge()->sortable(),
                 TextColumn::make('created_at')
                     ->label('Submitted')
@@ -46,6 +47,8 @@ class ResourceSubmissionsTable
                         ->orderBy('category')
                         ->pluck('category', 'category')
                         ->all()),
+                SelectFilter::make('theme')
+                    ->options(array_combine(ResourceSubmission::THEME_OPTIONS, ResourceSubmission::THEME_OPTIONS)),
             ])
             ->searchable()
             ->recordActions([
