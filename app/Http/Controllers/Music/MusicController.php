@@ -124,7 +124,6 @@ class MusicController extends Controller implements Sitemapable
             ...$chrome,
             'seo' => $seo,
             'release' => $this->albumViewModel($album),
-            'related' => $this->relatedReleases($album->id, 'album'),
             'topBanner' => $this->topBannerMedia(),
             'podcastSuggestions' => $this->podcastSuggestionsFor($album),
         ]);
@@ -151,7 +150,6 @@ class MusicController extends Controller implements Sitemapable
             ...$chrome,
             'seo' => $seo,
             'release' => $this->singleViewModel($single),
-            'related' => $this->relatedReleases($single->id, 'single'),
             'topBanner' => $this->topBannerMedia(),
             'podcastSuggestions' => $this->podcastSuggestionsFor($single),
             ...$this->reviewSummary($single->track),
@@ -198,7 +196,6 @@ class MusicController extends Controller implements Sitemapable
             ...$chrome,
             'seo' => $seo,
             'release' => $this->trackViewModel($track, $album),
-            'related' => $this->relatedReleases($album->id, 'album'),
             'topBanner' => $this->topBannerMedia(),
             'podcastSuggestions' => $this->podcastSuggestionsFor($album),
             ...$this->reviewSummary($track),
@@ -424,38 +421,11 @@ class MusicController extends Controller implements Sitemapable
     }
 
     /**
-     * @return Collection<int, object>
-     */
-    private function relatedReleases(int $excludeId, string $excludeType): Collection
-    {
-        $albumsQuery = Album::query()->published()
-            ->when($excludeType === 'album', fn ($q) => $q->where('id', '!=', $excludeId))
-            ->select([
-                'id', DB::raw("'album' as release_type"), 'public_id', 'title', 'slug',
-                'cover_media_id', 'release_date',
-                DB::raw("(select count(*) from tracks where tracks.album_id = albums.id and tracks.status = 'published') as track_count"),
-            ]);
-
-        $singlesQuery = Single::query()->published()
-            ->when($excludeType === 'single', fn ($q) => $q->where('id', '!=', $excludeId))
-            ->select([
-                'id', DB::raw("'single' as release_type"), 'public_id', 'title', 'slug',
-                'cover_media_id', 'release_date',
-                DB::raw('1 as track_count'),
-            ]);
-
-        $rows = $albumsQuery->toBase()->unionAll($singlesQuery->toBase())
-            ->orderByDesc('release_date')
-            ->limit(4)
-            ->get();
-
-        return $this->attachCovers($rows);
-    }
-
-    /**
      * The cross-content "You May Also Like — Podcast Episodes" suggestions
-     * for this Album/Single's own detail page — admin-curated only, never
-     * $featured/relatedReleases()'s own automatic-by-recency logic. Master-
+     * for this Album/Single's own detail page — the only "You may also like"
+     * section there (an automatic latest-releases grid was removed
+     * 2026-09-24 as a duplicate) — admin-curated only, never
+     * $featured's own automatic-by-recency logic. Master-
      * switched off entirely (config('features.podcast_suggestions_enabled'))
      * means no query at all, not just an empty render. The stored
      * podcastSuggestions() relationship itself is intentionally unfiltered

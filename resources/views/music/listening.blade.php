@@ -558,33 +558,6 @@
                 </div>
             @endif
 
-            @if ($related->isNotEmpty())
-                <div class="mt-16">
-                    <h2 class="font-serif text-2xl text-brand-navy">You may also like</h2>
-                    <div class="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-4">
-                        @foreach ($related as $item)
-                            @php
-                                $itemCoverUrl = $item->cover ? Storage::disk($item->cover->disk)->url($item->cover->path) : null;
-                                $itemRoute = $item->release_type === 'album'
-                                    ? route('music.albums.show', ['album' => $item->slug])
-                                    : route('music.singles.show', ['single' => $item->slug]);
-                            @endphp
-                            <a href="{{ $itemRoute }}" class="group block">
-                                <div class="aspect-square overflow-hidden rounded-xl bg-brand-navy/10 shadow ring-1 ring-brand-navy/5">
-                                    @if ($itemCoverUrl)
-                                        <img src="{{ $itemCoverUrl }}" alt="{{ $item->title }}" class="h-full w-full object-cover transition group-hover:scale-105">
-                                    @else
-                                        <div class="flex h-full w-full items-center justify-center px-2 text-center text-xs text-brand-navy/40">{{ $item->title }}</div>
-                                    @endif
-                                </div>
-                                <span class="mt-3 block text-xs font-semibold tracking-wide text-brand-gold uppercase">{{ $item->release_type === 'album' ? 'Album' : 'Single' }}</span>
-                                <h3 class="mt-1 truncate font-serif text-base text-brand-navy transition group-hover:text-brand-gold">{{ $item->title }}</h3>
-                            </a>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
-
             {{--
                 Cross-content suggestions (admin-curated only — never
                 automatic) — App\Http\Controllers\Music\MusicController::
