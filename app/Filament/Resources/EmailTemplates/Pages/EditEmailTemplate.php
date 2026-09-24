@@ -265,6 +265,8 @@ class EditEmailTemplate extends EditRecord
             'link_expiry_date' => now()->addDays(30)->format('F j, Y'),
             'max_downloads' => '5',
             'register_url' => url('/register'),
+            'item_url' => url('/music'),
+            'account_orders_url' => url('/account/orders'),
         ];
 
         $variables = collect($this->record->available_variables ?? [])

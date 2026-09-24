@@ -97,6 +97,34 @@ class OrderConfirmationEmailTest extends TestCase
         });
     }
 
+    public function test_the_default_order_confirmation_fills_every_purchaser_order_and_expiry_placeholder(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+        $this->app->bind(StripeGatewayContract::class, FakeStripeGateway::class);
+
+        $user = User::factory()->create(['name' => 'John Smith']);
+        $single = $this->readySingle();
+        $order = app(CreatePendingOrderAction::class)->handle($single, $user, $user->email, $user->name);
+
+        $this->payViaWebhook($order->public_id, 'evt_order_conf_vars', 'cs_order_conf_vars');
+
+        $order->refresh();
+        $expiresAt = $order->items->first()->entitlement->expires_at;
+
+        Mail::assertSent(TemplatedNotificationMail::class, function (TemplatedNotificationMail $mail) use ($order, $single, $expiresAt): bool {
+            $rendered = $mail->render();
+
+            return str_contains($rendered, 'Greetings and gratitude, John,')
+                && str_contains($rendered, 'Order #'.$order->public_id)
+                && str_contains($rendered, '$'.number_format((float) $order->total, 2))
+                && str_contains($rendered, route('account.orders'))
+                && str_contains($rendered, route('music.singles.show', $single))
+                && ($expiresAt === null || str_contains($rendered, $expiresAt->format('F j, Y')))
+                && ! str_contains($rendered, '{{');
+        });
+    }
+
     public function test_the_default_guest_email_fills_every_purchaser_and_order_placeholder(): void
     {
         Mail::fake();

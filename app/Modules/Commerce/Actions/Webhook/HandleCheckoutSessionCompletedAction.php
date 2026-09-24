@@ -67,7 +67,7 @@ class HandleCheckoutSessionCompletedAction
         if ($issued !== []) {
             $order->isGuest()
                 ? $this->sendGuestDownloadAccess->handle($order, $issued)
-                : $this->sendOrderConfirmation->handle($order);
+                : $this->sendOrderConfirmation->handle($order, $issued);
         }
     }
 

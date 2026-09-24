@@ -133,7 +133,35 @@ return [
     'order_confirmation' => [
         'label' => 'Order Confirmation',
         'recipients' => ['user'],
-        'variables' => ['user_name', 'order_items', 'order_total', 'account_orders_url', 'site_name'],
+        'variables' => [
+            'first_name', 'user_name', 'user_email', 'item_title', 'item_type', 'item_url', 'purchase_date', 'amount_paid',
+            'order_id', 'order_items', 'order_total', 'account_orders_url', 'link_validity_window', 'link_expiry_date',
+            'max_downloads', 'site_name',
+        ],
+        'default_subject' => 'Thank you for your order — {{item_title}}',
+        'default_html_body' => <<<'HTML'
+            Greetings and gratitude, {{first_name}},
+
+            Thank you for bringing {{item_title}} into your world. Every purchase like yours helps this music keep reaching the people who need it — so truly, thank you for walking this path with us.
+
+            <strong>Order summary</strong>
+            {{item_title}} ({{item_type}})
+            {{purchase_date}}
+            Total: {{amount_paid}}
+            Order #{{order_id}}
+
+            <a href="{{account_orders_url}}">Download / Listen Now →</a>
+
+            Your purchase is saved to your account, so you can always come back and access it from your <a href="{{account_orders_url}}">Music Library</a>. Your download access stays active until {{link_expiry_date}} ({{max_downloads}} downloads).
+
+            If you'd like to go deeper, the story behind {{item_title}} — what inspired it, what it means — is waiting for you on <a href="{{item_url}}">its song page</a>.
+
+            We hope this music meets you exactly where you are.
+
+            Walking toward the light together,
+            Jacob
+            All The Things Light
+            HTML,
     ],
 
     'guest_download_access' => [

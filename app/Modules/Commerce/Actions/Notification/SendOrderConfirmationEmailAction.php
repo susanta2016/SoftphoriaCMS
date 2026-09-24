@@ -4,6 +4,8 @@ namespace App\Modules\Commerce\Actions\Notification;
 
 use App\Enums\EmailRecipientType;
 use App\Modules\Commerce\Models\Order;
+use App\Modules\Commerce\Support\IssuedEntitlement;
+use App\Modules\Commerce\Support\OrderEmailVariables;
 use App\Shared\Services\Notifications\TemplatedMailer;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -22,13 +24,14 @@ class SendOrderConfirmationEmailAction
 {
     public function __construct(private readonly TemplatedMailer $mailer) {}
 
-    public function handle(Order $order): void
+    /**
+     * @param  array<int, IssuedEntitlement>  $issuedEntitlements
+     */
+    public function handle(Order $order, array $issuedEntitlements = []): void
     {
         try {
             $this->mailer->send('order_confirmation', EmailRecipientType::User, $order->purchaser_email, [
-                'user_name' => $order->purchaser_name,
-                'order_items' => $order->items->pluck('item_title')->implode(', '),
-                'order_total' => number_format((float) $order->total, 2),
+                ...OrderEmailVariables::for($order, $issuedEntitlements),
                 'account_orders_url' => route('account.orders'),
             ]);
         } catch (Throwable $exception) {
