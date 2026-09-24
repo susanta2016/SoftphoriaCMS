@@ -5,6 +5,7 @@ namespace App\Http\Controllers\InspirationalResources;
 use App\Http\Controllers\Controller;
 use App\Models\Media;
 use App\Modules\InspirationalResources\Actions\CreateResourceSubmissionAction;
+use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use Illuminate\Contracts\View\View;
@@ -12,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 /**
  * The "Submit Your Writing" form page (client-confirmed 2026-09-02: a
@@ -51,7 +53,8 @@ class InspirationalResourceSubmissionController extends Controller
             'name' => [$user ? 'sometimes' : 'required', 'string', 'max:255'],
             'email' => [$user ? 'sometimes' : 'required', 'string', 'email', 'max:255'],
             'subject' => ['nullable', 'string', 'max:255'],
-            'category' => ['required', 'string', 'max:255'],
+            'category' => ['required', 'string', Rule::in([...ResourceSubmission::CATEGORY_OPTIONS, ResourceSubmission::OTHER_CATEGORY])],
+            'category_other' => ['nullable', 'required_if:category,'.ResourceSubmission::OTHER_CATEGORY, 'string', 'max:255'],
             'message' => ['required', 'string', 'max:5000'],
             'reference_url' => ['nullable', 'url', 'max:2048'],
         ]);
@@ -61,6 +64,13 @@ class InspirationalResourceSubmissionController extends Controller
         }
 
         $data = $validator->validated();
+
+        // "Other" is only the dropdown's trigger for the typed-in box — the
+        // submitter's own category is what gets stored and shown publicly.
+        if ($data['category'] === ResourceSubmission::OTHER_CATEGORY) {
+            $data['category'] = trim($data['category_other']);
+        }
+        unset($data['category_other']);
 
         // Sourced from the authenticated account, never trusted from the
         // request — a logged-in user's name/email are fetched internally

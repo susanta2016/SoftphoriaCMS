@@ -58,7 +58,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'subject' => 'My Story',
-            'category' => 'Testimony',
+            'category' => 'Books',
             'message' => 'Something meaningful happened.',
         ]);
 
@@ -71,12 +71,59 @@ class InspirationalResourceSubmissionTest extends TestCase
         $this->assertNotNull($submission->slug);
     }
 
+    public function test_the_form_offers_the_category_dropdown(): void
+    {
+        $response = $this->get(route('inspirational-resources.create'));
+
+        $response->assertOk();
+        $response->assertSee('<select', false);
+        $response->assertSeeInOrder(['Books', 'Authors', 'Podcasts', 'Videos', 'Other']);
+        $response->assertSee('name="category_other"', false);
+    }
+
+    public function test_choosing_other_stores_the_typed_in_category(): void
+    {
+        $this->post(route('inspirational-resources.submit'), [
+            'name' => 'Jane Doe',
+            'email' => 'jane@example.com',
+            'category' => 'Other',
+            'category_other' => '  Music  ',
+            'message' => 'Something meaningful happened.',
+        ])->assertRedirect(route('inspirational-resources.create'));
+
+        $this->assertSame('Music', ResourceSubmission::query()->firstOrFail()->category);
+    }
+
+    public function test_choosing_other_without_typing_a_category_fails(): void
+    {
+        $this->post(route('inspirational-resources.submit'), [
+            'name' => 'Jane Doe',
+            'email' => 'jane@example.com',
+            'category' => 'Other',
+            'message' => 'Something meaningful happened.',
+        ])->assertSessionHasErrors('category_other');
+
+        $this->assertSame(0, ResourceSubmission::query()->count());
+    }
+
+    public function test_a_category_outside_the_dropdown_is_rejected(): void
+    {
+        $this->post(route('inspirational-resources.submit'), [
+            'name' => 'Jane Doe',
+            'email' => 'jane@example.com',
+            'category' => 'Testimony',
+            'message' => 'Something meaningful happened.',
+        ])->assertSessionHasErrors('category');
+
+        $this->assertSame(0, ResourceSubmission::query()->count());
+    }
+
     public function test_a_guest_can_submit_a_reference_url(): void
     {
         $response = $this->post(route('inspirational-resources.submit'), [
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
-            'category' => 'Testimony',
+            'category' => 'Books',
             'message' => 'Something meaningful happened.',
             'reference_url' => 'https://example.com/the-story',
         ]);
@@ -92,7 +139,7 @@ class InspirationalResourceSubmissionTest extends TestCase
         $response = $this->post(route('inspirational-resources.submit'), [
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
-            'category' => 'Testimony',
+            'category' => 'Books',
             'message' => 'Something meaningful happened.',
             'reference_url' => 'not-a-url',
         ]);
@@ -106,7 +153,7 @@ class InspirationalResourceSubmissionTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('inspirational-resources.submit'), [
-            'category' => 'Testimony',
+            'category' => 'Books',
             'message' => 'Something meaningful happened.',
         ]);
 
@@ -147,7 +194,7 @@ class InspirationalResourceSubmissionTest extends TestCase
         $this->actingAs($user)->post(route('inspirational-resources.submit'), [
             'name' => 'Spoofed Name',
             'email' => 'spoofed@example.com',
-            'category' => 'Testimony',
+            'category' => 'Books',
             'message' => 'Trying to submit under a different identity.',
         ]);
 
@@ -175,7 +222,7 @@ class InspirationalResourceSubmissionTest extends TestCase
         $this->post(route('inspirational-resources.submit'), [
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
-            'category' => 'Testimony',
+            'category' => 'Books',
             'message' => 'Something meaningful happened.',
         ]);
 
@@ -192,7 +239,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'subject' => 'My Story',
-            'category' => 'Testimony',
+            'category' => 'Books',
             'message' => 'Something meaningful happened.',
         ]);
 
@@ -214,7 +261,7 @@ class InspirationalResourceSubmissionTest extends TestCase
         $response = $this->post(route('inspirational-resources.submit'), [
             'name' => 'Jane Doe',
             'email' => 'jane.resilient@example.com',
-            'category' => 'Testimony',
+            'category' => 'Books',
             'message' => 'Something meaningful happened even when email is down.',
         ]);
 
@@ -227,7 +274,7 @@ class InspirationalResourceSubmissionTest extends TestCase
         $submission = ResourceSubmission::query()->create([
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
-            'category' => 'Testimony',
+            'category' => 'Books',
             'message' => 'Private message.',
             'slug' => 'a-private-submission',
         ]);
@@ -243,7 +290,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'subject' => 'A Very Distinctive Sitemap Subject',
-            'category' => 'Testimony',
+            'category' => 'Books',
             'message' => 'Private message.',
             'slug' => 'a-very-distinctive-sitemap-subject',
         ]);

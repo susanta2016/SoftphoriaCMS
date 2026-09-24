@@ -14,6 +14,28 @@ document.addEventListener('DOMContentLoaded', () => {
     update();
 });
 
+// Inspirational Resources submit form (resources/views/inspirational-
+// resources/create.blade.php) — choosing "Other" in the category dropdown
+// reveals a required free-text box for the submitter's own category.
+document.addEventListener('DOMContentLoaded', () => {
+    const select = document.querySelector('[data-category-select]');
+    const other = document.querySelector('[data-category-other]');
+
+    if (!select || !other) return;
+
+    const input = other.querySelector('input');
+
+    const update = () => {
+        const isOther = select.value === 'Other';
+        other.classList.toggle('hidden', !isOther);
+        input.required = isOther;
+        if (isOther && document.activeElement === select) input.focus();
+    };
+
+    select.addEventListener('change', update);
+    update();
+});
+
 // The account-area Gratitude Journal page (resources/views/account/
 // gratitude-journal.blade.php) — one create form plus one hidden edit form
 // per existing entry can all be on the page at once, unlike the single

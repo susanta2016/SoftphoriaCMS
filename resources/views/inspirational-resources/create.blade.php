@@ -77,12 +77,29 @@
                         >
                     </div>
 
+                    @php
+                        $otherCategory = \App\Modules\InspirationalResources\Models\ResourceSubmission::OTHER_CATEGORY;
+                        $isOtherCategory = old('category') === $otherCategory;
+                    @endphp
                     <div>
                         <label for="category" class="block text-sm font-medium text-brand-navy">Category *</label>
-                        <input
-                            type="text" id="category" name="category" value="{{ old('category') }}" required placeholder="e.g. Testimony, Encouragement"
-                            class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
+                        <select
+                            id="category" name="category" required data-category-select
+                            class="mt-1.5 block w-full rounded-md border border-brand-navy/20 bg-white px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
                         >
+                            <option value="" disabled @selected(! old('category'))>Select a category</option>
+                            @foreach ([...\App\Modules\InspirationalResources\Models\ResourceSubmission::CATEGORY_OPTIONS, $otherCategory] as $option)
+                                <option value="{{ $option }}" @selected(old('category') === $option)>{{ $option }}</option>
+                            @endforeach
+                        </select>
+                        <div data-category-other @class(['mt-3', 'hidden' => ! $isOtherCategory])>
+                            <label for="category_other" class="sr-only">Your category</label>
+                            <input
+                                type="text" id="category_other" name="category_other" value="{{ old('category_other') }}" maxlength="255"
+                                placeholder="Type your category" @required($isOtherCategory)
+                                class="block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
+                            >
+                        </div>
                     </div>
 
                     <div class="sm:col-span-2">

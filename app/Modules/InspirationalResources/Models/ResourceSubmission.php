@@ -44,6 +44,17 @@ class ResourceSubmission extends Model implements SearchResultRepresentable, Sit
 {
     use Searchable;
 
+    /**
+     * The public submit form's category dropdown (2026-09-24). `category`
+     * stays a free-text column: choosing OTHER_CATEGORY lets the submitter
+     * type their own, which is stored as-is instead of the word "Other".
+     *
+     * @var list<string>
+     */
+    public const CATEGORY_OPTIONS = ['Books', 'Authors', 'Podcasts', 'Videos'];
+
+    public const OTHER_CATEGORY = 'Other';
+
     protected function casts(): array
     {
         return [
