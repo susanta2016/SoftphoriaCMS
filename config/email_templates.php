@@ -319,6 +319,31 @@ return [
             TEXT,
     ],
 
+    // Sent only when an admin approves a Poetry/Prose submission
+    // (ChangePoetryProseSubmissionStatusAction) — the counterpart of
+    // inspirational_resource_published, minus a link: approving a
+    // Poetry/Prose submission publishes no page of its own.
+    'poetry_prose_submission_approved' => [
+        'label' => 'Poetry/Prose Writing Approved',
+        'recipients' => ['user'],
+        'variables' => ['submitter_name', 'subject', 'site_name'],
+        'default_subject' => '{{site_name}} — Your Writing Has Been Approved',
+        'default_html_body' => <<<'HTML'
+            Hi {{submitter_name}},
+
+            Good news — "{{subject}}" has been reviewed and approved by the {{site_name}} team.
+
+            Thank you for sharing your words with us.
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{submitter_name}},
+
+            Good news — "{{subject}}" has been reviewed and approved by the {{site_name}} team.
+
+            Thank you for sharing your words with us.
+            TEXT,
+    ],
+
     'review_published' => [
         'label' => 'Review Published',
         'recipients' => ['user'],

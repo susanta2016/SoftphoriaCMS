@@ -167,6 +167,41 @@ class PoetryProseSubmissionTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['entity_type' => 'PoetryProseSubmission', 'entity_id' => $submission->id]);
     }
 
+    public function test_approving_sends_only_the_approved_email(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+        $admin = $this->admin();
+        $submission = PoetryProseSubmission::query()->create($this->validPayload());
+
+        Livewire::actingAs($admin)
+            ->test(ViewPoetryProseSubmission::class, ['record' => $submission->getRouteKey()])
+            ->callAction('markInReview');
+
+        Mail::assertNothingSent();
+
+        Livewire::actingAs($admin)
+            ->test(ViewPoetryProseSubmission::class, ['record' => $submission->getRouteKey()])
+            ->callAction('approve');
+
+        Mail::assertSent(TemplatedNotificationMail::class, 1);
+        Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo('jane@example.com')
+            && str_contains($mail->subjectLine, 'Your Writing Has Been Approved'));
+    }
+
+    public function test_archiving_sends_no_email(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+        $submission = PoetryProseSubmission::query()->create($this->validPayload());
+
+        Livewire::actingAs($this->admin())
+            ->test(ViewPoetryProseSubmission::class, ['record' => $submission->getRouteKey()])
+            ->callAction('archive');
+
+        Mail::assertNothingSent();
+    }
+
     public function test_non_admin_cannot_access_the_inbox(): void
     {
         $user = User::factory()->create(['status' => 'active']);
