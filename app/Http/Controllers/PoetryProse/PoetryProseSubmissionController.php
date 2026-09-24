@@ -75,7 +75,6 @@ class PoetryProseSubmissionController extends Controller
             'category' => ['required', 'string', Rule::in(PoetryProseSubmission::CATEGORY_OPTIONS)],
             'theme' => ['required', 'string', Rule::in(PoetryProseSubmission::THEME_OPTIONS)],
             'message' => ['required', 'string', 'max:5000'],
-            'reference_url' => ['nullable', 'url', 'max:2048'],
         ]);
 
         if ($validator->fails()) {

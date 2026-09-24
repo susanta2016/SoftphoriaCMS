@@ -107,14 +107,6 @@
                     </div>
 
                     <div class="sm:col-span-2">
-                        <label for="reference_url" class="block text-sm font-medium text-brand-navy">Reference Website URL</label>
-                        <input
-                            type="url" id="reference_url" name="reference_url" value="{{ old('reference_url') }}" placeholder="https://example.com/your-writing"
-                            class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
-                        >
-                    </div>
-
-                    <div class="sm:col-span-2">
                         <label for="message" class="block text-sm font-medium text-brand-navy">Message *</label>
                         <textarea
                             id="message" name="message" rows="8" required
