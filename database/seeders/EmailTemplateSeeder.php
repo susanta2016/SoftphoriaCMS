@@ -61,6 +61,15 @@ class EmailTemplateSeeder extends Seeder
                 );
 
                 if (! $template->wasRecentlyCreated) {
+                    // The variable list is code-owned registry metadata
+                    // (what the sending action actually supplies), never
+                    // admin-authored copy — always kept in sync so the
+                    // editor lists every variable a key now supports.
+                    if ($template->available_variables !== $definition['variables']) {
+                        $template->available_variables = $definition['variables'];
+                        $template->save();
+                    }
+
                     $this->backfill($template, $definition, $recipientType, $subject, $htmlBody, $textBody);
                 }
             }

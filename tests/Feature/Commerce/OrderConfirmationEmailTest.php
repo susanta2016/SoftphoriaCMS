@@ -97,6 +97,34 @@ class OrderConfirmationEmailTest extends TestCase
         });
     }
 
+    public function test_the_default_guest_email_fills_every_purchaser_and_order_placeholder(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+        $this->app->bind(StripeGatewayContract::class, FakeStripeGateway::class);
+
+        $single = $this->readySingle();
+        $order = app(CreatePendingOrderAction::class)->handle($single, null, 'guest@example.com', 'Jane Doe');
+
+        $this->payViaWebhook($order->public_id, 'evt_guest_email_vars', 'cs_guest_email_vars');
+
+        $order->refresh();
+        $expiresAt = $order->items->first()->entitlement->expires_at;
+
+        Mail::assertSent(TemplatedNotificationMail::class, function (TemplatedNotificationMail $mail) use ($order, $expiresAt): bool {
+            $rendered = $mail->render();
+
+            return str_contains($rendered, 'Greetings and gratitude, Jane,')
+                && str_contains($rendered, e($order->items->first()->item_title))
+                && str_contains($rendered, 'Order #'.$order->public_id)
+                && str_contains($rendered, '$'.number_format((float) $order->total, 2))
+                && str_contains($rendered, $order->paid_at->format('F j, Y'))
+                && ($expiresAt === null || str_contains($rendered, $expiresAt->format('F j, Y')))
+                && str_contains($rendered, route('register.show'))
+                && ! str_contains($rendered, '{{');
+        });
+    }
+
     public function test_a_multi_item_guest_order_sends_exactly_one_email(): void
     {
         Mail::fake();

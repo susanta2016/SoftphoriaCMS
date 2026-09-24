@@ -252,6 +252,19 @@ class EditEmailTemplate extends EditRecord
             'email' => 'jane@example.com',
             'subject' => 'Sample subject line',
             'message' => 'This is a sample message body used for preview purposes only.',
+            'first_name' => 'Jane',
+            'item_title' => 'Song of Light',
+            'item_type' => 'Song',
+            'order_items' => 'Song of Light',
+            'purchase_date' => now()->format('F j, Y'),
+            'amount_paid' => '$1.29',
+            'order_total' => '1.29',
+            'order_id' => 'SAMPLE-ORDER-ID',
+            'download_access_url' => url('/#sample-download-link'),
+            'link_validity_window' => '30 days',
+            'link_expiry_date' => now()->addDays(30)->format('F j, Y'),
+            'max_downloads' => '5',
+            'register_url' => url('/register'),
         ];
 
         $variables = collect($this->record->available_variables ?? [])

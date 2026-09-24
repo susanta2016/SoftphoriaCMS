@@ -139,7 +139,37 @@ return [
     'guest_download_access' => [
         'label' => 'Guest Download Access',
         'recipients' => ['user'],
-        'variables' => ['order_items', 'order_total', 'download_access_url', 'site_name'],
+        'variables' => [
+            'first_name', 'user_name', 'user_email', 'item_title', 'item_type', 'purchase_date', 'amount_paid',
+            'order_id', 'order_items', 'order_total', 'download_access_url', 'link_validity_window',
+            'link_expiry_date', 'max_downloads', 'register_url', 'site_name',
+        ],
+        'default_subject' => 'Your music from {{site_name}} is ready to download',
+        'default_html_body' => <<<'HTML'
+            Greetings and gratitude, {{first_name}},
+
+            Thank you for bringing {{item_title}} into your world. We're glad this music found you.
+
+            <strong>Order summary</strong>
+            {{item_title}} ({{item_type}})
+            {{purchase_date}}
+            Total: {{amount_paid}}
+            Order #{{order_id}}
+
+            <a href="{{download_access_url}}">Download Now →</a>
+
+            This download link will stay active for {{link_validity_window}} (until {{link_expiry_date}}), so save this email or download your music soon.
+
+            One thing to know: since you checked out as a guest, this purchase isn't attached to an account — which means if you lose this email or the link expires, we won't be able to look it up for you later.
+
+            If you'd like to avoid that (and unlock your full Music Library, Light Posts, and the rest of the community), you can <a href="{{register_url}}">create a free account →</a> any time — just use this same email address ({{user_email}}) and we'll do our best to link this purchase to it automatically.
+
+            We hope this music meets you exactly where you are.
+
+            Walking toward the light together,
+            Jacob
+            All The Things Light
+            HTML,
     ],
 
     'contact_form_submitted' => [
