@@ -46,6 +46,7 @@ use App\Http\Controllers\PoetryProse\PoetryProseController;
 use App\Http\Controllers\PoetryProse\PoetryProseReactionController;
 use App\Http\Controllers\PoetryProse\PoetryProseReviewController;
 use App\Http\Controllers\PoetryProse\PoetryProseReviewFlagController;
+use App\Http\Controllers\PoetryProse\PoetryProseSubmissionController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\Search\SearchController;
@@ -222,6 +223,13 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
 // Public Poetry/Prose — fully public once Published (client-confirmed: no
 // membership/entitlement gate on viewing in this module).
 Route::get('/poetry-prose', [PoetryProseController::class, 'index'])->name('poetry-prose.index');
+// The Poetry/Prose "Submit Your Writing" form — registered before the
+// {poetryProse:slug} wildcard so /poetry-prose/submit always matches it.
+// Throttled the same as inspirational-resources.submit.
+Route::get('/poetry-prose/submit', [PoetryProseSubmissionController::class, 'create'])->name('poetry-prose.create');
+Route::post('/poetry-prose/submit', [PoetryProseSubmissionController::class, 'store'])
+    ->middleware('throttle:6,1')
+    ->name('poetry-prose.submit');
 Route::get('/poetry-prose/{poetryProse:slug}', [PoetryProseController::class, 'show'])->name('poetry-prose.show');
 Route::post('/poetry-prose/{poetryProse:slug}/reviews', [PoetryProseReviewController::class, 'store'])
     ->middleware(['auth', 'throttle:10,1'])

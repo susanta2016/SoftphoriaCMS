@@ -273,6 +273,52 @@ return [
             TEXT,
     ],
 
+    // Poetry/Prose (Light Posts) "Submit Your Writing" form — sent by
+    // CreatePoetryProseSubmissionAction, same pair as the Inspirational
+    // Resources ones above. There is no "published" counterpart: approving
+    // a Poetry/Prose submission publishes nothing.
+    'poetry_prose_submitted' => [
+        'label' => 'Poetry/Prose Writing Submission',
+        'recipients' => ['admin'],
+        'variables' => ['submitter_name', 'submitter_email', 'subject', 'category', 'site_name'],
+        'default_subject' => '[{{site_name}}] New Poetry/Prose Writing Submission',
+        'default_html_body' => <<<'HTML'
+            A new Poetry/Prose writing submission was received on {{site_name}}.
+
+            Submitted by: {{submitter_name}} ({{submitter_email}})
+            Category: {{category}}
+            Subject: {{subject}}
+
+            Please review it in the admin panel under Poetry/Prose → Submissions.
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            A new Poetry/Prose writing submission was received on {{site_name}}.
+
+            Submitted by: {{submitter_name}} ({{submitter_email}})
+            Category: {{category}}
+            Subject: {{subject}}
+
+            Please review it in the admin panel under Poetry/Prose → Submissions.
+            TEXT,
+    ],
+
+    'poetry_prose_submission_pending' => [
+        'label' => 'Poetry/Prose Writing Received (Pending Review)',
+        'recipients' => ['user'],
+        'variables' => ['submitter_name', 'subject', 'site_name'],
+        'default_subject' => '{{site_name}} — We Received Your Writing',
+        'default_html_body' => <<<'HTML'
+            Hi {{submitter_name}},
+
+            Thank you for sharing "{{subject}}" with {{site_name}}. Your writing has been received and is currently awaiting review.
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{submitter_name}},
+
+            Thank you for sharing "{{subject}}" with {{site_name}}. Your writing has been received and is currently awaiting review.
+            TEXT,
+    ],
+
     'review_published' => [
         'label' => 'Review Published',
         'recipients' => ['user'],

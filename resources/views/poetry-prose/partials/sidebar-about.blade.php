@@ -7,7 +7,7 @@
             @endif
         @endforeach
     </div>
-    <a href="{{ route('inspirational-resources.create') }}" class="mt-4 inline-flex items-center gap-1.5 rounded-md border border-brand-gold/40 px-4 py-2 text-sm font-semibold text-brand-gold transition hover:bg-brand-gold hover:text-white">
+    <a href="{{ route('poetry-prose.create') }}" class="mt-4 inline-flex items-center gap-1.5 rounded-md border border-brand-gold/40 px-4 py-2 text-sm font-semibold text-brand-gold transition hover:bg-brand-gold hover:text-white">
         {{ $submitCtaLabel }} <span aria-hidden="true">→</span>
     </a>
 </div>

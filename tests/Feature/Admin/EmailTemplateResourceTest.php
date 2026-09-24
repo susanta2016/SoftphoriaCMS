@@ -68,7 +68,9 @@ class EmailTemplateResourceTest extends TestCase
         Livewire::actingAs($this->admin())
             ->test(ListEmailTemplates::class)
             ->assertSuccessful()
-            ->assertCanSeeTableRecords(EmailTemplate::query()->where('recipient_type', 'user')->get());
+            // Counted, not assertCanSeeTableRecords(): there are more keys
+            // than the list's 10-per-page default, so later rows sit on page 2.
+            ->assertCountTableRecords(EmailTemplate::query()->where('recipient_type', 'user')->count());
     }
 
     public function test_no_create_action_exists(): void
@@ -151,7 +153,7 @@ class EmailTemplateResourceTest extends TestCase
 
         Mail::assertSent(TemplatedNotificationMail::class, function (TemplatedNotificationMail $mail): bool {
             return $mail->hasTo('someone@example.com')
-                && str_contains($mail->subjectLine, 'Verify Email');
+                && str_contains($mail->subjectLine, 'Verify Your Email Address');
         });
     }
 

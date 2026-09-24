@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Enums\MediaCategory;
 use App\Filament\Support\Media\MediaPicker;
 use App\Http\Controllers\InspirationalResources\InspirationalResourceSubmissionController;
+use App\Http\Controllers\PoetryProse\PoetryProseSubmissionController;
 use App\Models\Page as PageModel;
 use App\Models\Setting;
 use App\Shared\Services\AuditLogService;
@@ -253,7 +254,16 @@ class Settings extends Page
             TextInput::make('poetry_prose.submit_cta_label')
                 ->label('Sidebar Submit CTA Label')
                 ->maxLength(255)
-                ->helperText('Links to the existing Inspirational Resources submission page.'),
+                ->helperText('Links to the Poetry/Prose "Submit Your Writing" page.'),
+            TextInput::make('poetry_prose.submit_page_heading')
+                ->label('Submit Page Heading')
+                ->maxLength(255)
+                ->helperText('The heading at the top of the Poetry/Prose "Submit Your Writing" page.'),
+            Textarea::make('poetry_prose.submit_page_intro')
+                ->label('Submit Page Introduction')
+                ->rows(3)
+                ->maxLength(1000)
+                ->helperText('The text under the heading on the Poetry/Prose "Submit Your Writing" page.'),
         ];
     }
 
@@ -511,6 +521,8 @@ class Settings extends Page
         $settings->set('poetry_prose', 'hero_description', $poetryProse['hero_description']);
         $settings->set('poetry_prose', 'about_body', $poetryProse['about_body']);
         $settings->set('poetry_prose', 'submit_cta_label', $poetryProse['submit_cta_label']);
+        $settings->set('poetry_prose', 'submit_page_heading', $poetryProse['submit_page_heading']);
+        $settings->set('poetry_prose', 'submit_page_intro', $poetryProse['submit_page_intro']);
 
         $inspirationalResources = $state['inspirational_resources'];
         $settings->set('inspirational_resources', 'hero_banner_media_id', $inspirationalResources['hero_banner_media_id'], 'integer');
@@ -631,6 +643,8 @@ class Settings extends Page
                     "Here you'll find words to reflect on, return to, and carry with you.\n\nPoems, reflections, and essays that speak to the heart and awaken the soul.",
                 ),
                 'submit_cta_label' => $settings->get('poetry_prose', 'submit_cta_label', 'Submit Your Writing'),
+                'submit_page_heading' => $settings->get('poetry_prose', 'submit_page_heading', PoetryProseSubmissionController::DEFAULT_HEADING),
+                'submit_page_intro' => $settings->get('poetry_prose', 'submit_page_intro', PoetryProseSubmissionController::DEFAULT_INTRO),
             ],
             'inspirational_resources' => [
                 'hero_banner_media_id' => $settings->get('inspirational_resources', 'hero_banner_media_id'),
