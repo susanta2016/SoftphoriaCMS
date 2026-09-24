@@ -13,16 +13,17 @@
                     <dd class="text-right font-medium text-brand-navy">{{ $user->name }}</dd>
                 </div>
                 <div class="flex justify-between gap-4">
+                    <dt class="text-brand-navy/60">Username</dt>
+                    <dd class="text-right font-medium text-brand-navy">{{ $user->username ?: '—' }}</dd>
+                </div>
+                <div class="flex justify-between gap-4">
                     <dt class="text-brand-navy/60">Email</dt>
                     <dd class="text-right font-medium text-brand-navy">{{ $user->email }}</dd>
                 </div>
             </dl>
-            {{-- Edit Profile link hidden for now (kept below, not removed, in case it needs to come back) --}}
-            @if (false)
-                <a href="{{ route('account.profile.edit') }}" class="mt-4 inline-block text-sm font-medium text-brand-gold transition hover:text-brand-gold-light">
-                    Edit Profile →
-                </a>
-            @endif
+            <a href="{{ route('account.profile.edit') }}" class="mt-4 inline-block text-sm font-medium text-brand-gold transition hover:text-brand-gold-light">
+                Edit Profile →
+            </a>
         </div>
 
         {{-- Phase 1: no paid membership (UI only, config/features.php) --}}

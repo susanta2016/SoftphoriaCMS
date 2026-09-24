@@ -43,7 +43,6 @@ class ProfileController extends Controller
             ...$chrome,
             'seo' => $seo,
             'user' => $user,
-            'profile' => $user->profile,
         ]);
     }
 
@@ -64,7 +63,6 @@ class ProfileController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'username' => UsernameRules::rules(required: false, ignoreUserId: $user->getKey()),
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->getKey())],
-            'bio' => ['nullable', 'string', 'max:65535'],
         ]);
 
         if ($validator->fails()) {

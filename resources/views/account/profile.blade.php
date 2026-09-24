@@ -40,7 +40,7 @@
                         pattern="[A-Za-z0-9_]+" title="Letters, numbers, and underscores only"
                         class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
                     >
-                    <p class="mt-1.5 text-xs text-brand-navy/60">Shown to other members instead of your full name (e.g. on the Gratitude Journal). Leave blank to keep showing your full name.</p>
+                    <p class="mt-1.5 text-xs text-brand-navy/60">Shown to other members instead of your full name (e.g. on the Gratitude Journal). Must be unique — 3+ letters, numbers, or underscores. Leave blank to keep showing your full name.</p>
                 </div>
 
                 <div>
@@ -50,14 +50,6 @@
                         class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
                     >
                     <p class="mt-1.5 text-xs text-brand-navy/60">Changing your email will require you to verify the new address again.</p>
-                </div>
-
-                <div class="sm:col-span-2">
-                    <label for="bio" class="block text-sm font-medium text-brand-navy">Biography</label>
-                    <textarea
-                        id="bio" name="bio" rows="3"
-                        class="mt-1.5 block w-full rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
-                    >{{ old('bio', $profile?->bio) }}</textarea>
                 </div>
             </div>
 

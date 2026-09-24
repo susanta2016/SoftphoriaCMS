@@ -14,13 +14,14 @@ use Throwable;
 /**
  * The user editing their own name/email/profile fields — never a route
  * parameter, always $user === Auth::user(), so there is no ID to forge to
- * reach another account. Only ever writes name/email (User) and the
- * UserProfile fillable fields; never touches id/status/roles/membership
- * regardless of what the request contains, since $data here is already the
- * validated whitelist the controller built, not the raw request array.
- * Phone Number, Address, and Zip Code are no longer collected on the
- * account profile form (they remain admin-settable fields on the User
- * Profile — see UserForm/UpdateUserAction) — only Biography reaches here.
+ * reach another account. Only ever writes name/username/email (User); never
+ * touches id/status/roles/membership regardless of what the request
+ * contains, since $data here is already the validated whitelist the
+ * controller built, not the raw request array. Phone Number, Address, Zip
+ * Code, and (since 2026-09-24) Biography are no longer collected on the
+ * account profile form — they remain admin-settable fields on the User
+ * Profile (see UserForm/UpdateUserAction), and an existing value is left
+ * untouched here.
  *
  * Changing the email re-uses the exact registration verification pipeline
  * (GeneratesVerificationTokens + the "email_verification" template) rather
@@ -29,7 +30,7 @@ use Throwable;
  * of everything else: a changed address is unverified until proven
  * otherwise, no matter how "trusted" the session changing it is.
  *
- * @param  array{name: string, username?: ?string, email: string, bio?: ?string}  $data
+ * @param  array{name: string, username?: ?string, email: string}  $data
  */
 class UpdateAccountProfileAction
 {
@@ -52,14 +53,6 @@ class UpdateAccountProfileAction
             }
 
             $user->save();
-
-            $profileData = array_filter([
-                'bio' => $data['bio'] ?? null,
-            ], fn ($value) => filled($value));
-
-            if ($profileData !== []) {
-                $user->profile()->updateOrCreate([], $profileData);
-            }
 
             if ($emailChanged) {
                 $this->sendVerificationEmail($user);

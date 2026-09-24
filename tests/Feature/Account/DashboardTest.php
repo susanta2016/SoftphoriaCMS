@@ -52,6 +52,18 @@ class DashboardTest extends TestCase
         $response->assertSee('Free Member');
     }
 
+    public function test_the_dashboard_links_to_edit_profile_and_shows_the_username(): void
+    {
+        $user = User::factory()->create(['username' => 'jane_doe']);
+
+        $response = $this->actingAs($user)->get(route('account.dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('jane_doe');
+        $response->assertSee('Edit Profile');
+        $response->assertSee('href="'.route('account.profile.edit').'"', false);
+    }
+
     public function test_a_pro_member_sees_their_active_membership_state(): void
     {
         $user = User::factory()->create();

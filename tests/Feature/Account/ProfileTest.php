@@ -28,32 +28,37 @@ class ProfileTest extends TestCase
         $response->assertRedirect(route('login'));
     }
 
-    public function test_the_owner_can_update_their_own_name_and_profile_fields(): void
+    public function test_the_owner_can_update_their_own_name(): void
     {
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->patch(route('account.profile.update'), [
             'name' => 'New Name',
             'email' => $user->email,
-            'bio' => 'Updated bio.',
         ]);
 
         $response->assertRedirect(route('account.profile.edit'));
 
         $user->refresh();
         $this->assertSame('New Name', $user->name);
-        $this->assertSame('Updated bio.', $user->profile->bio);
     }
 
-    public function test_the_profile_page_no_longer_collects_phone_number_address_or_zip_code(): void
+    public function test_the_profile_page_no_longer_collects_biography_phone_number_address_or_zip_code(): void
     {
         $user = User::factory()->create();
+
+        $this->actingAs($user)->get(route('account.profile.edit'))
+            ->assertOk()
+            ->assertDontSee('Biography')
+            ->assertDontSee('name="bio"', false)
+            ->assertDontSee('name="address"', false);
 
         $response = $this->actingAs($user)->patch(route('account.profile.update'), [
             'name' => $user->name,
             'email' => $user->email,
             // A client submitting these anyway (e.g. a stale cached form)
             // must have them silently ignored, not saved to the profile.
+            'bio' => 'Sneaky bio.',
             'phone_number' => '+44 7700 900002',
             'address' => '10 Downing Street',
             'zip_code' => 'SW1A 2AA',
@@ -63,6 +68,19 @@ class ProfileTest extends TestCase
 
         $user->refresh();
         $this->assertNull($user->profile);
+    }
+
+    public function test_saving_the_profile_leaves_an_existing_admin_set_biography_untouched(): void
+    {
+        $user = User::factory()->create();
+        $user->profile()->create(['bio' => 'Set by an admin.']);
+
+        $this->actingAs($user)->patch(route('account.profile.update'), [
+            'name' => 'New Name',
+            'email' => $user->email,
+        ])->assertRedirect(route('account.profile.edit'));
+
+        $this->assertSame('Set by an admin.', $user->refresh()->profile->bio);
     }
 
     public function test_email_uniqueness_ignores_the_current_user(): void
