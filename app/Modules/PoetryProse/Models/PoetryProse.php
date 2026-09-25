@@ -15,6 +15,7 @@ use App\Modules\PoetryProse\Enums\PoetryProseStatus;
 use App\Shared\Support\Reviews\Reviewable;
 use App\Shared\Support\Search\SearchResultRepresentable;
 use App\Shared\Support\Seo\Sitemapable;
+use App\Shared\Support\Text\PlainText;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -114,20 +115,13 @@ class PoetryProse extends Model implements Reviewable, SearchResultRepresentable
     }
 
     /**
-     * The RichEditor-authored body is HTML with entities (e.g. "&mdash;")
-     * — stripTags() alone leaves those entities showing up literally in
-     * plain-text contexts (excerpts, reading-time word counts), so they're
-     * decoded back to real characters here.
+     * Plain text of the RichEditor body for excerpts and reading-time word
+     * counts — see PlainText::fromHtml() for why a bare stripTags() isn't
+     * enough (poem lines glued together, literal entities).
      */
     private function plainTextBody(): string
     {
-        // Poetry lines are separate paragraphs/<br>s with no whitespace
-        // between them in the stored HTML, so stripping tags alone glued
-        // lines together ("hustleLove your grind") — a space goes at every
-        // line/block boundary first; squish() then collapses the extras.
-        $body = preg_replace('#<br\s*/?>|</(p|div|li|h[1-6]|blockquote)>#i', '$0 ', (string) $this->body);
-
-        return html_entity_decode(str($body)->stripTags()->squish()->toString(), ENT_QUOTES | ENT_HTML5);
+        return PlainText::fromHtml($this->body);
     }
 
     /**

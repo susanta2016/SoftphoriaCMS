@@ -16,6 +16,7 @@ use App\Modules\Podcast\Enums\PodcastStatus;
 use App\Shared\Support\Reviews\Reviewable;
 use App\Shared\Support\Search\SearchResultRepresentable;
 use App\Shared\Support\Seo\Sitemapable;
+use App\Shared\Support\Text\PlainText;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -263,11 +264,8 @@ class PodcastEpisode extends Model implements Reviewable, SearchResultRepresenta
 
     public function searchResultExcerpt(): string
     {
-        // See PoetryProse::plainTextBody()'s own html_entity_decode() call —
-        // stripTags() alone leaves a literal entity like &quot; in place,
-        // which Blade's {{ }} then re-escapes into &amp;quot; on display.
         return $this->description
-            ? str($this->description)->stripTags()->pipe(fn ($s) => html_entity_decode($s, ENT_QUOTES | ENT_HTML5))->limit(160)->toString()
+            ? str(PlainText::fromHtml($this->description))->limit(160)->toString()
             : '';
     }
 

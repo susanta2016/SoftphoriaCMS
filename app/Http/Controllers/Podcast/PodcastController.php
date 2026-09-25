@@ -14,6 +14,7 @@ use App\Modules\Podcast\Models\PodcastEpisode;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use App\Shared\Support\Seo\Sitemapable;
+use App\Shared\Support\Text\PlainText;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -271,7 +272,7 @@ class PodcastController extends Controller implements Sitemapable
             return null;
         }
 
-        return str($text)->stripTags()->limit(160)->toString();
+        return str(PlainText::fromHtml($text))->limit(160)->toString();
     }
 
     /**
