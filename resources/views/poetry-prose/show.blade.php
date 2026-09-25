@@ -102,7 +102,8 @@
                         </div>
                     </div>
 
-                    <div class="mt-8 text-base leading-relaxed text-brand-navy/80 [&_p]:mb-5 [&_p]:last:mb-0 [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-brand-gold [&_blockquote]:pl-5 [&_blockquote]:font-serif [&_blockquote]:text-xl [&_blockquote]:text-brand-navy [&_blockquote]:italic [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:font-serif [&_h2]:text-2xl [&_h2]:text-brand-navy [&_a]:text-brand-gold [&_a]:underline">
+                    {{-- Keep the author's spacing as typed in the admin editor: runs of spaces/indents (pre-wrap) and blank lines, which the editor saves as empty paragraphs that would otherwise collapse to zero height. --}}
+                    <div class="mt-8 text-base leading-relaxed text-brand-navy/80 [&_p]:mb-5 [&_p]:last:mb-0 [&_p]:whitespace-pre-wrap [&_blockquote]:whitespace-pre-wrap [&_p:empty]:mb-0 [&_p:empty]:min-h-[1.625em] [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-brand-gold [&_blockquote]:pl-5 [&_blockquote]:font-serif [&_blockquote]:text-xl [&_blockquote]:text-brand-navy [&_blockquote]:italic [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:font-serif [&_h2]:text-2xl [&_h2]:text-brand-navy [&_a]:text-brand-gold [&_a]:underline">
                         {!! $entry->body !!}
                     </div>
 
