@@ -38,6 +38,7 @@ class SubmitContactRequestAction
         $variables = [
             'name' => $contactRequest->name,
             'email' => $contactRequest->email,
+            'phone' => $contactRequest->phone ?? '',
             'subject' => $contactRequest->subject ?? '',
             'message' => $contactRequest->message,
         ];

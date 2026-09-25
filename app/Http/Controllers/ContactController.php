@@ -7,6 +7,7 @@ use App\Models\Media;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -54,16 +55,25 @@ class ContactController extends Controller
         ]);
     }
 
-    public function store(Request $request, SubmitContactRequestAction $action): RedirectResponse
+    /**
+     * Shared by the /contact page (a normal form post, answered with a
+     * redirect) and the site-wide Contact Us widget (a fetch() post with
+     * Accept: application/json, answered with JSON so it never reloads the
+     * page — see resources/views/components/site/contact-widget.blade.php).
+     */
+    public function store(Request $request, SubmitContactRequestAction $action): RedirectResponse|JsonResponse
     {
+        $success = 'Thank you — your message has been received.';
+
         // A real visitor never sees or fills in this field (it's visually
         // hidden — see the view). A bot that blindly fills every input
         // trips it, and the request is discarded silently: same redirect/
         // success message as a genuine submission, so the bot gets no
         // signal that it was caught.
         if (filled($request->input('hp_website'))) {
-            return redirect()->route('contact.index')
-                ->with('status', 'Thank you — your message has been received.');
+            return $request->expectsJson()
+                ? response()->json(['message' => $success])
+                : redirect()->route('contact.index')->with('status', $success);
         }
 
         $validator = Validator::make($request->all(), [
@@ -76,12 +86,22 @@ class ContactController extends Controller
         ]);
 
         if ($validator->fails()) {
+            // JSON callers get Laravel's usual 422 { message, errors } shape,
+            // built here since bootstrap/app.php only renders JSON errors for api/*.
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $validator->errors()->first(),
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
             return redirect()->route('contact.index')->withErrors($validator)->withInput();
         }
 
         $action->handle($validator->validated(), $request->ip(), $request->userAgent());
 
-        return redirect()->route('contact.index')
-            ->with('status', 'Thank you — your message has been received.');
+        return $request->expectsJson()
+            ? response()->json(['message' => $success])
+            : redirect()->route('contact.index')->with('status', $success);
     }
 }

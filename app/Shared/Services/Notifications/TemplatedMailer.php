@@ -70,7 +70,10 @@ class TemplatedMailer
 
         return new TemplatedNotificationMail(
             $this->substitute($template->subject, $variables),
-            $this->substitute($template->html_body, $variables),
+            // Values are escaped for the HTML body: several are visitor-typed
+            // (e.g. a Contact message), and must never inject markup/links
+            // into a mail sent to an admin or to an arbitrary address.
+            $this->substitute($template->html_body, array_map(fn (mixed $value): string => nl2br(e((string) $value), false), $variables)),
             filled($template->text_body) ? $this->substitute($template->text_body, $variables) : null,
             $this->settings->get('email', 'reply_to_email'),
             $this->settings->get('email', 'reply_to_name'),

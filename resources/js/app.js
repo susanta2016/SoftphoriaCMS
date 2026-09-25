@@ -348,3 +348,165 @@ document.addEventListener('DOMContentLoaded', () => {
         schedule();
     });
 });
+
+// Site-wide Contact Us widget (resources/views/components/site/contact-widget.blade.php).
+// Hover opens it on mouse devices; a click on the tab pins it open (and is
+// the only way on touch). It stays open while the visitor is using the form,
+// and submits over fetch() to the /contact endpoint's JSON branch.
+document.addEventListener('DOMContentLoaded', () => {
+    const widget = document.querySelector('[data-contact-widget]');
+
+    if (!widget) return;
+
+    const panel = widget.querySelector('[data-contact-widget-panel]');
+    const toggle = widget.querySelector('[data-contact-widget-toggle]');
+    const form = widget.querySelector('[data-contact-widget-form]');
+    const alertBox = widget.querySelector('[data-contact-widget-alert]');
+    const submit = widget.querySelector('[data-contact-widget-submit]');
+    const spinner = widget.querySelector('[data-contact-widget-spinner]');
+    const success = widget.querySelector('[data-contact-widget-success]');
+    const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    let pinned = false;
+    let closeTimer = null;
+
+    const isOpen = () => widget.hasAttribute('data-open');
+
+    const setOpen = (open) => {
+        clearTimeout(closeTimer);
+        widget.toggleAttribute('data-open', open);
+        panel.inert = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+        if (!open) pinned = false;
+    };
+
+    // Typed-in text or focus inside the form means the visitor is busy with
+    // it — a stray mouse-out must not snap it shut.
+    const inUse = () => panel.contains(document.activeElement)
+        || [...form.elements].some((el) => el.name && el.name !== '_token' && el.type !== 'hidden' && el.value.trim() !== '');
+
+    if (canHover) {
+        widget.addEventListener('mouseenter', () => setOpen(true));
+        widget.addEventListener('mouseleave', () => {
+            if (pinned || inUse()) return;
+            closeTimer = setTimeout(() => setOpen(false), 350);
+        });
+    }
+
+    toggle.addEventListener('click', () => {
+        if (isOpen() && (pinned || !canHover)) {
+            setOpen(false);
+            return;
+        }
+        setOpen(true);
+        pinned = true;
+        widget.querySelector('#cw-name')?.focus({ preventScroll: true });
+    });
+
+    widget.querySelector('[data-contact-widget-close]').addEventListener('click', () => {
+        setOpen(false);
+        toggle.focus();
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && isOpen()) {
+            setOpen(false);
+            toggle.focus();
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (isOpen() && !widget.contains(event.target)) setOpen(false);
+    });
+
+    const clearErrors = () => {
+        alertBox.classList.add('hidden');
+        form.querySelectorAll('[data-error-for]').forEach((el) => {
+            el.textContent = '';
+            el.classList.add('hidden');
+        });
+        form.querySelectorAll('[aria-invalid]').forEach((el) => el.removeAttribute('aria-invalid'));
+    };
+
+    form.addEventListener('input', (event) => {
+        if (event.target.getAttribute('aria-invalid') !== 'true') return;
+        event.target.removeAttribute('aria-invalid');
+        form.querySelector(`[data-error-for="${event.target.name}"]`)?.classList.add('hidden');
+    });
+
+    const showAlert = (message) => {
+        alertBox.textContent = message;
+        alertBox.classList.remove('hidden');
+    };
+
+    const setBusy = (busy) => {
+        submit.disabled = busy;
+        spinner.classList.toggle('hidden', !busy);
+    };
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        clearErrors();
+
+        if (!form.checkValidity()) {
+            [...form.elements].filter((el) => !el.checkValidity()).forEach((el) => {
+                el.setAttribute('aria-invalid', 'true');
+                const error = form.querySelector(`[data-error-for="${el.name}"]`);
+                if (error) {
+                    error.textContent = el.validationMessage;
+                    error.classList.remove('hidden');
+                }
+            });
+            form.querySelector('[aria-invalid="true"]')?.focus();
+            return;
+        }
+
+        setBusy(true);
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new FormData(form),
+            });
+            const data = await response.json().catch(() => ({}));
+
+            if (response.ok) {
+                form.reset();
+                form.classList.add('hidden');
+                success.querySelector('[data-contact-widget-success-text]').textContent = data.message ?? '';
+                success.classList.remove('hidden');
+                pinned = true;
+                return;
+            }
+
+            if (response.status === 422 && data.errors) {
+                Object.entries(data.errors).forEach(([name, messages]) => {
+                    form.elements[name]?.setAttribute('aria-invalid', 'true');
+                    const error = form.querySelector(`[data-error-for="${name}"]`);
+                    if (error) {
+                        error.textContent = messages[0];
+                        error.classList.remove('hidden');
+                    }
+                });
+                form.querySelector('[aria-invalid="true"]')?.focus();
+            } else if (response.status === 429) {
+                showAlert('Too many messages in a short time — please wait a minute and try again.');
+            } else if (response.status === 419) {
+                showAlert('Your session has expired — please refresh the page and try again.');
+            } else {
+                showAlert('Something went wrong sending your message. Please try again.');
+            }
+        } catch {
+            showAlert('Could not reach the server — please check your connection and try again.');
+        } finally {
+            setBusy(false);
+        }
+    });
+
+    widget.querySelector('[data-contact-widget-reset]').addEventListener('click', () => {
+        success.classList.add('hidden');
+        form.classList.remove('hidden');
+        widget.querySelector('#cw-name')?.focus();
+    });
+});

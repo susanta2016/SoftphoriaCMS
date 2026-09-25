@@ -31,6 +31,10 @@
     {{ $slot }}
 
     <x-site.back-to-top/>
+    {{-- The /contact page already shows the full form. --}}
+    @unless (request()->routeIs('contact.index'))
+        <x-site.contact-widget/>
+    @endunless
     <x-site.cookie-consent/>
 </body>
 </html>

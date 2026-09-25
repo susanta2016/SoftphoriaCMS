@@ -84,7 +84,15 @@ return [
     'contact_form_submitted' => [
         'label' => 'Contact Form',
         'recipients' => ['user', 'admin'],
-        'variables' => ['name', 'email', 'subject', 'message', 'site_name'],
+        'variables' => ['name', 'email', 'phone', 'subject', 'message', 'site_name'],
+        // Admin copy only: the admin notification must carry the actual
+        // submission (the user receipt keeps the generic default/admin edits).
+        'default_subject' => ['admin' => '[{{site_name}}] New contact message from {{name}}'],
+        'default_html_body' => ['admin' => <<<'HTML'
+            <p>New contact message on {{site_name}}.</p>
+            <p><strong>Name:</strong> {{name}}<br><strong>Email:</strong> {{email}}<br><strong>Phone:</strong> {{phone}}<br><strong>Subject:</strong> {{subject}}</p>
+            <p><strong>Message:</strong><br>{{message}}</p>
+            HTML],
     ],
 
 ];

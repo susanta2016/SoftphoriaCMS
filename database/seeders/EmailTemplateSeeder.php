@@ -58,6 +58,13 @@ class EmailTemplateSeeder extends Seeder
                 );
 
                 if (! $template->wasRecentlyCreated) {
+                    // The variable list is config-owned (not admin copy), so
+                    // a variable added to a key later reaches existing rows.
+                    if ($template->available_variables !== $definition['variables']) {
+                        $template->available_variables = $definition['variables'];
+                        $template->save();
+                    }
+
                     $this->backfill($template, $definition, $recipientType, $subject, $htmlBody, $textBody);
                 }
             }
