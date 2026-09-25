@@ -53,6 +53,8 @@ class HomePageSeeder extends Seeder
                         'cta_url' => '#',
                         'secondary_cta_label' => 'Read Writing',
                         'secondary_cta_url' => '#',
+                        'live_cta_label' => 'Gather Live',
+                        'live_cta_url' => 'https://us06web.zoom.us/j/85922350975?pwd=xxK3lRePpPjkHuTPYof1TjjOQEmMIa.1',
                         'tertiary_label' => 'Watch Introduction',
                         'tertiary_url' => '#',
                     ],
