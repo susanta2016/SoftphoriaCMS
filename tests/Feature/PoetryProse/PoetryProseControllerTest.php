@@ -227,6 +227,21 @@ class PoetryProseControllerTest extends TestCase
         $response->assertSee($entry->title);
     }
 
+    public function test_the_list_preview_keeps_a_space_between_poem_lines(): void
+    {
+        $entry = $this->entry([
+            'status' => PoetryProseStatus::Published,
+            'body' => '<p>You Are Enough.</p><p>Whatever occupation, whatever hustle<br>Love your grind</p><p></p><p>Put a smile on</p>',
+        ]);
+
+        $this->assertSame('You Are Enough. Whatever occupation, whatever hustle Love your grind Put a smile on', $entry->excerpt(200));
+
+        $this->get(route('poetry-prose.index'))
+            ->assertOk()
+            ->assertSee('whatever hustle Love your grind')
+            ->assertDontSee('hustleLove');
+    }
+
     public function test_sitemap_includes_a_published_entry(): void
     {
         $entry = $this->entry(['status' => PoetryProseStatus::Published]);

@@ -121,7 +121,13 @@ class PoetryProse extends Model implements Reviewable, SearchResultRepresentable
      */
     private function plainTextBody(): string
     {
-        return html_entity_decode(str($this->body)->stripTags()->squish()->toString(), ENT_QUOTES | ENT_HTML5);
+        // Poetry lines are separate paragraphs/<br>s with no whitespace
+        // between them in the stored HTML, so stripping tags alone glued
+        // lines together ("hustleLove your grind") — a space goes at every
+        // line/block boundary first; squish() then collapses the extras.
+        $body = preg_replace('#<br\s*/?>|</(p|div|li|h[1-6]|blockquote)>#i', '$0 ', (string) $this->body);
+
+        return html_entity_decode(str($body)->stripTags()->squish()->toString(), ENT_QUOTES | ENT_HTML5);
     }
 
     /**
