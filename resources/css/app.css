@@ -53,3 +53,51 @@
         background-position: 56%;
     }
 }
+
+/* Homepage "Trusted technologies" logo strip: continuous right-to-left
+   auto-scroll. The track holds the list twice, so sliding it by exactly
+   -50% lands the copy where the original started and the loop is seamless.
+   Pauses on hover/keyboard focus; with reduced motion it stays a static,
+   wrapping row and the duplicate is hidden. */
+@layer components {
+    .logo-marquee {
+        -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+        mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+    }
+
+    .logo-marquee-track {
+        animation: logo-marquee var(--marquee-duration, 30s) linear infinite;
+    }
+
+    .logo-marquee:hover .logo-marquee-track,
+    .logo-marquee:focus-within .logo-marquee-track {
+        animation-play-state: paused;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .logo-marquee {
+            -webkit-mask-image: none;
+            mask-image: none;
+        }
+
+        .logo-marquee-track {
+            animation: none;
+            width: auto;
+        }
+
+        .logo-marquee-track > ul {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .logo-marquee-track > [aria-hidden='true'] {
+            display: none;
+        }
+    }
+}
+
+@keyframes logo-marquee {
+    to {
+        transform: translateX(-50%);
+    }
+}

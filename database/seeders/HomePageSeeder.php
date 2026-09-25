@@ -84,6 +84,8 @@ class HomePageSeeder extends Seeder
                     ['title' => 'Laravel', 'icon' => 'laravel'],
                     ['title' => 'Python', 'icon' => 'python'],
                     ['title' => 'Django', 'icon' => 'django'],
+                    ['title' => 'Node.js', 'icon' => 'nodejs'],
+                    ['title' => 'Next.js', 'icon' => 'nextjs'],
                     ['title' => 'AWS', 'icon' => 'aws'],
                     ['title' => 'Docker', 'icon' => 'docker'],
                     ['title' => 'NGINX', 'icon' => 'nginx'],
