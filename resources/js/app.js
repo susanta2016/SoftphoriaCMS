@@ -131,12 +131,26 @@ document.addEventListener('DOMContentLoaded', () => {
         document.cookie = `${COOKIE_NAME}=${encodeURIComponent(JSON.stringify(consent))}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
     };
 
-    const setBannerOpen = (open) => banner.classList.toggle('hidden', !open);
+    // The bottom-left Consent Preferences button: only once a choice has
+    // been saved, and never while the banner or Preferences Center is open.
+    const revisit = document.querySelector('[data-cookie-revisit]');
+    const syncRevisit = () => {
+        if (!revisit) return;
+        revisit.hidden = !readConsent()
+            || !banner.classList.contains('hidden')
+            || !preferences.classList.contains('hidden');
+    };
+
+    const setBannerOpen = (open) => {
+        banner.classList.toggle('hidden', !open);
+        syncRevisit();
+    };
 
     const setPreferencesOpen = (open) => {
         preferences.classList.toggle('hidden', !open);
         preferences.classList.toggle('flex', open);
         if (open) setBannerOpen(false);
+        syncRevisit();
     };
 
     const applyConsentToToggles = (consent) => {
@@ -232,6 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (!readConsent()) setBannerOpen(true);
+    syncRevisit();
 });
 
 // WEB-103 — the homepage Testimonials carousel (resources/views/components/site/blocks/testimonials.blade.php).

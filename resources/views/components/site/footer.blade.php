@@ -56,7 +56,8 @@
     WEB-103 redesign — brand column, the Footer Navigation menu's groups
     (e.g. Services / Company / Expertise), a Follow Us column (social links
     + the newsletter signup), and a bottom bar with the copyright, the
-    Footer Legal Links menu and Cookie Settings.
+    Footer Legal Links menu. (Cookie choices are reopened from the
+    bottom-left Consent Preferences button — see x-site.cookie-consent.)
 --}}
 <footer
     class="relative isolate mt-auto overflow-hidden border-t border-brand-navy/10 bg-white bg-cover bg-center bg-no-repeat"
@@ -165,9 +166,6 @@
                 @foreach ($legalLinks as $link)
                     <li><a href="{{ $link->resolvedUrl() ?? '#' }}" class="transition hover:text-brand-accent">{{ $link->label }}</a></li>
                 @endforeach
-                @if ($settings->get('cookies', 'enabled', true))
-                    <li><button type="button" data-cookie-preferences-open class="transition hover:text-brand-accent">Cookie Settings</button></li>
-                @endif
             </ul>
         </div>
     </div>

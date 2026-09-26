@@ -257,7 +257,8 @@ class HomepageTest extends TestCase
 
         $response->assertSee('Technology solutions for ambitious businesses.');
         $response->assertSeeInOrder(['Services', 'Web Development', 'Company', 'Expertise', 'System Integration', 'Follow Us']);
-        $response->assertSeeInOrder(['Privacy Policy', 'Terms of Service', 'Sitemap', 'Cookie Settings']);
+        $response->assertSeeInOrder(['Privacy Policy', 'Terms of Service', 'Sitemap']);
+        $response->assertDontSee('Cookie Settings');
         $response->assertSee(route('newsletter.subscribe'), false);
     }
 

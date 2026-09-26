@@ -150,6 +150,33 @@ class LegalPagesTest extends TestCase
         $this->assertSame('Cookies at Softphoria', $settings->get('cookies', 'banner_title'));
     }
 
+    public function test_the_consent_preferences_button_replaces_the_footer_cookie_settings_link(): void
+    {
+        $html = $this->get('/')->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-cookie-revisit', $html);
+        $this->assertStringContainsString('Consent Preferences', $html);
+        $this->assertStringNotContainsString('Cookie Settings', $html);
+
+        app(SettingsRepository::class)->set('cookies', 'enabled', false, 'boolean');
+        $this->get('/')->assertDontSee('data-cookie-revisit', false);
+    }
+
+    public function test_the_migration_points_a_published_cookie_policy_at_the_new_button(): void
+    {
+        $this->seed(LegalPagesSeeder::class);
+        $section = fn () => Page::query()->where('slug', 'cookie-policy')->sole()->sections()->first();
+
+        // As published before this change.
+        $old = '<li><strong>Cookie Settings:</strong> you can change your choices at any time using the <strong>Cookie Settings</strong> link at the bottom of every page.</li>';
+        $body = preg_replace('~<li><strong>Consent Preferences:</strong>.*?</li>~s', $old, $section()->content_json['body']);
+        $section()->forceFill(['content_json' => ['body' => $body]])->save();
+
+        (require database_path('migrations/2026_09_26_200000_point_cookie_policy_at_consent_button.php'))->up();
+
+        $this->get('/cookie-policy')->assertSee('round cookie icon in the bottom-left corner')->assertDontSee('Cookie Settings');
+    }
+
     public function test_the_retention_job_clears_old_security_data_and_keeps_recent(): void
     {
         $old = ContactRequest::query()->forceCreate(['name' => 'Old', 'email' => 'old@example.com', 'message' => 'Hi', 'ip_address' => '1.2.3.4', 'user_agent' => 'UA', 'created_at' => now()->subMonths(13)]);

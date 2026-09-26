@@ -38,7 +38,7 @@
         </div>
     </div>
 
-    {{-- Cookies Preferences Center modal — also hidden by default, opened via "Change my preferences" or the footer's "Cookie Settings" link. --}}
+    {{-- Cookies Preferences Center modal — also hidden by default, opened via "Change my preferences" or the bottom-left Consent Preferences button. --}}
     <div data-cookie-preferences class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/60 p-4">
         <div class="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
             <div class="flex items-start justify-between border-b border-brand-navy/10 px-6 py-5">
@@ -114,4 +114,35 @@
             </div>
         </div>
     </div>
+
+    {{--
+        Consent Preferences button — a round cookie icon fixed bottom-left
+        (the back-to-top button sits bottom-right) that widens into a labelled
+        pill on hover/focus and reopens the Preferences Center. app.js shows
+        it only once a choice has been saved, and hides it while the banner
+        or the Preferences Center is open. Replaces the footer's old
+        "Cookie Settings" link.
+    --}}
+    <button
+        type="button"
+        data-cookie-preferences-open
+        data-cookie-revisit
+        hidden
+        aria-haspopup="dialog"
+        aria-label="Consent preferences"
+        class="group fixed bottom-5 left-5 z-40 flex h-12 items-center overflow-hidden rounded-full bg-gradient-to-br from-brand-accent to-brand-navy p-0 pr-0 text-white shadow-lg shadow-brand-navy/30 ring-4 ring-white/70 transition-all duration-300 hover:pr-5 hover:shadow-xl focus-visible:pr-5 focus-visible:ring-brand-accent/40 focus-visible:outline-none sm:bottom-8 sm:left-8 print:hidden"
+    >
+        <span class="flex h-12 w-12 shrink-0 items-center justify-center" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-6 w-6 transition-transform duration-500 group-hover:rotate-[20deg]">
+                {{-- A cookie with a bite taken out, and chocolate chips. --}}
+                <path d="M21.4 12.6A9.5 9.5 0 1 1 11.4 2.6a3 3 0 0 0 3.4 3.4 3 3 0 0 0 3.2 3.2 3 3 0 0 0 3.4 3.4Z" fill="#f5c26b" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/>
+                <circle cx="8" cy="9" r="1.35" fill="#7c4a1e"/>
+                <circle cx="12.5" cy="13.5" r="1.2" fill="#7c4a1e"/>
+                <circle cx="7.5" cy="15" r="1.1" fill="#7c4a1e"/>
+                <circle cx="16" cy="17" r="1.05" fill="#7c4a1e"/>
+                <circle cx="11" cy="18.5" r=".8" fill="#7c4a1e"/>
+            </svg>
+        </span>
+        <span class="max-w-0 overflow-hidden text-sm font-semibold whitespace-nowrap opacity-0 transition-all duration-300 group-hover:max-w-48 group-hover:opacity-100 group-focus-visible:max-w-48 group-focus-visible:opacity-100">Consent Preferences</span>
+    </button>
 @endif
