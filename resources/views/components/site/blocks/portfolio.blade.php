@@ -9,13 +9,16 @@
 @props(['section', 'content'])
 
 @php
-    $items = \App\Models\PortfolioItem::query()
-        ->with('cover')
-        ->published()
-        ->featured()
-        ->ordered()
-        ->limit(max(1, min(12, (int) ($content['limit'] ?? 6))))
-        ->get();
+    // Hidden entirely while Features Activation has Portfolio off.
+    $items = app(\App\Shared\Support\Features\Features::class)->enabled('portfolio')
+        ? \App\Models\PortfolioItem::query()
+            ->with('cover')
+            ->published()
+            ->featured()
+            ->ordered()
+            ->limit(max(1, min(12, (int) ($content['limit'] ?? 6))))
+            ->get()
+        : collect();
 @endphp
 
 @if ($items->isNotEmpty())

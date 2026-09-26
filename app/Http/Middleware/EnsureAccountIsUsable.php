@@ -29,7 +29,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnsureAccountIsUsable
 {
-    private const array BLOCKED_STATUSES = [
+    public const array BLOCKED_STATUSES = [
         UserStatus::Suspended->value,
         UserStatus::Locked->value,
         UserStatus::Banned->value,

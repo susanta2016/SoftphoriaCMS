@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Enums\EmailRecipientType;
 use App\Shared\Services\Notifications\TemplatedMailer;
+use App\Shared\Support\Features\Features;
 use App\Shared\Support\Modules\ModuleRegistry;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Console\Events\CommandStarting;
@@ -21,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(ModuleRegistry::class);
+        $this->app->singleton(Features::class);
 
         $this->app->make(ModuleRegistry::class)
             ->register(config('modules.enabled', []));

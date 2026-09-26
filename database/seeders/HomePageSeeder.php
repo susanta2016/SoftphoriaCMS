@@ -192,19 +192,22 @@ class HomePageSeeder extends Seeder
                         'background_media_id' => $this->existingValue($existingSections, PageSectionType::Testimonials, null, 'background_media_id'),
                     ],
                 ],
-                $this->gallery($existingSections, 'Latest Insights', 'articles', [
-                    'anchor' => 'insights',
-                    'eyebrow' => 'Latest Insights',
-                    'heading' => 'Ideas, tutorials and technology.',
-                    'link_label' => 'View All Articles',
-                    'link_url' => '#',
-                    'item_link_label' => 'Read More',
-                    'background' => 'white',
-                ], [
-                    ['title' => 'A Practical Guide to Migrating Applications to AWS', 'description' => 'Aug 20, 2026', 'icon' => 'aws', 'url' => '#'],
-                    ['title' => 'Django vs Flask: Which is Right for Your Project?', 'description' => 'Aug 12, 2026', 'icon' => 'django', 'url' => '#'],
-                    ['title' => 'Building Scalable APIs with Laravel', 'description' => 'Aug 05, 2026', 'icon' => 'laravel', 'url' => '#'],
-                ]),
+                // Cards come from Blog → Posts (newest live posts); the
+                // section hides itself until something is published.
+                [
+                    'section_type' => PageSectionType::BlogPosts->value,
+                    'title' => 'Latest Insights',
+                    'is_enabled' => true,
+                    'content_json' => [
+                        'anchor' => 'insights',
+                        'eyebrow' => 'Latest Insights',
+                        'heading' => 'Ideas, tutorials and technology.',
+                        'link_label' => 'View All Articles',
+                        'link_url' => '/blog',
+                        'background' => 'white',
+                        'limit' => 3,
+                    ],
+                ],
                 [
                     'section_type' => PageSectionType::Cta->value,
                     'title' => 'Closing Call to Action',

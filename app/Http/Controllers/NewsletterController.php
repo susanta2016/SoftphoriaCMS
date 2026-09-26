@@ -21,6 +21,14 @@ class NewsletterController extends Controller
         // immediately instead of landing the visitor back at the page top,
         // scrolled away from the form they just submitted.
         $target = url()->previous().'#newsletter-subscribe';
+        $success = "You're subscribed! Check your inbox for a confirmation email.";
+
+        // Honeypot (standing rule for every public form, same pattern as
+        // Contact Us): a bot that fills the hidden field gets the normal
+        // success message, but nothing is saved or emailed.
+        if (filled($request->input('hp_website'))) {
+            return redirect($target)->with('newsletter_status', $success);
+        }
 
         $validator = Validator::make($request->all(), [
             'email' => ['required', 'email', 'max:255'],
@@ -32,6 +40,6 @@ class NewsletterController extends Controller
 
         $action->handle($validator->validated()['email']);
 
-        return redirect($target)->with('newsletter_status', "You're subscribed! Check your inbox for a confirmation email.");
+        return redirect($target)->with('newsletter_status', $success);
     }
 }

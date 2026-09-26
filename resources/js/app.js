@@ -617,3 +617,173 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// Blog listings (resources/views/blog/partials/page.blade.php): category
+// chips, search and pagination swap the [data-async-region] block in place
+// via fetch() instead of a full page load. Every link/form is a normal
+// crawlable GET, so this is purely an enhancement.
+document.addEventListener('DOMContentLoaded', () => {
+    const regionOf = () => document.querySelector('[data-async-region]');
+    if (!regionOf()) return;
+
+    let controller = null;
+
+    const load = async (url, { push = true, scrollToResults = false } = {}) => {
+        const region = regionOf();
+        controller?.abort();
+        controller = new AbortController();
+        region.setAttribute('aria-busy', 'true');
+        region.classList.add('transition-opacity', 'opacity-60');
+
+        try {
+            const response = await fetch(url, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'text/html' },
+                cache: 'no-store',
+                signal: controller.signal,
+            });
+            if (!response.ok) throw new Error(String(response.status));
+
+            const next = new DOMParser()
+                .parseFromString(await response.text(), 'text/html')
+                .querySelector('[data-async-region]');
+            if (!next) throw new Error('No region in response');
+
+            region.replaceWith(next);
+            if (next.dataset.pageTitle) document.title = next.dataset.pageTitle;
+            if (push) history.pushState({ asyncRegion: true }, '', url);
+            if (scrollToResults) document.getElementById('articles')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            window.location.href = url; // fall back to a normal navigation
+        }
+    };
+
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('[data-async-region] a[data-async-link]');
+        if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+        event.preventDefault();
+        load(link.href, { scrollToResults: Boolean(link.closest('nav[aria-label="Pagination"]')) });
+    });
+
+    document.addEventListener('submit', (event) => {
+        const form = event.target.closest('[data-async-region] form[data-async-form]');
+        if (!form) return;
+        event.preventDefault();
+        const url = new URL(form.action);
+        const q = new FormData(form).get('q')?.toString().trim();
+        if (q) url.searchParams.set('q', q);
+        load(url.toString(), { scrollToResults: true });
+    });
+
+    history.replaceState({ asyncRegion: true }, '', window.location.href);
+    window.addEventListener('popstate', (event) => {
+        if (event.state?.asyncRegion) load(window.location.href, { push: false });
+    });
+});
+
+// Blog post page (resources/views/blog/show.blade.php).
+document.addEventListener('DOMContentLoaded', () => {
+    const csrf = (form) => form.querySelector('input[name="_token"]')?.value ?? '';
+    const jsonHeaders = (form) => ({ Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf(form) });
+
+    // Emoji reactions: toggle over fetch(), update every count in place.
+    document.querySelectorAll('[data-blog-reactions] form').forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const button = form.querySelector('button');
+            button.disabled = true;
+            try {
+                const response = await fetch(form.action, { method: 'POST', headers: jsonHeaders(form), body: new FormData(form) });
+                if (response.status === 401 || response.status === 419) {
+                    window.location.reload();
+                    return;
+                }
+                if (!response.ok) throw new Error(String(response.status));
+                const data = await response.json();
+                document.querySelectorAll('[data-blog-reactions] [data-reaction]').forEach((el) => {
+                    const key = el.dataset.reaction;
+                    el.setAttribute('aria-pressed', data.mine.includes(key) ? 'true' : 'false');
+                    el.querySelector('[data-reaction-count]').textContent = String(data.counts[key] ?? 0);
+                });
+            } catch {
+                form.submit();
+            } finally {
+                button.disabled = false;
+            }
+        });
+    });
+
+    // Report (red flag): send over fetch() and confirm in place.
+    document.querySelectorAll('form[data-report-form]').forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            form.querySelector('button[type="submit"]').disabled = true;
+            try {
+                const response = await fetch(form.action, { method: 'POST', headers: jsonHeaders(form), body: new FormData(form) });
+                const data = await response.json().catch(() => ({}));
+                const note = document.createElement('span');
+                note.className = 'px-2 py-1 text-xs font-medium ' + (response.ok ? 'text-red-600' : 'text-brand-navy/50');
+                note.textContent = response.ok ? '\u{1F6A9} Reported' : (data.message ?? 'Could not send report');
+                form.closest('[data-report-menu]').replaceWith(note);
+            } catch {
+                form.submit();
+            }
+        });
+    });
+
+    // Close an open report menu when clicking elsewhere.
+    document.addEventListener('click', (event) => {
+        document.querySelectorAll('[data-report-menu][open]').forEach((menu) => {
+            if (!menu.contains(event.target)) menu.removeAttribute('open');
+        });
+    });
+
+    document.querySelectorAll('form[data-confirm]').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+        });
+    });
+
+    document.querySelectorAll('form[data-comment-form]').forEach((form) => {
+        const body = form.querySelector('textarea[name="body"]');
+        const count = form.querySelector('[data-comment-count]');
+        const update = () => {
+            if (count) count.textContent = String(body.value.length);
+        };
+        body?.addEventListener('input', update);
+        update();
+        form.addEventListener('submit', () => {
+            form.querySelector('button[type="submit"]').disabled = true;
+        });
+    });
+
+    document.querySelectorAll('[data-copy-link]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const label = button.querySelector('[data-copy-link-label]');
+            try {
+                await navigator.clipboard.writeText(button.dataset.copyLink);
+                label.textContent = 'Copied!';
+            } catch {
+                label.textContent = 'Copy failed';
+            }
+            setTimeout(() => {
+                label.textContent = 'Copy link';
+            }, 1800);
+        });
+    });
+
+    // Table of contents: highlight the section being read.
+    const tocLinks = [...document.querySelectorAll('[data-blog-toc] a')];
+    if (tocLinks.length && 'IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                tocLinks.forEach((a) => a.toggleAttribute('data-active', a.hash === '#' + entry.target.id));
+            });
+        }, { rootMargin: '-20% 0px -70% 0px' });
+        new Set(tocLinks.map((a) => decodeURIComponent(a.hash.slice(1)))).forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) observer.observe(el);
+        });
+    }
+});

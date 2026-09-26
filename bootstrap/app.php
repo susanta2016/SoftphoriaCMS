@@ -2,6 +2,7 @@
 
 use App\Console\Commands\PublishDuePagesCommand;
 use App\Http\Middleware\CheckMaintenanceMode;
+use App\Http\Middleware\EnsureFeatureEnabled;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,6 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // excludes /admin/*, /livewire/*, and /up internally.
         $middleware->web(append: [
             CheckMaintenanceMode::class,
+        ]);
+
+        // feature:<key> — 404s a route whose frontend feature is switched
+        // off on Admin → Website Setup → Features Activation.
+        $middleware->alias([
+            'feature' => EnsureFeatureEnabled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

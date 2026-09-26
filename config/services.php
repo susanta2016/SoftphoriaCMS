@@ -14,6 +14,13 @@ return [
     |
     */
 
+    // IP geolocation for admin review of blog comments/reactions
+    // (App\Shared\Services\Geo\IpGeolocator). Optional: works without a
+    // token at low volume.
+    'ipinfo' => [
+        'token' => env('IPINFO_TOKEN'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

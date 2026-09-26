@@ -52,7 +52,7 @@ class NavigationMenuSeeder extends Seeder
                 'Expertise' => '/#technologies',
                 'Portfolio' => '/#portfolio',
                 'About' => '/about',
-                'Blog' => '/#insights',
+                'Blog' => '/blog',
                 'Contact' => '/contact',
             ]);
         }
@@ -69,7 +69,7 @@ class NavigationMenuSeeder extends Seeder
             $this->seedFooterSection($footerMenu, 'Company', 2, [
                 'About' => '/about',
                 'Portfolio' => '/#portfolio',
-                'Blog' => '/#insights',
+                'Blog' => '/blog',
                 'Contact' => '/contact',
             ]);
 

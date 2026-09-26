@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BlogCategory;
+use App\Models\BlogPost;
 use App\Models\Page;
+use App\Shared\Support\Features\Features;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 
 /**
  * A minimal XML sitemap covering the home page plus every published CMS
@@ -36,8 +40,49 @@ class SitemapController extends Controller
                     ]),
             );
 
+        $urls = $urls->merge($this->blogUrls());
+
         return response()
             ->view('sitemap', ['urls' => $urls])
             ->header('Content-Type', 'application/xml');
+    }
+
+    /**
+     * The blog landing page, every live post, and every category archive
+     * that has live posts — only while the matching feature is switched on,
+     * and never a record marked noindex or canonicalised to another URL.
+     * Tag archives are deliberately left out (they render noindex).
+     *
+     * @return Collection<int, array{loc: string, lastmod: mixed}>
+     */
+    private function blogUrls(): Collection
+    {
+        $features = app(Features::class);
+
+        if ($features->disabled('blog.posts')) {
+            return collect();
+        }
+
+        $excluded = fn (BlogPost|BlogCategory $record): bool => str_contains(strtolower($record->seo?->robots ?? ''), 'noindex')
+            || (filled($record->seo?->canonical_url) && $record->seo->canonical_url !== $record->url());
+
+        $posts = BlogPost::query()->live()->with('seo')->latestFirst()->get(['id', 'slug', 'updated_at', 'published_at', 'blog_category_id']);
+
+        $urls = collect([['loc' => route('blog.index'), 'lastmod' => $posts->max('updated_at') ?? now()]])
+            ->merge($posts->reject($excluded)->map(fn (BlogPost $post): array => ['loc' => $post->url(), 'lastmod' => $post->updated_at]));
+
+        if ($features->enabled('blog.categories')) {
+            $urls = $urls->merge(BlogCategory::query()
+                ->with('seo')
+                ->whereIn('id', $posts->pluck('blog_category_id')->filter()->unique())
+                ->get()
+                ->reject($excluded)
+                ->map(fn (BlogCategory $category): array => [
+                    'loc' => $category->url(),
+                    'lastmod' => $posts->where('blog_category_id', $category->id)->max('updated_at'),
+                ]));
+        }
+
+        return $urls->values();
     }
 }

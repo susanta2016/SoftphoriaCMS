@@ -16,6 +16,7 @@
 
     <title>{{ $seo['title'] }}</title>
     <x-seo.head-tags :seo="$seo"/>
+    {{ $head ?? '' }}
 
     @if ($favicon)
         <link rel="icon" href="{{ $favicon }}">
@@ -32,9 +33,9 @@
 
     <x-site.back-to-top/>
     {{-- The /contact page already shows the full form. --}}
-    @unless (request()->routeIs('contact.index'))
+    @if (! request()->routeIs('contact.index') && app(\App\Shared\Support\Features\Features::class)->enabled('contact_widget'))
         <x-site.contact-widget/>
-    @endunless
+    @endif
     <x-site.cookie-consent/>
 </body>
 </html>

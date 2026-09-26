@@ -30,10 +30,16 @@
         ->get()
         ->keyBy('slug');
 
-    $footerSections = $footerMenus->get('footer-navigation')?->items ?? collect();
+    // Links to a switched-off frontend feature (Features Activation) are
+    // dropped so the footer never points at a 404.
+    $features = app(\App\Shared\Support\Features\Features::class);
+    $visible = fn ($items) => $items->reject(fn ($item) => $features->hidesLink($item->resolvedUrl()))->values();
+    $footerSections = $visible($footerMenus->get('footer-navigation')?->items ?? collect())
+        ->each(fn ($section) => $section->setRelation('children', $visible($section->children)));
+    $newsletterOn = $features->enabled('newsletter');
     // WEB-103: the bottom bar's small links (Privacy Policy, Terms, Sitemap)
     // — their own flat menu so they're editable in Menus like everything else.
-    $legalLinks = $footerMenus->get('footer-legal')?->items ?? collect();
+    $legalLinks = $visible($footerMenus->get('footer-legal')?->items ?? collect());
 
     $footerBackgroundMediaId = $settings->get('footer', 'background_media_id');
     $footerBackgroundMedia = $footerBackgroundMediaId ? \App\Models\Media::find($footerBackgroundMediaId) : null;
@@ -111,6 +117,7 @@
                     </div>
                 @endif
 
+                @if ($newsletterOn)
                 <h3 @class(['text-sm font-semibold text-brand-navy', 'mt-6' => $socialLinks->isNotEmpty()])>{{ $settings->get('footer', 'newsletter_heading') ?: 'Newsletter' }}</h3>
                 @if (session('newsletter_status'))
                     <p class="mt-3 rounded-md border border-brand-accent/30 bg-brand-sky px-3 py-2.5 text-sm text-brand-navy">
@@ -119,6 +126,11 @@
                 @else
                     <form method="POST" action="{{ route('newsletter.subscribe') }}" class="mt-3 max-w-sm">
                         @csrf
+                        {{-- Honeypot — see NewsletterController::subscribe(). --}}
+                        <div style="position:absolute;left:-9999px;height:0;width:0;overflow:hidden" aria-hidden="true">
+                            <label for="footer-newsletter-hp_website">Website</label>
+                            <input type="text" id="footer-newsletter-hp_website" name="hp_website" tabindex="-1" autocomplete="off">
+                        </div>
                         <div @class([
                             'flex overflow-hidden rounded-md border bg-white',
                             'border-red-400' => $errors->has('email'),
@@ -142,6 +154,7 @@
                             <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
                         @enderror
                     </form>
+                @endif
                 @endif
             </div>
         </div>

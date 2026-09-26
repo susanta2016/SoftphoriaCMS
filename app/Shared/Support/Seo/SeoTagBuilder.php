@@ -77,7 +77,10 @@ class SeoTagBuilder
             'twitter_description' => self::flatten($seo?->twitter_description) ?: $description,
             'twitter_image' => $twitterImage,
             'fb_app_id' => $general['fb_app_id'] ?? null,
-            'structured_data' => $seo?->structured_data ?: self::defaultStructuredData(
+            // Precedence: a hand-set seo.structured_data, then a caller's
+            // own schema (e.g. the blog's BlogPosting + BreadcrumbList
+            // graph), then the generic default below.
+            'structured_data' => $seo?->structured_data ?: ($fallbacks['structured_data'] ?? null) ?: self::defaultStructuredData(
                 $fallbacks,
                 $general,
                 $title,

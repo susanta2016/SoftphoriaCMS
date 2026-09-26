@@ -11,12 +11,15 @@
 @props(['section', 'content'])
 
 @php
-    $testimonials = \App\Models\Testimonial::query()
-        ->with('avatar')
-        ->where('is_enabled', true)
-        ->orderBy('sort_order')
-        ->orderBy('id')
-        ->get();
+    // Hidden entirely while Features Activation has Testimonials off.
+    $testimonials = app(\App\Shared\Support\Features\Features::class)->enabled('testimonials')
+        ? \App\Models\Testimonial::query()
+            ->with('avatar')
+            ->where('is_enabled', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+        : collect();
 
     $background = !empty($content['background_media_id']) ? \App\Models\Media::find($content['background_media_id']) : null;
     $backgroundUrl = $background ? \Illuminate\Support\Facades\Storage::disk($background->disk)->url($background->path) : null;

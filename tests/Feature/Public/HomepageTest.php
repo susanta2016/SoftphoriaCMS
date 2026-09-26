@@ -5,6 +5,7 @@ namespace Tests\Feature\Public;
 use App\Actions\Page\UpdatePageAction;
 use App\Enums\MenuItemDestinationType;
 use App\Enums\PageSectionType;
+use App\Models\BlogPost;
 use App\Models\Media;
 use App\Models\Menu;
 use App\Models\Page;
@@ -62,6 +63,8 @@ class HomepageTest extends TestCase
     public function test_every_redesigned_block_renders_in_order(): void
     {
         $this->seedHomepage();
+        // Latest Insights shows real blog posts and hides itself without any.
+        BlogPost::query()->create(['title' => 'A post', 'slug' => 'a-post', 'body' => '<p>x</p>', 'status' => 'published', 'published_at' => now()->subDay()]);
 
         $this->get('/')->assertSeeInOrder([
             'Trusted Technologies',

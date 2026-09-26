@@ -23,6 +23,8 @@ use Filament\Support\Contracts\HasLabel;
  * heading and background image. portfolio renders the published + featured
  * rows from the admin Portfolio resource as project cards (up to
  * content_json.limit) — the section carries only its heading/links.
+ * blog_posts shows the newest live blog posts the same way (hidden while
+ * the Blog Posts feature is off or nothing is published).
  */
 enum PageSectionType: string implements HasLabel
 {
@@ -38,6 +40,7 @@ enum PageSectionType: string implements HasLabel
     case FeaturedContent = 'featured_content';
     case Testimonials = 'testimonials';
     case Portfolio = 'portfolio';
+    case BlogPosts = 'blog_posts';
 
     public function getLabel(): string
     {
@@ -54,6 +57,7 @@ enum PageSectionType: string implements HasLabel
             self::FeaturedContent => 'Featured Content',
             self::Testimonials => 'Testimonials',
             self::Portfolio => 'Featured Portfolio',
+            self::BlogPosts => 'Latest Blog Posts',
         };
     }
 

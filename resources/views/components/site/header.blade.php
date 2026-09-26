@@ -13,7 +13,12 @@
         ])
         ->first();
 
-    $navItems = $primaryMenu?->items ?? collect();
+    // Links to a frontend feature that's switched off (Features Activation)
+    // are dropped so the menu never points at a 404.
+    $features = app(\App\Shared\Support\Features\Features::class);
+    $navItems = ($primaryMenu?->items ?? collect())
+        ->reject(fn ($item) => $features->hidesLink($item->resolvedUrl()))
+        ->values();
 
     // WEB-103: the redesign's single header call-to-action — editable in
     // Website Setup → General; defaults to "Let's Talk" → the Contact page.

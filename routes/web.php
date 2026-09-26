@@ -8,6 +8,9 @@ use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Blog\BlogCommentController;
+use App\Http\Controllers\Blog\BlogController;
+use App\Http\Controllers\Blog\BlogReactionController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Media\PublicHeroVideoStreamController;
@@ -18,6 +21,7 @@ use App\Http\Controllers\Page\PreviewPageController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\EnsureAccountIsUsable;
+use App\Http\Middleware\EnsureAccountNotBlocked;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -29,7 +33,7 @@ Route::get('/robots.txt', RobotsController::class)->name('robots');
 // Public newsletter signup (footer form) — sends the "newsletter_subscribed"
 // Email Template (docs/ARCHITECTURE.md §16.5/§16.6) via TemplatedMailer.
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
-    ->middleware('web')
+    ->middleware(['web', 'feature:newsletter'])
     ->name('newsletter.subscribe');
 
 // ADMIN-010: public Contact Us page + submission. Spam protection is a
@@ -122,6 +126,37 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
 
     Route::get('/password', [AccountPasswordController::class, 'edit'])->name('password.edit');
     Route::put('/password', [AccountPasswordController::class, 'update'])->name('password.update');
+});
+
+// Public blog — every route 404s while Admin → Features Activation has
+// "Blog Posts" off; archives/comments/reports/reactions each also need their
+// own switch. See BlogController's docblock for the SEO/async notes.
+Route::prefix('blog')->name('blog.')->middleware('feature:blog.posts')->group(function (): void {
+    Route::get('/', [BlogController::class, 'index'])->name('index');
+    Route::get('/feed', [BlogController::class, 'feed'])->name('feed');
+    Route::get('/category/{category:slug}', [BlogController::class, 'category'])
+        ->middleware('feature:blog.categories')
+        ->name('category');
+    Route::get('/tag/{tag:slug}', [BlogController::class, 'tag'])
+        ->middleware('feature:blog.tags')
+        ->name('tag');
+    Route::get('/{post:slug}/join', [BlogController::class, 'join'])->name('join');
+    Route::get('/{post:slug}', [BlogController::class, 'show'])->name('show');
+
+    Route::middleware(['auth', EnsureAccountNotBlocked::class])->group(function (): void {
+        Route::post('/{post:slug}/comments', [BlogCommentController::class, 'store'])
+            ->middleware(['feature:blog.comments', 'throttle:6,1'])
+            ->name('comments.store');
+        Route::delete('/comments/{comment}', [BlogCommentController::class, 'destroy'])
+            ->middleware('feature:blog.comments')
+            ->name('comments.destroy');
+        Route::post('/comments/{comment}/report', [BlogCommentController::class, 'report'])
+            ->middleware(['feature:blog.comment_reports', 'throttle:10,1'])
+            ->name('comments.report');
+        Route::post('/{post:slug}/reactions', [BlogReactionController::class, 'toggle'])
+            ->middleware(['feature:blog.reactions', 'throttle:60,1'])
+            ->name('reactions.toggle');
+    });
 });
 
 // Public CMS page viewer (Stage D) — kept last so it never shadows a more

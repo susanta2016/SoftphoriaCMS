@@ -28,6 +28,7 @@
         $block = match (true) {
             $section->section_type === \App\Enums\PageSectionType::Testimonials->value => 'testimonials',
             $section->section_type === \App\Enums\PageSectionType::Portfolio->value => 'portfolio',
+            $section->section_type === \App\Enums\PageSectionType::BlogPosts->value => 'blog-posts',
             $section->section_type === \App\Enums\PageSectionType::Cta->value && ($content['style'] ?? null) === 'banner' => 'cta-banner',
             $section->section_type === \App\Enums\PageSectionType::Gallery->value => match ($content['display'] ?? 'grid') {
                 'logos' => 'logos',
@@ -43,7 +44,7 @@
         };
     @endphp
 
-    @if (in_array($block, ['testimonials', 'cta-banner', 'portfolio'], true))
+    @if (in_array($block, ['testimonials', 'cta-banner', 'portfolio', 'blog-posts'], true))
         <x-dynamic-component :component="'site.blocks.'.$block" :section="$section" :content="$content"/>
         @continue
     @elseif ($block)
