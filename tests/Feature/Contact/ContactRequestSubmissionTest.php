@@ -10,6 +10,7 @@ use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
+use Tests\Support\PassesFormTimeTrap;
 use Tests\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use Tests\TestCase;
  */
 class ContactRequestSubmissionTest extends TestCase
 {
+    use PassesFormTimeTrap;
     use RefreshDatabase;
 
     public function test_the_page_is_publicly_accessible_with_a_form(): void
@@ -44,6 +46,7 @@ class ContactRequestSubmissionTest extends TestCase
             'name' => 'Jane Visitor',
             'email' => 'jane@example.com',
             'message' => 'Hello there.',
+            '_started' => $this->formStartedToken(),
         ]);
 
         $response->assertRedirect('/contact');
@@ -62,6 +65,7 @@ class ContactRequestSubmissionTest extends TestCase
             'name' => 'Jane Visitor',
             'email' => 'jane@example.com',
             'message' => 'Hello there.',
+            '_started' => $this->formStartedToken(),
         ]);
 
         $response->assertSessionHasNoErrors();
@@ -81,6 +85,7 @@ class ContactRequestSubmissionTest extends TestCase
             'subject' => 'A question',
             'category' => 'support',
             'message' => 'Hello there.',
+            '_started' => $this->formStartedToken(),
         ]);
 
         $this->assertDatabaseHas('contact_requests', [
@@ -105,6 +110,7 @@ class ContactRequestSubmissionTest extends TestCase
             'name' => 'Jane Visitor',
             'email' => 'not-an-email',
             'message' => 'Hello there.',
+            '_started' => $this->formStartedToken(),
         ]);
 
         $response->assertSessionHasErrors(['email']);
@@ -117,6 +123,7 @@ class ContactRequestSubmissionTest extends TestCase
             'name' => 'Bot',
             'email' => 'bot@example.com',
             'message' => 'Spam.',
+            '_started' => $this->formStartedToken(),
             'hp_website' => 'https://spam.example',
         ]);
 
@@ -134,6 +141,7 @@ class ContactRequestSubmissionTest extends TestCase
             'name' => 'Bot',
             'email' => 'bot@example.com',
             'message' => 'Spam.',
+            '_started' => $this->formStartedToken(),
             'hp_website' => 'https://spam.example',
         ]);
 
@@ -142,7 +150,7 @@ class ContactRequestSubmissionTest extends TestCase
 
     public function test_submitting_more_than_the_rate_limit_is_throttled(): void
     {
-        $payload = ['name' => 'Jane Visitor', 'email' => 'jane@example.com', 'message' => 'Hello there.'];
+        $payload = ['name' => 'Jane Visitor', 'email' => 'jane@example.com', 'message' => 'Hello there.', '_started' => $this->formStartedToken()];
 
         for ($i = 0; $i < 6; $i++) {
             $this->post('/contact', $payload);
@@ -165,6 +173,7 @@ class ContactRequestSubmissionTest extends TestCase
             'email' => 'jane@example.com',
             'subject' => 'A question',
             'message' => 'Hello there.',
+            '_started' => $this->formStartedToken(),
         ]);
 
         Mail::assertSent(TemplatedNotificationMail::class, function (TemplatedNotificationMail $mail) use ($admin): bool {
@@ -186,6 +195,7 @@ class ContactRequestSubmissionTest extends TestCase
             'name' => 'Jane Visitor',
             'email' => 'jane@example.com',
             'message' => 'Hello there.',
+            '_started' => $this->formStartedToken(),
         ]);
 
         Mail::assertNotSent(TemplatedNotificationMail::class, function (TemplatedNotificationMail $mail): bool {
@@ -202,6 +212,7 @@ class ContactRequestSubmissionTest extends TestCase
             'name' => 'Jane Visitor',
             'email' => 'jane@example.com',
             'message' => 'Hello there.',
+            '_started' => $this->formStartedToken(),
         ]);
 
         Mail::assertSent(TemplatedNotificationMail::class, function (TemplatedNotificationMail $mail): bool {
@@ -217,6 +228,7 @@ class ContactRequestSubmissionTest extends TestCase
             'name' => 'Jane Visitor',
             'email' => 'jane@example.com',
             'message' => 'Hello there.',
+            '_started' => $this->formStartedToken(),
         ]);
 
         $response->assertRedirect('/contact');

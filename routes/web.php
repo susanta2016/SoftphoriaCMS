@@ -33,12 +33,18 @@ Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
     ->name('newsletter.subscribe');
 
 // ADMIN-010: public Contact Us page + submission. Spam protection is a
-// honeypot field (silently discarded in the controller) plus rate limiting
-// on the POST route — see ContactController's own docblock.
+// honeypot field and a time trap (both silently discarded in the
+// controller) plus rate limiting on the POST route — see ContactController's
+// own docblock.
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
 Route::post('/contact', [ContactController::class, 'store'])
     ->middleware('throttle:6,1')
     ->name('contact.submit');
+// The site's own email/phone/WhatsApp are never in the page source; the
+// "Reveal" buttons fetch them here — see ContactController::reveal().
+Route::post('/contact/reveal', [ContactController::class, 'reveal'])
+    ->middleware('throttle:20,1')
+    ->name('contact.reveal');
 
 // ADMIN-005: admin-only audio/video playback for the Media Library. Auth is
 // enforced inside the controller (same canAccessPanel() gate as /admin),

@@ -32,8 +32,9 @@
 
         <form data-contact-widget-form method="POST" action="{{ route('contact.submit') }}" novalidate class="grid gap-3 px-5 pt-4 pb-5">
             @csrf
+            <input type="hidden" name="{{ \App\Shared\Support\Spam\FormTimeTrap::FIELD }}" value="{{ app(\App\Shared\Support\Spam\FormTimeTrap::class)->issue() }}">
 
-            {{-- Honeypot — see ContactController::store(). --}}
+            {{-- Honeypot + time trap — see ContactController::store(). --}}
             <div style="position:absolute;left:-9999px;height:0;width:0;overflow:hidden" aria-hidden="true">
                 <label for="cw-hp_website">Website</label>
                 <input type="text" id="cw-hp_website" name="hp_website" tabindex="-1" autocomplete="off">

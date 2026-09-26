@@ -154,9 +154,12 @@ class WebsiteSetupTest extends TestCase
 
         $response = $this->get('/contact');
 
+        // Shown masked with a Reveal button — the full values are only served
+        // by contact.reveal (see ContactSpamProtectionTest).
         $response->assertOk();
-        $response->assertSee('+1 555 010 0100');
-        $response->assertSee('https://wa.me/15550100100', false);
+        $response->assertSee('+1 555 •••••00', false);
+        $response->assertSee('data-contact-reveal="whatsapp"', false);
+        $response->assertDontSee('https://wa.me/15550100100', false);
     }
 
     public function test_maintenance_page_is_required_when_maintenance_mode_is_enabled(): void

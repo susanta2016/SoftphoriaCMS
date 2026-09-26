@@ -8,6 +8,7 @@ use App\Shared\Mail\TemplatedNotificationMail;
 use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Tests\Support\PassesFormTimeTrap;
 use Tests\TestCase;
 
 /**
@@ -17,6 +18,7 @@ use Tests\TestCase;
  */
 class ContactWidgetTest extends TestCase
 {
+    use PassesFormTimeTrap;
     use RefreshDatabase;
 
     public function test_the_widget_renders_on_public_pages_with_a_honeypot(): void
@@ -41,6 +43,7 @@ class ContactWidgetTest extends TestCase
             'email' => 'jane@example.com',
             'phone' => '+91 90000 00000',
             'message' => 'Hello from the widget.',
+            '_started' => $this->formStartedToken(),
         ]);
 
         $response->assertOk()->assertJson(['message' => 'Thank you — your message has been received.']);
@@ -69,6 +72,7 @@ class ContactWidgetTest extends TestCase
             'name' => 'Bot',
             'email' => 'bot@example.com',
             'message' => 'Spam',
+            '_started' => $this->formStartedToken(),
             'hp_website' => 'http://spam.example',
         ]);
 
@@ -86,10 +90,12 @@ class ContactWidgetTest extends TestCase
         $admin->roles()->attach(Role::query()->firstOrCreate(['slug' => 'admin'], ['name' => 'Administrator']));
 
         $this->postJson('/contact', [
-            'name' => 'Jane <a href="http://evil.example">click</a>',
+            // Links/angle brackets are rejected in the name, so the HTML goes in the message.
+            'name' => 'Jane Visitor',
             'email' => 'jane@example.com',
             'phone' => '+91 90000 00000',
-            'message' => "Line one\nLine two",
+            'message' => "Line one\nLine two <a href=\"http://evil.example\">click</a>",
+            '_started' => $this->formStartedToken(),
         ])->assertOk();
 
         Mail::assertSent(TemplatedNotificationMail::class, function (TemplatedNotificationMail $mail) use ($admin): bool {
@@ -102,7 +108,7 @@ class ContactWidgetTest extends TestCase
             return str_contains($html, '+91 90000 00000')
                 && str_contains($html, 'jane@example.com')
                 && str_contains($html, 'Line one<br>')
-                && str_contains($html, 'Jane &lt;a href=')
+                && str_contains($html, 'Line two &lt;a href=')
                 && ! str_contains($html, '<a href="http://evil.example">');
         });
     }

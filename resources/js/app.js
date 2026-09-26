@@ -510,3 +510,110 @@ document.addEventListener('DOMContentLoaded', () => {
         widget.querySelector('#cw-name')?.focus();
     });
 });
+
+// Contact details reveal (resources/views/components/site/contact-info.blade.php).
+// The page only carries masked values; the real one is fetched on demand
+// from ContactController::reveal() and rendered as a link, never as HTML.
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-contact-reveal-scope]').forEach((scope) => {
+        scope.addEventListener('click', async (event) => {
+            const button = event.target.closest('[data-contact-reveal]');
+            if (!button || !scope.contains(button)) return;
+
+            const channel = button.dataset.contactReveal;
+            const slot = button.closest('[data-contact-reveal-slot]');
+            const error = slot.parentElement.querySelector('[data-contact-reveal-error]');
+
+            button.disabled = true;
+            error.classList.add('hidden');
+
+            const body = new FormData();
+            body.append('channel', channel);
+            body.append('_started', scope.dataset.revealToken);
+
+            try {
+                const response = await fetch(scope.dataset.revealUrl, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': scope.dataset.csrf,
+                    },
+                    body,
+                    credentials: 'same-origin',
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok || !data.href) {
+                    throw new Error(
+                        response.status === 429
+                            ? 'Too many requests — please wait a minute and try again.'
+                            : response.status === 419
+                              ? 'Your session has expired — please refresh the page.'
+                              : (data.message ?? 'Could not load this detail. Please try again.'),
+                    );
+                }
+
+                const link = document.createElement('a');
+                link.href = data.href;
+                link.textContent = data.display;
+                link.className = 'break-all text-sm font-semibold text-brand-accent underline decoration-brand-accent/30 underline-offset-4 hover:decoration-brand-accent';
+                if (channel === 'whatsapp') {
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                }
+
+                const copy = document.createElement('button');
+                copy.type = 'button';
+                copy.className = 'rounded-full px-2.5 py-1 text-xs font-semibold text-brand-navy/55 transition hover:bg-brand-sky hover:text-brand-accent';
+                copy.textContent = 'Copy';
+                copy.setAttribute('aria-label', `Copy ${data.display}`);
+                copy.addEventListener('click', async () => {
+                    try {
+                        await navigator.clipboard.writeText(data.display);
+                        copy.textContent = 'Copied';
+                        setTimeout(() => { copy.textContent = 'Copy'; }, 1800);
+                    } catch {
+                        copy.textContent = 'Copy failed';
+                    }
+                });
+
+                slot.replaceChildren(link, copy);
+                link.focus();
+            } catch (err) {
+                error.textContent = err.message;
+                error.classList.remove('hidden');
+                button.disabled = false;
+            }
+        });
+    });
+});
+
+// Contact page form (resources/views/components/site/contact-form.blade.php):
+// message character counter + a busy state that also blocks double submits.
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-contact-form]').forEach((form) => {
+        const message = form.querySelector('[data-contact-form-message]');
+        const count = form.querySelector('[data-contact-form-count]');
+        const submit = form.querySelector('[data-contact-form-submit]');
+
+        if (message && count) {
+            const update = () => { count.textContent = String(message.value.length); };
+            message.addEventListener('input', update);
+            update();
+        }
+
+        form.addEventListener('submit', (event) => {
+            if (form.dataset.submitting === 'true') {
+                event.preventDefault();
+                return;
+            }
+            form.dataset.submitting = 'true';
+            if (submit) {
+                submit.disabled = true;
+                submit.querySelector('[data-contact-form-spinner]')?.classList.remove('hidden');
+                submit.querySelector('[data-contact-form-arrow]')?.classList.add('hidden');
+            }
+        });
+    });
+});

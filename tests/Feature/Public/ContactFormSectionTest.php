@@ -9,6 +9,7 @@ use App\Models\Page;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\PassesFormTimeTrap;
 use Tests\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use Tests\TestCase;
  */
 class ContactFormSectionTest extends TestCase
 {
+    use PassesFormTimeTrap;
     use RefreshDatabase;
 
     public function test_a_contact_form_section_renders_the_shared_form(): void
@@ -56,6 +58,7 @@ class ContactFormSectionTest extends TestCase
             'name' => 'Jane Visitor',
             'email' => 'jane@example.com',
             'message' => 'Hello from the embedded section.',
+            '_started' => $this->formStartedToken(),
         ]);
 
         $response->assertSessionHas('status');
