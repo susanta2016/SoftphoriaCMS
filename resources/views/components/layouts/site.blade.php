@@ -17,6 +17,7 @@
     <title>{{ $seo['title'] }}</title>
     <x-seo.head-tags :seo="$seo"/>
     {{ $head ?? '' }}
+    <x-site.analytics position="head"/>
 
     @if ($favicon)
         <link rel="icon" href="{{ $favicon }}">
@@ -41,5 +42,6 @@
         <x-site.contact-modal/>
     @endif
     <x-site.cookie-consent/>
+    <x-site.analytics position="body"/>
 </body>
 </html>

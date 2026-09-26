@@ -13,6 +13,12 @@
         ->where('section_type', \App\Enums\PageSectionType::RichText->value)
         ->map(fn ($section) => $section->content_json['body'] ?? '')
         ->implode("\n");
+
+    // Cookie and Privacy Policy: append the live list of analytics /
+    // marketing tools (Website Setup → Analytics & Tracking).
+    if (in_array($page->slug, ['cookie-policy', 'privacy-policy'], true)) {
+        $body .= "\n".view('pages.partials.analytics-disclosure')->render();
+    }
     $prepared = \App\Shared\Support\Blog\BlogContent::prepare($body);
     $toc = array_values(array_filter($prepared['toc'], fn (array $entry): bool => $entry['level'] === 2));
 

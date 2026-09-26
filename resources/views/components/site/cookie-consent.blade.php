@@ -6,6 +6,16 @@
 @if ($enabled)
     @php
         $cookies = array_merge(config('cookies_policy'), $settings->all('cookies'));
+
+        // Analytics/marketing tools switched on in Website Setup → Analytics &
+        // Tracking, by consent category — listed under each category below.
+        $toolsByCategory = app(\App\Shared\Support\Analytics\AnalyticsIntegrations::class)->byCategory();
+
+        // The default banner text says "no tracking cookies"; while a tool
+        // is active, use the analytics wording (an admin's own text wins).
+        if ($toolsByCategory !== [] && ($cookies['banner_description'] ?? null) === config('cookies_policy.banner_description')) {
+            $cookies['banner_description'] = config('cookies_policy.banner_description_with_analytics');
+        }
         $paragraphs = fn (?string $text): array => array_filter(array_map('trim', preg_split('/\n\s*\n/', (string) $text)));
 
         $siteName = ($settings->get('general', 'site_name') ?? null) ?: config('app.name');
@@ -94,6 +104,19 @@
                                         <span class="text-sm text-brand-navy/70">Always active</span>
                                     </label>
                                 @elseif ($category['toggle'] === 'optional')
+                                    @php $tools = $toolsByCategory[$category['key']] ?? []; @endphp
+                                    <div class="rounded-lg border border-brand-navy/10 bg-white px-4 py-3 text-sm">
+                                        <p class="font-semibold text-brand-navy">Tools in use</p>
+                                        @if ($tools === [])
+                                            <p class="mt-1 text-brand-navy/60">None — no cookies in this category are currently used on this website.</p>
+                                        @else
+                                            <ul class="mt-1 space-y-1 text-brand-navy/75">
+                                                @foreach ($tools as $tool)
+                                                    <li><span class="font-medium text-brand-navy">{{ $tool['label'] }}</span>@if ($tool['provider'] !== 'See description') ({{ $tool['provider'] }})@endif — {{ $tool['purpose'] }}</li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+                                    </div>
                                     <label class="mt-2 inline-flex cursor-pointer items-center gap-3">
                                         <span class="relative inline-flex h-6 w-11 shrink-0 items-center">
                                             <input type="checkbox" data-cookie-toggle="{{ $category['key'] }}" class="peer sr-only">

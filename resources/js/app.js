@@ -126,9 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const writeConsent = (consent) => {
+        const previous = readConsent();
         const maxAge = COOKIE_DAYS * 24 * 60 * 60;
         const secure = location.protocol === 'https:' ? '; Secure' : '';
         document.cookie = `${COOKIE_NAME}=${encodeURIComponent(JSON.stringify(consent))}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
+        // Consent-gated analytics listen for this (see the loader below).
+        document.dispatchEvent(new CustomEvent('cookie-consent:changed', { detail: { consent, previous } }));
     };
 
     // The bottom-left Consent Preferences button: only once a choice has
@@ -969,5 +972,93 @@ document.addEventListener('DOMContentLoaded', () => {
             submit.disabled = false;
             spinner.classList.add('hidden');
         }
+    });
+});
+
+// Consent-gated analytics (resources/views/components/site/analytics.blade.php).
+// Each tool's scripts sit in an inert <template data-consent-scripts="{category}">
+// and are only activated once the visitor has accepted that cookie category.
+// Withdrawing a category that was already active clears its cookies and
+// reloads the page, so the tool is gone from then on.
+document.addEventListener('DOMContentLoaded', () => {
+    const templates = [...document.querySelectorAll('template[data-consent-scripts]')];
+    if (!templates.length) return;
+
+    const readConsent = () => {
+        try {
+            const match = document.cookie.match(/(?:^|; )cookie_consent=([^;]*)/);
+            return match ? JSON.parse(decodeURIComponent(match[1])) : null;
+        } catch {
+            return null;
+        }
+    };
+
+    const activate = (consent) => {
+        templates.forEach((template) => {
+            if (template.dataset.activated || !consent?.[template.dataset.consentScripts]) return;
+            template.dataset.activated = 'true';
+
+            const target = template.dataset.consentTarget === 'body' ? document.body : document.head;
+            template.content.childNodes.forEach((node) => {
+                if (node.nodeName === 'SCRIPT') {
+                    // A cloned <script> never executes; a freshly created one does.
+                    const script = document.createElement('script');
+                    [...node.attributes].forEach((attribute) => script.setAttribute(attribute.name, attribute.value));
+                    script.text = node.textContent;
+                    target.appendChild(script);
+                } else {
+                    target.appendChild(node.cloneNode(true));
+                }
+            });
+        });
+    };
+
+    const cookieMap = (() => {
+        try {
+            return JSON.parse(document.querySelector('[data-consent-cookie-map]')?.textContent || '{}');
+        } catch {
+            return {};
+        }
+    })();
+
+    const clearCookies = (categories) => {
+
+        const host = window.location.hostname;
+        const parts = host.split('.');
+        const domains = ['', host, `.${host}`, parts.length > 2 ? `.${parts.slice(-2).join('.')}` : null].filter((d) => d !== null);
+        const existing = document.cookie.split('; ').map((pair) => pair.split('=')[0]).filter(Boolean);
+
+        categories.flatMap((category) => cookieMap[category] ?? []).forEach((pattern) => {
+            const matches = pattern.endsWith('*')
+                ? existing.filter((name) => name.startsWith(pattern.slice(0, -1)))
+                : existing.filter((name) => name === pattern);
+
+            matches.forEach((name) => {
+                domains.forEach((domain) => {
+                    document.cookie = `${name}=; path=/; max-age=0${domain ? `; domain=${domain}` : ''}`;
+                });
+            });
+        });
+    };
+
+    const initialConsent = readConsent();
+    activate(initialConsent);
+
+    // Also sweep on every load: a tool can rewrite its cookies while the page
+    // unloads (GA4 does), after the pre-reload clean-up below.
+    clearCookies(Object.keys(cookieMap).filter((category) => !initialConsent?.[category]));
+
+    document.addEventListener('cookie-consent:changed', (event) => {
+        const { consent, previous } = event.detail ?? {};
+        const withdrawn = Object.keys(previous ?? {}).filter((category) => previous[category] && !consent?.[category]
+            && templates.some((template) => template.dataset.consentScripts === category && template.dataset.activated));
+
+        if (withdrawn.length) {
+            clearCookies(withdrawn);
+            window.location.reload();
+            return;
+        }
+
+        activate(consent);
     });
 });
