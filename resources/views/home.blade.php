@@ -14,6 +14,7 @@
 <x-layouts.site :seo="$seo">
     <x-site.header :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
 
+    <main class="flex-1">
     {{--
         Matched to the reference design: a flat pale ice-blue band, the hero
         image bleeding off the right edge from lg up (below the
@@ -101,6 +102,7 @@
     @if ($sections->isNotEmpty())
         <x-site.sections :sections="$sections"/>
     @endif
+    </main>
 
     <x-site.footer :site-name="$siteName" :tagline="$tagline"/>
 

@@ -127,6 +127,8 @@ class Settings extends Page
                 ->label('Header Button URL')
                 ->placeholder('/contact')
                 ->maxLength(255)
+                ->rule('regex:/^(https?:\/\/|\/|#.)/i')
+                ->validationMessages(['regex' => 'Use a full URL (https://…), a path starting with / (e.g. /contact), or an in-page #anchor.'])
                 ->helperText('Leave blank to link to the Contact page.'),
             Toggle::make('general.maintenance_mode')
                 ->label('Maintenance Mode')

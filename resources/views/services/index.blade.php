@@ -79,7 +79,7 @@
 
         {{-- Tech stack --}}
         @if ($technologies->isNotEmpty())
-            <section class="bg-white py-16" aria-labelledby="tech-heading">
+            <section id="technologies" class="scroll-mt-24 bg-white py-16" aria-labelledby="tech-heading">
                 <div class="mx-auto max-w-6xl px-4 text-center sm:px-6">
                     <p class="text-sm font-semibold tracking-[0.15em] text-brand-accent uppercase">Technology</p>
                     <h2 id="tech-heading" class="mt-2 text-3xl font-bold tracking-tight text-brand-navy">Proven tools, chosen for your project</h2>

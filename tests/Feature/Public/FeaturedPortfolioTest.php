@@ -72,7 +72,7 @@ class FeaturedPortfolioTest extends TestCase
         $this->assertContains('Portfolio', $labels);
         $this->assertNotContains('Work', $labels);
         $this->assertSame(3, PortfolioItem::query()->featured()->count());
-        $this->get('/')->assertSee('href="/#portfolio"', false);
+        $this->get('/')->assertSee('href="/portfolio"', false);
     }
 
     public function test_the_migration_renames_work_and_moves_featured_work_into_the_portfolio(): void

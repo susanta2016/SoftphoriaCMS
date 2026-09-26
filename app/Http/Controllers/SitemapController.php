@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\BlogCategory;
 use App\Models\BlogPost;
 use App\Models\Page;
+use App\Models\PortfolioItem;
 use App\Models\Service;
 use App\Shared\Support\Features\Features;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -41,7 +43,7 @@ class SitemapController extends Controller
                     ]),
             );
 
-        $urls = $urls->merge($this->serviceUrls())->merge($this->blogUrls());
+        $urls = $urls->merge($this->serviceUrls())->merge($this->portfolioUrls())->merge($this->blogUrls());
 
         return response()
             ->view('sitemap', ['urls' => $urls])
@@ -69,6 +71,20 @@ class SitemapController extends Controller
                     || (filled($service->seo?->canonical_url) && $service->seo->canonical_url !== $service->url()))
                 ->map(fn (Service $service): array => ['loc' => $service->url(), 'lastmod' => $service->updated_at]))
             ->values();
+    }
+
+    /**
+     * /portfolio, while Portfolio is switched on and has published projects.
+     *
+     * @return Collection<int, array{loc: string, lastmod: mixed}>
+     */
+    private function portfolioUrls(): Collection
+    {
+        $lastmod = app(Features::class)->enabled('portfolio')
+            ? PortfolioItem::query()->published()->max('updated_at')
+            : null;
+
+        return $lastmod ? collect([['loc' => route('portfolio.index'), 'lastmod' => Carbon::parse($lastmod)]]) : collect();
     }
 
     /**

@@ -24,8 +24,13 @@
     // Website Setup → General; defaults to "Let's Talk" → the Contact page.
     $generalSettings = app(\App\Shared\Services\Settings\SettingsRepository::class);
     $talkLabel = $generalSettings->get('general', 'header_cta_label') ?: "Let's Talk";
-    $talkUrl = $generalSettings->get('general', 'header_cta_url')
-        ?: (Route::has('contact.index') ? route('contact.index') : '#');
+    // Only a real link is used — a full URL, a site path or an in-page
+    // anchor. Anything else (e.g. a bare email address, which the browser
+    // would treat as a relative page URL) falls back to the Contact page.
+    $talkUrl = $generalSettings->get('general', 'header_cta_url');
+    if (! is_string($talkUrl) || ! preg_match('~^(https?://|/|#.)~i', $talkUrl)) {
+        $talkUrl = Route::has('contact.index') ? route('contact.index') : '#';
+    }
 @endphp
 
 {{--

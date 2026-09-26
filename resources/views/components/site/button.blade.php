@@ -21,9 +21,14 @@
     $baseClasses = 'inline-flex items-center justify-center gap-2 rounded-md text-sm font-semibold '
         .'transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 '
         .'focus-visible:outline-brand-accent '.$sizeClasses.' '.$variantClasses;
+
+    // A link to a frontend feature switched off in Features Activation
+    // (e.g. "View Our Services" while Services is off) isn't rendered.
+    $hidden = $href && app(\App\Shared\Support\Features\Features::class)->hidesLink($href);
 @endphp
 
-@if ($href)
+@if ($hidden)
+@elseif ($href)
     <a href="{{ $href }}" {{ $attributes->class([$baseClasses]) }}>{{ $slot }}</a>
 @else
     <button type="{{ $type }}" {{ $attributes->class([$baseClasses]) }}>{{ $slot }}</button>

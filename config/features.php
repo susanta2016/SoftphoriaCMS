@@ -116,10 +116,10 @@ return [
             'features' => [
                 'portfolio' => [
                     'label' => 'Portfolio',
-                    'description' => 'The homepage Featured Portfolio section.',
+                    'description' => 'The homepage Featured Portfolio section and the /portfolio page.',
                     'default' => true,
                     'edit' => PortfolioItemResource::class,
-                    'links' => ['/#portfolio'],
+                    'links' => ['/portfolio', '/#portfolio'],
                 ],
                 'testimonials' => [
                     'label' => 'Testimonials',

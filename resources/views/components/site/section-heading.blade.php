@@ -13,6 +13,14 @@
     'dark' => false,
 ])
 
+@php
+    // Drop a "View all…" link to a frontend feature switched off in
+    // Features Activation, so the heading never points at a 404.
+    if ($linkUrl && app(\App\Shared\Support\Features\Features::class)->hidesLink($linkUrl)) {
+        $linkUrl = null;
+    }
+@endphp
+
 @if ($eyebrow || $heading || $description || ($linkLabel && $linkUrl))
     <div {{ $attributes->class(['flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between']) }}>
         <div class="max-w-3xl">

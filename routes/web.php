@@ -18,6 +18,7 @@ use App\Http\Controllers\Media\StreamMediaController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\Page\PageController;
 use App\Http\Controllers\Page\PreviewPageController;
+use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SitemapController;
@@ -128,6 +129,12 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
     Route::get('/password', [AccountPasswordController::class, 'edit'])->name('password.edit');
     Route::put('/password', [AccountPasswordController::class, 'update'])->name('password.update');
 });
+
+// Public portfolio list (the homepage "View All Projects" target) — 404
+// while Features Activation has Portfolio off.
+Route::get('/portfolio', PortfolioController::class)
+    ->middleware('feature:portfolio')
+    ->name('portfolio.index');
 
 // Public Services pages — 404 while Features Activation has "Services
 // Pages" off. See ServiceController's docblock for the SEO notes.
