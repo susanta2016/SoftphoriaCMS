@@ -5,6 +5,7 @@ namespace App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissi
 use App\Models\User;
 use App\Modules\InspirationalResources\Actions\ApproveResourceSubmissionAction;
 use App\Modules\InspirationalResources\Actions\ArchiveResourceSubmissionAction;
+use App\Modules\InspirationalResources\Actions\DeleteResourceSubmissionAction;
 use App\Modules\InspirationalResources\Actions\MarkResourceSubmissionInReviewAction;
 use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
 use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\Pages\CreateResourceSubmission;
@@ -124,6 +125,31 @@ class ResourceSubmissionResource extends Resource
                 app(ArchiveResourceSubmissionAction::class)->handle($record, self::actor());
 
                 Notification::make()->title('Submission archived')->success()->send();
+            });
+    }
+
+    /**
+     * Permanent removal (also from the public site), with a confirmation.
+     * Redirects to the list when used from the view page.
+     */
+    public static function deleteAction(): Action
+    {
+        return Action::make('delete')
+            ->label('Delete')
+            ->icon(Heroicon::OutlinedTrash)
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading('Delete resource')
+            ->modalDescription('This permanently deletes the resource, including from the public Inspirational Resources page. This cannot be undone.')
+            ->modalSubmitActionLabel('Delete')
+            ->action(function (ResourceSubmission $record, $livewire): void {
+                app(DeleteResourceSubmissionAction::class)->handle($record, self::actor());
+
+                Notification::make()->title('Resource deleted')->success()->send();
+
+                if ($livewire instanceof ViewResourceSubmission) {
+                    $livewire->redirect(self::getUrl('index'));
+                }
             });
     }
 

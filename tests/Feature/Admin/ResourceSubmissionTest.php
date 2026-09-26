@@ -86,7 +86,8 @@ class ResourceSubmissionTest extends TestCase
             ->fillForm([
                 'name' => 'Cory Gold',
                 'subject' => 'Submit',
-                'category' => 'Encouragement',
+                'category' => ResourceSubmission::OTHER_CATEGORY,
+                'category_other' => ' Encouragement ',
                 'theme' => 'Faith',
                 'message' => 'A few words of light.',
                 'reference_url' => 'https://example.com/story',
@@ -117,6 +118,78 @@ class ResourceSubmissionTest extends TestCase
             ->assertHasFormErrors(['category' => 'required', 'theme' => 'required', 'message' => 'required']);
 
         $this->assertSame(0, ResourceSubmission::query()->count());
+    }
+
+    public function test_admin_create_uses_the_public_forms_category_list(): void
+    {
+        config(['features.inspirational_resources_admin_create_enabled' => true]);
+
+        Livewire::actingAs($this->admin())
+            ->test(CreateResourceSubmission::class)
+            ->assertFormFieldHidden('category_other')
+            ->fillForm(['name' => 'Cory Gold', 'category' => 'Podcasts', 'theme' => 'Love', 'message' => 'Listen to this.'])
+            ->assertFormFieldHidden('category_other')
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('Podcasts', ResourceSubmission::query()->sole()->category);
+
+        // "Other" requires the admin's own category.
+        Livewire::actingAs($this->admin())
+            ->test(CreateResourceSubmission::class)
+            ->fillForm(['name' => 'Cory Gold', 'category' => ResourceSubmission::OTHER_CATEGORY, 'theme' => 'Love', 'message' => 'More.'])
+            ->assertFormFieldVisible('category_other')
+            ->call('create')
+            ->assertHasFormErrors(['category_other' => 'required']);
+
+        // A category outside the list is refused.
+        Livewire::actingAs($this->admin())
+            ->test(CreateResourceSubmission::class)
+            ->fillForm(['name' => 'Cory Gold', 'category' => 'Encouragement', 'theme' => 'Love', 'message' => 'More.'])
+            ->call('create')
+            ->assertHasFormErrors(['category']);
+
+        $this->assertSame(1, ResourceSubmission::query()->count());
+    }
+
+    public function test_admin_can_delete_a_resource_from_the_list(): void
+    {
+        $submission = $this->createSubmission(['status' => ResourceSubmissionStatus::Approved, 'slug' => 'my-story']);
+        $this->get(route('inspirational-resources.show', 'my-story'))->assertOk();
+        $submission->seo()->create(['meta_title' => 'Custom title']);
+        $admin = $this->admin();
+
+        Livewire::actingAs($admin)
+            ->test(ListResourceSubmissions::class)
+            ->callTableAction('delete', $submission)
+            ->assertHasNoTableActionErrors();
+
+        $this->assertModelMissing($submission);
+        $this->assertDatabaseMissing('seo_metadata', ['seoable_id' => $submission->id, 'seoable_type' => $submission->getMorphClass()]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'resource_submission.deleted', 'user_id' => $admin->id]);
+        $this->get(route('inspirational-resources.show', 'my-story'))->assertNotFound();
+    }
+
+    public function test_admin_can_bulk_delete_and_delete_from_the_view_page(): void
+    {
+        $first = $this->createSubmission();
+        $second = $this->createSubmission();
+        $kept = $this->createSubmission();
+
+        Livewire::actingAs($this->admin())
+            ->test(ListResourceSubmissions::class)
+            ->callTableBulkAction('delete', [$first, $second]);
+
+        $this->assertModelMissing($first);
+        $this->assertModelMissing($second);
+        $this->assertModelExists($kept);
+
+        Livewire::actingAs($this->admin())
+            ->test(ViewResourceSubmission::class, ['record' => $kept->getRouteKey()])
+            ->callAction('delete')
+            ->assertRedirect('/admin/resource-submissions');
+
+        $this->assertModelMissing($kept);
     }
 
     public function test_no_edit_route_exists(): void

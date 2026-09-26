@@ -4,8 +4,10 @@ namespace App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissi
 
 use App\Models\User;
 use App\Modules\InspirationalResources\Actions\ArchiveResourceSubmissionAction;
+use App\Modules\InspirationalResources\Actions\DeleteResourceSubmissionAction;
 use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
 use App\Modules\InspirationalResources\Filament\Exports\ResourceSubmissionExporter;
+use App\Modules\InspirationalResources\Filament\Resources\ResourceSubmissions\ResourceSubmissionResource;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use Filament\Actions\BulkAction;
 use Filament\Actions\ExportBulkAction;
@@ -19,7 +21,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * No edit action — submissions come from the public form, or from the
+ * No edit action (Delete removes permanently) — submissions come from the public form, or from the
  * env-gated admin "Add Resource" page (see ResourceSubmissionResource::canCreate()).
  */
 class ResourceSubmissionsTable
@@ -53,6 +55,7 @@ class ResourceSubmissionsTable
             ->searchable()
             ->recordActions([
                 ViewAction::make(),
+                ResourceSubmissionResource::deleteAction(),
             ])
             ->toolbarActions([
                 ExportBulkAction::make()->exporter(ResourceSubmissionExporter::class),
@@ -69,6 +72,24 @@ class ResourceSubmissionsTable
                         $records->each(fn (ResourceSubmission $record) => $action->handle($record, $actor));
 
                         Notification::make()->title('Submissions archived')->success()->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+                BulkAction::make('delete')
+                    ->label('Delete')
+                    ->icon(Heroicon::OutlinedTrash)
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Delete selected resources')
+                    ->modalDescription('This permanently deletes the selected resources, including from the public Inspirational Resources page. This cannot be undone.')
+                    ->modalSubmitActionLabel('Delete')
+                    ->action(function (Collection $records): void {
+                        /** @var User $actor */
+                        $actor = Auth::user();
+                        $action = app(DeleteResourceSubmissionAction::class);
+
+                        $records->each(fn (ResourceSubmission $record) => $action->handle($record, $actor));
+
+                        Notification::make()->title('Resources deleted')->success()->send();
                     })
                     ->deselectRecordsAfterCompletion(),
             ])

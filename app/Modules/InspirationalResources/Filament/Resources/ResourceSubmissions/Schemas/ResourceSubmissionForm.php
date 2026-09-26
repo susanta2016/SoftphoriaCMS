@@ -8,6 +8,7 @@ use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Auth;
 
@@ -39,10 +40,24 @@ class ResourceSubmissionForm
                     ->default(fn (): ?string => self::actor()?->email),
                 TextInput::make('subject')
                     ->maxLength(255),
-                TextInput::make('category')
+                // Same dropdown as the public form: the fixed options plus
+                // "Other", which asks for the admin's own category.
+                // CreateResourceSubmission stores that typed value instead.
+                Select::make('category')
+                    ->options(array_combine(
+                        [...ResourceSubmission::CATEGORY_OPTIONS, ResourceSubmission::OTHER_CATEGORY],
+                        [...ResourceSubmission::CATEGORY_OPTIONS, ResourceSubmission::OTHER_CATEGORY],
+                    ))
+                    ->placeholder('Select a category')
                     ->required()
+                    ->native(false)
+                    ->live(),
+                TextInput::make('category_other')
+                    ->label('Your category')
+                    ->placeholder('Type your category')
                     ->maxLength(255)
-                    ->placeholder('e.g. Testimony, Encouragement'),
+                    ->required(fn (Get $get): bool => $get('category') === ResourceSubmission::OTHER_CATEGORY)
+                    ->visible(fn (Get $get): bool => $get('category') === ResourceSubmission::OTHER_CATEGORY),
                 Select::make('theme')
                     ->options(array_combine(ResourceSubmission::THEME_OPTIONS, ResourceSubmission::THEME_OPTIONS))
                     ->required()

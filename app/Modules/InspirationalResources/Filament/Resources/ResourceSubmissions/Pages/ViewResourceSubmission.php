@@ -19,6 +19,7 @@ class ViewResourceSubmission extends ViewRecord
                 ResourceSubmissionResource::markInReviewAction(),
                 ResourceSubmissionResource::approveAction(),
                 ResourceSubmissionResource::archiveAction(),
+                ResourceSubmissionResource::deleteAction(),
             ])
                 ->label('Review Actions')
                 ->icon(Heroicon::OutlinedClipboardDocumentCheck)
