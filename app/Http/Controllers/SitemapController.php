@@ -7,6 +7,7 @@ use App\Models\BlogPost;
 use App\Models\Page;
 use App\Models\PortfolioItem;
 use App\Models\Service;
+use App\Models\Tool;
 use App\Shared\Support\Features\Features;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
@@ -43,7 +44,7 @@ class SitemapController extends Controller
                     ]),
             );
 
-        $urls = $urls->merge($this->serviceUrls())->merge($this->portfolioUrls())->merge($this->blogUrls());
+        $urls = $urls->merge($this->serviceUrls())->merge($this->portfolioUrls())->merge($this->toolUrls())->merge($this->blogUrls());
 
         return response()
             ->view('sitemap', ['urls' => $urls])
@@ -85,6 +86,33 @@ class SitemapController extends Controller
             : null;
 
         return $lastmod ? collect([['loc' => route('portfolio.index'), 'lastmod' => Carbon::parse($lastmod)]]) : collect();
+    }
+
+    /**
+     * /tools and every live tool (published, functionality deployed) while
+     * Tools Pages is switched on — skipping noindex or canonicalised tools.
+     * Drafts, unpublished tools and previews are never listed.
+     *
+     * @return Collection<int, array{loc: string, lastmod: mixed}>
+     */
+    private function toolUrls(): Collection
+    {
+        if (app(Features::class)->disabled('tools')) {
+            return collect();
+        }
+
+        $tools = Tool::query()->live()->with('seo')->ordered()->get();
+
+        if ($tools->isEmpty()) {
+            return collect();
+        }
+
+        return collect([['loc' => route('tools.index'), 'lastmod' => $tools->max('updated_at')]])
+            ->merge($tools
+                ->reject(fn (Tool $tool): bool => str_contains(strtolower($tool->seo?->robots ?? ''), 'noindex')
+                    || (filled($tool->seo?->canonical_url) && $tool->seo->canonical_url !== $tool->url()))
+                ->map(fn (Tool $tool): array => ['loc' => $tool->url(), 'lastmod' => $tool->updated_at]))
+            ->values();
     }
 
     /**

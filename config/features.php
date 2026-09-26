@@ -2,6 +2,7 @@
 
 use App\Filament\Pages\BlogSettings;
 use App\Filament\Pages\ServiceSettings;
+use App\Filament\Pages\ToolsSettings;
 use App\Filament\Resources\BlogCategories\BlogCategoryResource;
 use App\Filament\Resources\BlogComments\BlogCommentResource;
 use App\Filament\Resources\BlogPosts\BlogPostResource;
@@ -12,6 +13,7 @@ use App\Filament\Resources\NewsletterSubscribers\NewsletterSubscriberResource;
 use App\Filament\Resources\PortfolioItems\PortfolioItemResource;
 use App\Filament\Resources\Services\ServiceResource;
 use App\Filament\Resources\Testimonials\TestimonialResource;
+use App\Filament\Resources\Tools\ToolResource;
 
 return [
     /*
@@ -108,6 +110,25 @@ return [
                     'default' => true,
                     'edit' => ServiceResource::class,
                     'links' => ['/services', '/services/*', '/#services'],
+                ],
+            ],
+        ],
+
+        'tools' => [
+            'label' => 'Tools',
+            'features' => [
+                'tools.settings' => [
+                    'label' => 'Tools Settings',
+                    'description' => 'The /tools hub copy and SEO, and the default call to action on tool pages.',
+                    'toggleable' => false,
+                    'edit' => ToolsSettings::class,
+                ],
+                'tools' => [
+                    'label' => 'Tools Pages',
+                    'description' => 'The /tools hub and a page per published tool. Admins can still prepare and preview tools while this is off.',
+                    'default' => true,
+                    'edit' => ToolResource::class,
+                    'links' => ['/tools', '/tools/*'],
                 ],
             ],
         ],

@@ -22,6 +22,7 @@ use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\ToolController;
 use App\Http\Middleware\EnsureAccountIsUsable;
 use App\Http\Middleware\EnsureAccountNotBlocked;
 use Illuminate\Http\Request;
@@ -71,6 +72,13 @@ Route::get('/media/{media}/watch', PublicHeroVideoStreamController::class)
 Route::get('/admin/pages/{page}/preview', PreviewPageController::class)
     ->middleware('web')
     ->name('pages.preview');
+
+// Admin-only Tool preview: the real tool page (content + deployed
+// functionality) before publishing, noindex. Works while the Tools feature
+// is off, so tools can be prepared in advance. Gated in the controller.
+Route::get('/admin/tools/{tool:id}/preview', [ToolController::class, 'preview'])
+    ->middleware('web')
+    ->name('tools.preview');
 
 // AUTH-001/AUTH-003: public self-registration + email verification.
 // Guest/Registered only — no membership tier, no payment step. Honeypot
@@ -141,6 +149,13 @@ Route::get('/portfolio', PortfolioController::class)
 Route::prefix('services')->name('services.')->middleware('feature:services')->group(function (): void {
     Route::get('/', [ServiceController::class, 'index'])->name('index');
     Route::get('/{service:slug}', [ServiceController::class, 'show'])->name('show');
+});
+
+// Public Tools — 404 while Features Activation has Tools off. Only live
+// tools resolve; old slugs of renamed tools 301 (see ToolController).
+Route::prefix('tools')->name('tools.')->middleware('feature:tools')->group(function (): void {
+    Route::get('/', [ToolController::class, 'index'])->name('index');
+    Route::get('/{tool}', [ToolController::class, 'show'])->where('tool', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('show');
 });
 
 // Public blog — every route 404s while Admin → Features Activation has

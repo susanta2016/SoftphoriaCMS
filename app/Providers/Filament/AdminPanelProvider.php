@@ -53,6 +53,8 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 NavigationGroup::make('Services')
                     ->icon(Heroicon::OutlinedSquares2x2),
+                NavigationGroup::make('Tools')
+                    ->icon(Heroicon::OutlinedWrenchScrewdriver),
                 NavigationGroup::make('Blog')
                     ->icon(Heroicon::OutlinedNewspaper),
                 NavigationGroup::make('Website Setup')
