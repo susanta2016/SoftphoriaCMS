@@ -92,6 +92,10 @@ class HomePageSeeder extends Seeder
                     ['title' => 'NGINX', 'icon' => 'nginx'],
                     ['title' => 'MySQL', 'icon' => 'mysql'],
                     ['title' => 'PostgreSQL', 'icon' => 'postgresql'],
+                    ['title' => 'Shopify', 'icon' => 'shopify'],
+                    ['title' => 'Claude Code', 'icon' => 'claude'],
+                    ['title' => 'Replit', 'icon' => 'replit'],
+                    ['title' => 'Lovable', 'icon' => 'lovable'],
                 ]),
                 $this->gallery($existingSections, 'Services', 'services', [
                     'anchor' => 'services',
