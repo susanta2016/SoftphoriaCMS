@@ -75,6 +75,76 @@ class MenuResourceTest extends TestCase
         $this->assertSame('_blank', $menu->items()->first()->target);
     }
 
+    public function test_site_paths_anchors_and_contact_links_are_valid_urls(): void
+    {
+        $admin = $this->admin();
+        $item = fn (string $label, string $url): array => [
+            'label' => $label, 'destination_type' => MenuItemDestinationType::Url->value, 'url' => $url, 'is_enabled' => true,
+        ];
+
+        Livewire::actingAs($admin)
+            ->test(CreateMenu::class)
+            ->fillForm([
+                'name' => 'Primary Navigation',
+                'slug' => 'primary-navigation',
+                'is_active' => true,
+                'items' => [
+                    $item('Blog', '/blog'),
+                    $item('Solutions', '/#why-softphoria'),
+                    $item('Top', '#top'),
+                    $item('Email', 'mailto:contact@softphoria.com'),
+                    $item('Call', 'tel:+919163270494'),
+                ],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(
+            ['/blog', '/#why-softphoria', '#top', 'mailto:contact@softphoria.com', 'tel:+919163270494'],
+            Menu::query()->where('slug', 'primary-navigation')->sole()->items()->orderBy('sort_order')->pluck('url')->all(),
+        );
+    }
+
+    public function test_a_seeded_menu_with_relative_links_can_be_saved_with_an_item_disabled(): void
+    {
+        $admin = $this->admin();
+        $menu = Menu::create(['name' => 'Primary Navigation', 'slug' => 'primary-navigation', 'is_active' => true]);
+        $menu->items()->create(['label' => 'Services', 'destination_type' => 'url', 'url' => '/services', 'sort_order' => 0, 'is_enabled' => true]);
+        $blog = $menu->items()->create(['label' => 'Blog', 'destination_type' => 'url', 'url' => '/blog', 'sort_order' => 1, 'is_enabled' => true]);
+
+        $component = Livewire::actingAs($admin)->test(EditMenu::class, ['record' => $menu->getRouteKey()]);
+        $items = $component->get('data.items');
+        $blogKey = collect($items)->search(fn (array $state): bool => ($state['label'] ?? null) === 'Blog');
+
+        $component
+            ->set("data.items.{$blogKey}.is_enabled", false)
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertFalse($blog->fresh()->is_enabled);
+        $this->assertSame('/blog', $blog->fresh()->url);
+    }
+
+    public function test_unsafe_or_malformed_links_are_rejected(): void
+    {
+        $admin = $this->admin();
+
+        foreach (['javascript:alert(1)', 'www.example.com', 'blog page'] as $url) {
+            Livewire::actingAs($admin)
+                ->test(CreateMenu::class)
+                ->fillForm([
+                    'name' => 'Bad Menu',
+                    'slug' => 'bad-menu',
+                    'is_active' => true,
+                    'items' => [['label' => 'Bad', 'destination_type' => MenuItemDestinationType::Url->value, 'url' => $url, 'is_enabled' => true]],
+                ])
+                ->call('create')
+                ->assertHasErrors();
+        }
+
+        $this->assertSame(0, Menu::query()->where('slug', 'bad-menu')->count());
+    }
+
     public function test_admin_can_add_a_page_item_and_a_module_item(): void
     {
         $admin = $this->admin();

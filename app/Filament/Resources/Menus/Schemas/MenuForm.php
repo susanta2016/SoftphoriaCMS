@@ -102,9 +102,15 @@ class MenuForm
                                     ->helperText('Becomes a working link automatically once this module is implemented.')
                                     ->columnSpan(2),
 
+                                // Not ->url(): that's the browser's type="url" plus Laravel's
+                                // `url` rule, which both reject the site's own relative links
+                                // (/blog, /#services), blocking every save of a seeded menu.
                                 TextInput::make('url')
                                     ->label('URL')
-                                    ->url()
+                                    ->maxLength(255)
+                                    ->rule('regex:~^(https?://[^\s]+|/[^\s]*|#[^\s]*|mailto:[^\s]+|tel:[^\s]+)$~i')
+                                    ->validationMessages(['regex' => 'Use a full URL (https://…), a site path (/blog), an anchor (/#services or #contact), or a mailto:/tel: link.'])
+                                    ->helperText('A full URL, a path on this site (e.g. /blog), an anchor (/#services), or mailto:/tel:.')
                                     ->required(fn (Get $get): bool => $get('destination_type') === MenuItemDestinationType::Url->value)
                                     ->visible(fn (Get $get): bool => $get('destination_type') === MenuItemDestinationType::Url->value)
                                     ->columnSpan(2),
