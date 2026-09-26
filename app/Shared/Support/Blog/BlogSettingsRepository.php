@@ -2,14 +2,14 @@
 
 namespace App\Shared\Support\Blog;
 
-use App\Shared\Services\Settings\SettingsRepository;
+use App\Shared\Support\Settings\DefaultedSettings;
 
 /**
  * Blog Settings (Admin → Blog → Blog Settings), stored in the `settings`
  * table under group "blog". Every key has a default here, so the blog
  * renders sensibly before an admin has saved anything.
  */
-class BlogSettingsRepository
+class BlogSettingsRepository extends DefaultedSettings
 {
     public const GROUP = 'blog';
 
@@ -40,39 +40,4 @@ class BlogSettingsRepository
     public const LAYOUTS = ['grid' => 'Grid (cards in columns)', 'list' => 'List (wide rows with image beside text)'];
 
     public const CARD_STYLES = ['elevated' => 'Elevated (soft shadow)', 'bordered' => 'Bordered (flat outline)', 'minimal' => 'Minimal (no card frame)'];
-
-    /** @var array<string, mixed>|null */
-    private ?array $cache = null;
-
-    public function __construct(private readonly SettingsRepository $settings) {}
-
-    public function get(string $key): mixed
-    {
-        $stored = $this->cache ??= $this->settings->all(self::GROUP);
-
-        return $stored[$key] ?? self::FIELDS[$key][0] ?? null;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function all(): array
-    {
-        return collect(self::FIELDS)->keys()->mapWithKeys(fn (string $key): array => [$key => $this->get($key)])->all();
-    }
-
-    /**
-     * @param  array<string, mixed>  $values
-     */
-    public function save(array $values): void
-    {
-        foreach (self::FIELDS as $key => [, $type]) {
-            if (array_key_exists($key, $values)) {
-                $value = $values[$key];
-                $this->settings->set(self::GROUP, $key, $type === 'boolean' ? (bool) $value : $value, $type);
-            }
-        }
-
-        $this->cache = null;
-    }
 }

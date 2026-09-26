@@ -47,7 +47,7 @@ class NavigationMenuSeeder extends Seeder
 
         if ($this->needsSeeding($primaryMenu)) {
             $this->seedLinks($primaryMenu, null, [
-                'Services' => '/#services',
+                'Services' => '/services',
                 'Solutions' => '/#why-softphoria',
                 'Expertise' => '/#technologies',
                 'Portfolio' => '/#portfolio',
@@ -59,11 +59,11 @@ class NavigationMenuSeeder extends Seeder
 
         if ($this->needsSeeding($footerMenu)) {
             $this->seedFooterSection($footerMenu, 'Services', 1, [
-                'Web Development' => '/#services',
-                'Custom Software' => '/#services',
-                'E-Commerce' => '/#services',
-                'Cloud & DevOps' => '/#services',
-                'API & Integrations' => '/#services',
+                'Web Development' => '/services/web-development',
+                'Custom Software' => '/services/custom-software',
+                'E-Commerce' => '/services/e-commerce-solutions',
+                'Cloud & DevOps' => '/services/cloud-devops',
+                'API & Integrations' => '/services/api-system-integrations',
             ]);
 
             $this->seedFooterSection($footerMenu, 'Company', 2, [

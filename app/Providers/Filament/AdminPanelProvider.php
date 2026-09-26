@@ -51,6 +51,8 @@ class AdminPanelProvider extends PanelProvider
             ->maxContentWidth(Width::Full)
             ->globalSearch()
             ->navigationGroups([
+                NavigationGroup::make('Services')
+                    ->icon(Heroicon::OutlinedSquares2x2),
                 NavigationGroup::make('Blog')
                     ->icon(Heroicon::OutlinedNewspaper),
                 NavigationGroup::make('Website Setup')

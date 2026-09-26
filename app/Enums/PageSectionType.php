@@ -24,7 +24,8 @@ use Filament\Support\Contracts\HasLabel;
  * rows from the admin Portfolio resource as project cards (up to
  * content_json.limit) — the section carries only its heading/links.
  * blog_posts shows the newest live blog posts the same way (hidden while
- * the Blog Posts feature is off or nothing is published).
+ * the Blog Posts feature is off or nothing is published). services lists the
+ * published services marked "Show on homepage" from Admin → Services.
  */
 enum PageSectionType: string implements HasLabel
 {
@@ -41,6 +42,7 @@ enum PageSectionType: string implements HasLabel
     case Testimonials = 'testimonials';
     case Portfolio = 'portfolio';
     case BlogPosts = 'blog_posts';
+    case Services = 'services';
 
     public function getLabel(): string
     {
@@ -58,6 +60,7 @@ enum PageSectionType: string implements HasLabel
             self::Testimonials => 'Testimonials',
             self::Portfolio => 'Featured Portfolio',
             self::BlogPosts => 'Latest Blog Posts',
+            self::Services => 'Services',
         };
     }
 

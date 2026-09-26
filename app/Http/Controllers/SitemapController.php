@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BlogCategory;
 use App\Models\BlogPost;
 use App\Models\Page;
+use App\Models\Service;
 use App\Shared\Support\Features\Features;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
@@ -40,11 +41,34 @@ class SitemapController extends Controller
                     ]),
             );
 
-        $urls = $urls->merge($this->blogUrls());
+        $urls = $urls->merge($this->serviceUrls())->merge($this->blogUrls());
 
         return response()
             ->view('sitemap', ['urls' => $urls])
             ->header('Content-Type', 'application/xml');
+    }
+
+    /**
+     * The /services landing page and every published service, while
+     * Services Pages is switched on — skipping noindex or canonicalised
+     * services.
+     *
+     * @return Collection<int, array{loc: string, lastmod: mixed}>
+     */
+    private function serviceUrls(): Collection
+    {
+        if (app(Features::class)->disabled('services')) {
+            return collect();
+        }
+
+        $services = Service::query()->published()->with('seo')->ordered()->get();
+
+        return collect([['loc' => route('services.index'), 'lastmod' => $services->max('updated_at') ?? now()]])
+            ->merge($services
+                ->reject(fn (Service $service): bool => str_contains(strtolower($service->seo?->robots ?? ''), 'noindex')
+                    || (filled($service->seo?->canonical_url) && $service->seo->canonical_url !== $service->url()))
+                ->map(fn (Service $service): array => ['loc' => $service->url(), 'lastmod' => $service->updated_at]))
+            ->values();
     }
 
     /**

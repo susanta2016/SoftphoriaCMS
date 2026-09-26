@@ -39,6 +39,7 @@ trait FindsMediaUsage
             ['table' => 'testimonials', 'column' => 'avatar_media_id', 'label' => "a testimonial's avatar"],
             ['table' => 'portfolio_items', 'column' => 'cover_media_id', 'label' => "a portfolio item's cover image"],
             ['table' => 'blog_posts', 'column' => 'cover_media_id', 'label' => "a blog post's cover image"],
+            ['table' => 'services', 'column' => 'cover_media_id', 'label' => "a service's cover image"],
             ['table' => 'community_attachments', 'column' => 'media_id', 'label' => 'a community attachment'],
         ];
 

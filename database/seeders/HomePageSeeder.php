@@ -9,6 +9,7 @@ use App\Enums\PageStatus;
 use App\Enums\PageTemplate;
 use App\Models\Page;
 use App\Models\PortfolioItem;
+use App\Models\Service;
 use App\Models\Testimonial;
 use App\Models\User;
 use App\Shared\Services\Settings\SettingsRepository;
@@ -97,23 +98,23 @@ class HomePageSeeder extends Seeder
                     ['title' => 'Replit', 'icon' => 'replit'],
                     ['title' => 'Lovable', 'icon' => 'lovable'],
                 ]),
-                $this->gallery($existingSections, 'Services', 'services', [
-                    'anchor' => 'services',
-                    'eyebrow' => 'Our Services',
-                    'heading' => 'Technology solutions built around your business.',
-                    'description' => 'From idea to implementation, we deliver reliable, scalable and maintainable solutions.',
-                    'link_label' => 'View All Services',
-                    'link_url' => '#',
-                    'item_link_label' => 'Learn More',
-                    'background' => 'tint',
-                ], [
-                    ['title' => 'Web Development', 'description' => 'Modern, responsive and high-performance websites tailored to your business goals.', 'icon' => 'monitor', 'url' => '#'],
-                    ['title' => 'Custom Software', 'description' => 'Business applications designed around your specific workflow and requirements.', 'icon' => 'code', 'url' => '#'],
-                    ['title' => 'E-Commerce Solutions', 'description' => 'Scalable e-commerce platforms with integrations and automation.', 'icon' => 'cart', 'url' => '#'],
-                    ['title' => 'Cloud & DevOps', 'description' => 'AWS infrastructure, migration, monitoring, security and performance optimization.', 'icon' => 'cloud', 'url' => '#'],
-                    ['title' => 'API & System Integrations', 'description' => 'Connect your website, applications, ERP, CRM and third-party services.', 'icon' => 'nodes', 'url' => '#'],
-                    ['title' => 'CMS & Content Platforms', 'description' => 'Flexible and easy-to-manage content solutions for your team.', 'icon' => 'document', 'url' => '#'],
-                ]),
+                // Cards come from Admin → Services — see seedServices().
+                [
+                    'section_type' => PageSectionType::Services->value,
+                    'title' => 'Services',
+                    'is_enabled' => true,
+                    'content_json' => [
+                        'anchor' => 'services',
+                        'eyebrow' => 'Our Services',
+                        'heading' => 'Technology solutions built around your business.',
+                        'description' => 'From idea to implementation, we deliver reliable, scalable and maintainable solutions.',
+                        'link_label' => 'View All Services',
+                        'link_url' => '/services',
+                        'item_link_label' => 'Learn More',
+                        'background' => 'tint',
+                        'limit' => 6,
+                    ],
+                ],
                 $this->gallery($existingSections, 'Why Softphoria', 'features', [
                     'anchor' => 'why-softphoria',
                     'eyebrow' => 'Why Softphoria?',
@@ -239,6 +240,7 @@ class HomePageSeeder extends Seeder
 
         $this->seedTestimonials();
         $this->seedPortfolioItems();
+        $this->seedServices();
         $this->seedContactSettingsIfUnset();
     }
 
@@ -311,6 +313,21 @@ class HomePageSeeder extends Seeder
 
         foreach ($items as $index => $item) {
             PortfolioItem::query()->create([...$item, 'sort_order' => $index, 'is_featured' => true, 'is_published' => true]);
+        }
+    }
+
+    /**
+     * The six starter services (database/seeders/data/services.php), only
+     * into an empty table so admin edits are never overwritten.
+     */
+    private function seedServices(): void
+    {
+        if (Service::query()->exists()) {
+            return;
+        }
+
+        foreach (require database_path('seeders/data/services.php') as $index => $service) {
+            Service::query()->create([...$service, 'sort_order' => $index, 'is_featured' => true, 'is_published' => true]);
         }
     }
 

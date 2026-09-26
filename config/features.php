@@ -1,6 +1,7 @@
 <?php
 
 use App\Filament\Pages\BlogSettings;
+use App\Filament\Pages\ServiceSettings;
 use App\Filament\Resources\BlogCategories\BlogCategoryResource;
 use App\Filament\Resources\BlogComments\BlogCommentResource;
 use App\Filament\Resources\BlogPosts\BlogPostResource;
@@ -8,6 +9,7 @@ use App\Filament\Resources\BlogReactions\BlogReactionResource;
 use App\Filament\Resources\BlogTags\BlogTagResource;
 use App\Filament\Resources\NewsletterSubscribers\NewsletterSubscriberResource;
 use App\Filament\Resources\PortfolioItems\PortfolioItemResource;
+use App\Filament\Resources\Services\ServiceResource;
 use App\Filament\Resources\Testimonials\TestimonialResource;
 
 return [
@@ -86,6 +88,25 @@ return [
                     'default' => true,
                     'requires' => ['blog.posts'],
                     'edit' => BlogReactionResource::class,
+                ],
+            ],
+        ],
+
+        'services' => [
+            'label' => 'Services',
+            'features' => [
+                'services.settings' => [
+                    'label' => 'Services Settings',
+                    'description' => 'Services landing page copy, SEO and the call to action on every service page.',
+                    'toggleable' => false,
+                    'edit' => ServiceSettings::class,
+                ],
+                'services' => [
+                    'label' => 'Services Pages',
+                    'description' => 'The /services landing page, a detail page per service, and the homepage Services section.',
+                    'default' => true,
+                    'edit' => ServiceResource::class,
+                    'links' => ['/services', '/services/*', '/#services'],
                 ],
             ],
         ],

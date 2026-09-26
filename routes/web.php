@@ -19,6 +19,7 @@ use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\Page\PageController;
 use App\Http\Controllers\Page\PreviewPageController;
 use App\Http\Controllers\RobotsController;
+use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\EnsureAccountIsUsable;
 use App\Http\Middleware\EnsureAccountNotBlocked;
@@ -126,6 +127,13 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
 
     Route::get('/password', [AccountPasswordController::class, 'edit'])->name('password.edit');
     Route::put('/password', [AccountPasswordController::class, 'update'])->name('password.update');
+});
+
+// Public Services pages — 404 while Features Activation has "Services
+// Pages" off. See ServiceController's docblock for the SEO notes.
+Route::prefix('services')->name('services.')->middleware('feature:services')->group(function (): void {
+    Route::get('/', [ServiceController::class, 'index'])->name('index');
+    Route::get('/{service:slug}', [ServiceController::class, 'show'])->name('show');
 });
 
 // Public blog — every route 404s while Admin → Features Activation has

@@ -223,7 +223,7 @@ class HomepageTest extends TestCase
 
         $response->assertSee('Be your tech partner');
         $response->assertSeeInOrder(['Services', 'Solutions', 'Expertise', 'Portfolio', 'About', 'Blog', 'Contact']);
-        $response->assertSee('href="/#services"', false);
+        $response->assertSee('href="/services"', false);
         $response->assertSee("Let's Talk");
         $response->assertSee('href="'.route('contact.index').'"', false);
         // WEB-102's utility bar and phone module were removed by the redesign.

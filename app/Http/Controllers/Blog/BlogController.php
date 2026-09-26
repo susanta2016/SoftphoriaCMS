@@ -12,6 +12,7 @@ use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Blog\BlogContent;
 use App\Shared\Support\Blog\BlogSettingsRepository;
 use App\Shared\Support\Features\Features;
+use App\Shared\Support\Seo\SchemaOrg;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -84,7 +85,7 @@ class BlogController extends Controller
                 'type' => 'website',
                 // Search result pages are thin/duplicate content.
                 'robots' => $search !== '' ? 'noindex, follow' : null,
-                'structured_data' => $this->collectionSchema($title, route('blog.index'), [['Blog', route('blog.index')]]),
+                'structured_data' => SchemaOrg::collectionPage($title, route('blog.index'), [['Blog', route('blog.index')]]),
             ]),
         ]);
     }
@@ -118,7 +119,7 @@ class BlogController extends Controller
                 'canonical' => $this->canonical($category->url(), $posts->currentPage()),
                 'force_canonical' => $posts->currentPage() > 1,
                 'type' => 'website',
-                'structured_data' => $this->collectionSchema($category->name, $category->url(), [
+                'structured_data' => SchemaOrg::collectionPage($category->name, $category->url(), [
                     ['Blog', route('blog.index')],
                     [$category->name, $category->url()],
                 ]),
@@ -247,7 +248,7 @@ class BlogController extends Controller
                             'wordCount' => str_word_count(strip_tags((string) $post->body)),
                             'commentCount' => $commentsOn ? $comments->count() : null,
                         ], fn ($value): bool => $value !== null && $value !== ''),
-                        $this->breadcrumbSchema(array_map(fn (array $crumb): array => [$crumb['label'], $crumb['url']], $breadcrumbs)),
+                        SchemaOrg::breadcrumbs(array_map(fn (array $crumb): array => [$crumb['label'], $crumb['url']], $breadcrumbs)),
                     ],
                 ],
             ]),
@@ -390,39 +391,5 @@ class BlogController extends Controller
     private function escapeLike(string $value): string
     {
         return addcslashes($value, '\\%_');
-    }
-
-    /**
-     * @param  array<int, array{0: string, 1: string}>  $crumbs
-     * @return array<string, mixed>
-     */
-    private function collectionSchema(string $name, string $url, array $crumbs): array
-    {
-        return [
-            '@context' => 'https://schema.org',
-            '@graph' => [
-                ['@type' => 'CollectionPage', 'name' => $name, 'url' => $url],
-                $this->breadcrumbSchema($crumbs),
-            ],
-        ];
-    }
-
-    /**
-     * @param  array<int, array{0: string, 1: string}>  $crumbs
-     * @return array<string, mixed>
-     */
-    private function breadcrumbSchema(array $crumbs): array
-    {
-        $items = [['Home', route('home')], ...$crumbs];
-
-        return [
-            '@type' => 'BreadcrumbList',
-            'itemListElement' => array_map(fn (array $crumb, int $i): array => [
-                '@type' => 'ListItem',
-                'position' => $i + 1,
-                'name' => $crumb[0],
-                'item' => $crumb[1],
-            ], $items, array_keys($items)),
-        ];
     }
 }
