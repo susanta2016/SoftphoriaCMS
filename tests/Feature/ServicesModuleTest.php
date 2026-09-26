@@ -164,7 +164,8 @@ class ServicesModuleTest extends TestCase
     {
         $this->admin();
         $this->seed(HomePageSeeder::class);
-        $this->assertSame(6, Service::query()->count());
+        $this->assertSame(8, Service::query()->count());
+        $this->assertSame(6, Service::query()->where('is_featured', true)->count(), 'AI Development / Digital Marketing live in the spotlight, not the main grid');
         Service::query()->where('slug', 'cms-content-platforms')->update(['is_featured' => false]);
 
         $this->get('/')
@@ -218,7 +219,7 @@ class ServicesModuleTest extends TestCase
 
         // Recreate the pre-migration state.
         Service::query()->delete();
-        $section = Page::query()->where('slug', 'home')->sole()->sections()->where('section_type', 'services')->sole();
+        $section = Page::query()->where('slug', 'home')->sole()->sections()->where('section_type', 'services')->where('title', 'Services')->sole();
         $section->forceFill(['section_type' => 'gallery', 'content_json' => [
             'display' => 'services', 'anchor' => 'services', 'heading' => 'Our services', 'link_url' => '#',
             'gallery_items' => [

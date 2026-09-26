@@ -140,4 +140,37 @@
             <path d="M8.5 16.5 6 21l4-1.7M15.5 16.5 18 21l-4-1.7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         @break
+
+    @case('sparkles')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <path d="M10 3.5 11.6 8a2 2 0 0 0 1.4 1.4l4.5 1.6-4.5 1.6a2 2 0 0 0-1.4 1.4L10 18.5 8.4 14A2 2 0 0 0 7 12.6L2.5 11 7 9.4A2 2 0 0 0 8.4 8L10 3.5Z" stroke-linejoin="round"/>
+            <path d="M18 3v4M16 5h4M18.5 16v3M17 17.5h3" stroke-linecap="round"/>
+        </svg>
+        @break
+
+    @case('megaphone')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <path d="M3.5 10v4a1 1 0 0 0 1 1H7l7.5 4V5L7 9H4.5a1 1 0 0 0-1 1Z" stroke-linejoin="round"/>
+            <path d="M7 15l1 5h2.5l-1-4.6M18 9.5a3.5 3.5 0 0 1 0 5M20.5 7a7 7 0 0 1 0 10" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        @break
+
+    @case('lightbulb')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <path d="M9 17.5h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.1v.6h5v-.6c0-.8.4-1.6 1.1-2.1A6 6 0 0 0 12 3Z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        @break
+
+    @case('handshake')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <path d="m11 17 2 2a1.4 1.4 0 0 0 2-2m-4 0-2.5-2.5M11 17l-1.5 1.5a1.4 1.4 0 0 1-2-2M15 17l1.5 1.5a1.4 1.4 0 0 0 2-2L13 11l-2 2a1.4 1.4 0 0 1-2-2l3-3h3l3.5 3.5M2.5 12.5 7 8l2 2M21.5 12.5 18 9" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        @break
+
+    @case('chart')
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="{{ $classes }}">
+            <path d="M4 20h16M6.5 16v-4M11 16V8.5M15.5 16v-6M20 16V5" stroke-linecap="round"/>
+            <path d="m5 10 5-4.5 4 3 5.5-5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        @break
 @endswitch

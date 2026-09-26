@@ -13,6 +13,7 @@ use App\Filament\Support\Media\RichEditorMediaAttachments;
 use App\Filament\Support\Seo\SeoFields;
 use App\Models\Page;
 use App\Models\PageRevision;
+use App\Models\Service;
 use App\Models\User;
 use App\Shared\Support\Pages\GalleryItemIcons;
 use Filament\Forms\Components\DateTimePicker;
@@ -214,15 +215,16 @@ class PageForm
             // gives every block a small label + heading (e.g. "OUR SERVICES"
             // / "Technology solutions built around your business.").
             TextInput::make('content_json.eyebrow')->label('Eyebrow (small label above the heading)')
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::Gallery, PageSectionType::Testimonials, PageSectionType::Portfolio, PageSectionType::BlogPosts, PageSectionType::Services])),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::Gallery, PageSectionType::Testimonials, PageSectionType::Portfolio, PageSectionType::BlogPosts, PageSectionType::Services, PageSectionType::ImageText])),
             Textarea::make('content_json.heading')->label('Heading')->rows(2)
                 ->helperText('Line breaks are kept.')
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::Gallery, PageSectionType::Testimonials, PageSectionType::Portfolio, PageSectionType::BlogPosts, PageSectionType::Services])),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::Gallery, PageSectionType::Testimonials, PageSectionType::Portfolio, PageSectionType::BlogPosts, PageSectionType::Services, PageSectionType::ImageText])),
             TextInput::make('content_json.heading_highlight')->label('Highlighted heading ending')
                 ->helperText('Optional — shown on its own line after the heading, in the accent color (e.g. "business forward.").')
                 ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero])),
             Textarea::make('content_json.subheading')->label('Subheading')->rows(2)
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero])),
+                ->helperText(fn (Get $get): ?string => $get('section_type') === PageSectionType::ImageText->value ? 'Optional. For the Profile style, the person\'s role (e.g. "Founder & Lead Developer").' : null)
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::ImageText])),
             // WEB-102: a body paragraph under the CTA heading, e.g. the
             // reference site's "Fully dedicated to the best solutions."
             // section. Cta previously had no body text field, only a
@@ -232,16 +234,16 @@ class PageForm
             MediaPicker::make('content_json.media_id', 'Image')
                 ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::ImageText])),
             TextInput::make('content_json.cta_label')->label('Button label')
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta])),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::ImageText])),
             TextInput::make('content_json.cta_url')->label('Button URL')->maxLength(255)
                 ->helperText('An absolute URL, a relative path (e.g. /music), or # while the destination isn\'t built yet.')
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta])),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::ImageText])),
 
             TextInput::make('content_json.secondary_cta_label')->label('Secondary button label')
                 ->helperText('Optional — a second, outlined button shown next to the primary one.')
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta])),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::ImageText])),
             TextInput::make('content_json.secondary_cta_url')->label('Secondary button URL')->maxLength(255)
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta])),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::ImageText])),
 
             // WEB-103: the Hero's row of headline figures ("20+ Years
             // Experience", ...). Optional; nothing renders when empty.
@@ -259,14 +261,32 @@ class PageForm
 
             // WEB-103: Cta's two looks — the original centered block, or the
             // redesigned homepage's full-width dark closing banner.
+            // Look options per section type — see resources/views/components/site/sections.blade.php.
             Select::make('content_json.style')
                 ->label('Style')
-                ->options([
-                    'simple' => 'Simple (centered, light)',
-                    'banner' => 'Banner (full-width, dark)',
-                ])
+                ->options(fn (Get $get): array => match ($get('section_type')) {
+                    PageSectionType::Hero->value => [
+                        'simple' => 'Simple (centered, light)',
+                        'band' => 'Page header band (full-width, dark — for inner pages like About)',
+                    ],
+                    PageSectionType::Services->value => [
+                        'grid' => 'Card grid',
+                        'spotlight' => 'Spotlight (dark band, large highlight cards)',
+                    ],
+                    PageSectionType::ImageText->value => [
+                        'simple' => 'Simple',
+                        'split' => 'Split — image left, text right (full-width band)',
+                        'split-reverse' => 'Split — text left, image right (full-width band)',
+                        'profile' => 'Profile card (e.g. founder or team member)',
+                    ],
+                    default => [
+                        'simple' => 'Simple (centered, light)',
+                        'banner' => 'Banner (full-width, dark)',
+                    ],
+                })
                 ->default('simple')
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Cta])),
+                ->live()
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Cta, PageSectionType::Hero, PageSectionType::ImageText, PageSectionType::Services])),
             MediaPicker::make('content_json.background_media_id', 'Background image')
                 ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Cta, PageSectionType::Testimonials])),
             TextInput::make('content_json.autoplay_seconds')
@@ -312,6 +332,7 @@ class PageForm
             // components found" the moment two DOM nodes match — which is
             // why "Attach File" never worked at all (ADMIN-006 review fix).
             Textarea::make('content_json.text')->label('Text')->rows(4)->columnSpanFull()
+                ->helperText('Leave a blank line between paragraphs.')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::ImageText->value),
 
             Repeater::make('content_json.items')
@@ -363,7 +384,7 @@ class PageForm
                 ])
                 ->default('white')
                 ->helperText('Used by the full-width layouts (everything except Card grid and Quotes).')
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Gallery, PageSectionType::Portfolio, PageSectionType::BlogPosts, PageSectionType::Services])),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Gallery, PageSectionType::Portfolio, PageSectionType::BlogPosts, PageSectionType::Services, PageSectionType::ImageText])),
             TextInput::make('content_json.link_label')->label('Header link label')
                 ->helperText('Optional — e.g. "View All Services". Shown beside the heading; for Intro + features it is the button under the intro.')
                 ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Gallery, PageSectionType::Portfolio, PageSectionType::BlogPosts, PageSectionType::Services])),
@@ -386,6 +407,13 @@ class PageForm
                 ->hiddenLabel()
                 ->content('Shows published portfolio items marked "Featured on homepage" in Portfolio (admin sidebar), in their sort order. The section is hidden while none are featured.')
                 ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Portfolio])),
+            Select::make('content_json.service_slugs')
+                ->label('Show these services')
+                ->helperText('Optional — pick specific services, in this order. Leave empty to show every service marked "Show on homepage".')
+                ->options(fn (): array => Service::query()->ordered()->pluck('title', 'slug')->all())
+                ->multiple()
+                ->searchable()
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Services])),
             Placeholder::make('services_notice')
                 ->hiddenLabel()
                 ->content('Shows published services marked "Show on homepage" in Services (admin sidebar), in their sort order, each linking to its own page. The section is hidden while Services Pages is switched off in Features Activation.')

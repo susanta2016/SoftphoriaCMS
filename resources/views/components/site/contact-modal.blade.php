@@ -68,7 +68,7 @@
                 <x-site.arrow class="h-4 w-4"/>
             </button>
         </div>
-        <p class="text-center text-xs text-brand-navy/45 sm:col-span-2">Your details are only used to reply to you — never shared or added to a mailing list.</p>
+        <p class="text-center text-xs text-brand-navy/45 sm:col-span-2">We use your details only to respond to your enquiry and never sell them. See our <a href="/privacy-policy" class="font-semibold text-brand-accent hover:text-brand-accent-dark">Privacy Policy</a>.</p>
     </form>
 
     <div data-contact-modal-success role="status" class="hidden px-6 py-12 text-center sm:px-8">

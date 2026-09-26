@@ -129,6 +129,8 @@ class HomePageSeeder extends Seeder
                     ['title' => 'Integrate', 'description' => 'We connect your digital systems so they work together.', 'icon' => 'link'],
                     ['title' => 'Support', 'description' => 'We stay involved beyond launch to maintain and improve your platform.', 'icon' => 'headset'],
                 ]),
+                // AI Development / Cloud & DevOps / Digital Marketing spotlight.
+                require database_path('seeders/data/specialised-expertise-section.php'),
                 // Cards come from Admin → Portfolio (featured rows) — see seedPortfolioItems().
                 [
                     'section_type' => PageSectionType::Portfolio->value,
@@ -327,7 +329,7 @@ class HomePageSeeder extends Seeder
         }
 
         foreach (require database_path('seeders/data/services.php') as $index => $service) {
-            Service::query()->create([...$service, 'sort_order' => $index, 'is_featured' => true, 'is_published' => true]);
+            Service::query()->create(['is_featured' => true, ...$service, 'sort_order' => $index, 'is_published' => true]);
         }
     }
 

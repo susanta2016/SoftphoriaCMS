@@ -35,6 +35,11 @@ class GalleryItemIcons
             'plan' => 'Planning (clipboard)',
             'gear' => 'Execution (gear)',
             'rocket' => 'Delivery (rocket)',
+            'sparkles' => 'AI (sparkles)',
+            'megaphone' => 'Marketing (megaphone)',
+            'lightbulb' => 'Innovation (lightbulb)',
+            'handshake' => 'Partnership (handshake)',
+            'chart' => 'Results (rising chart)',
         ];
     }
 

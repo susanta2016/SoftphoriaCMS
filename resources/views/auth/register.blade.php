@@ -70,6 +70,8 @@
                     <input type="password" id="password_confirmation" name="password_confirmation" required>
                 </div>
 
+                <p style="font-size:0.8125rem;color:#6b7280;">By creating an account you agree to our <a href="/terms-of-service">Terms of Service</a> and confirm you have read our <a href="/privacy-policy">Privacy Policy</a>.</p>
+
                 <button type="submit">Create Account</button>
             </form>
 

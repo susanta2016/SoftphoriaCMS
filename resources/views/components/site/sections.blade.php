@@ -31,6 +31,8 @@
             $section->section_type === \App\Enums\PageSectionType::BlogPosts->value => 'blog-posts',
             $section->section_type === \App\Enums\PageSectionType::Services->value => 'service-list',
             $section->section_type === \App\Enums\PageSectionType::Cta->value && ($content['style'] ?? null) === 'banner' => 'cta-banner',
+            $section->section_type === \App\Enums\PageSectionType::Hero->value && ($content['style'] ?? null) === 'band' => 'hero-band',
+            $section->section_type === \App\Enums\PageSectionType::ImageText->value && in_array($content['style'] ?? null, ['split', 'split-reverse', 'profile'], true) => 'image-text',
             $section->section_type === \App\Enums\PageSectionType::Gallery->value => match ($content['display'] ?? 'grid') {
                 'logos' => 'logos',
                 'services' => 'services',
@@ -45,8 +47,8 @@
         };
     @endphp
 
-    @if (in_array($block, ['testimonials', 'cta-banner', 'portfolio', 'blog-posts', 'service-list'], true))
-        <x-dynamic-component :component="'site.blocks.'.$block" :section="$section" :content="$content"/>
+    @if (in_array($block, ['testimonials', 'cta-banner', 'portfolio', 'blog-posts', 'service-list', 'hero-band', 'image-text'], true))
+        <x-dynamic-component :component="'site.blocks.'.$block" :section="$section" :content="$content" :first="$loop->first"/>
         @continue
     @elseif ($block)
         @php

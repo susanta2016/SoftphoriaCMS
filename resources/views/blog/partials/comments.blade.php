@@ -37,7 +37,7 @@
                         <p id="comment-body-error" class="mt-1.5 text-xs text-red-600">{{ $errors->comment->first('body') }}</p>
                     @endif
                     <div class="mt-3 flex items-center justify-between gap-3">
-                        <p class="text-xs text-brand-navy/45">Be kind and constructive. <span data-comment-count>0</span>/2000</p>
+                        <p class="text-xs text-brand-navy/45">Comments are public. Please follow our <a href="/terms-of-service" class="underline hover:text-brand-accent">community rules</a>. <span data-comment-count>0</span>/2000</p>
                         <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-accent px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-accent-dark disabled:opacity-60">Post comment</button>
                     </div>
                 </div>

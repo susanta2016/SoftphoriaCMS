@@ -86,7 +86,8 @@ class NavigationMenuSeeder extends Seeder
         if ($this->needsSeeding($legalMenu)) {
             $this->seedLinks($legalMenu, null, [
                 'Privacy Policy' => '/privacy-policy',
-                'Terms of Service' => '#',
+                'Terms of Service' => '/terms-of-service',
+                'Cookie Policy' => '/cookie-policy',
                 'Sitemap' => '/sitemap.xml',
             ]);
         }

@@ -74,7 +74,7 @@
         <div class="flex flex-col gap-4 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
             <p class="flex items-start gap-2 text-xs leading-relaxed text-brand-navy/55">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mt-px h-4 w-4 shrink-0 text-brand-accent" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <span>Your details are only used to reply to you — never shared or added to a mailing list.</span>
+                <span>We use your details only to respond to your enquiry and never sell them. See our <a href="/privacy-policy" class="font-semibold text-brand-accent hover:text-brand-accent-dark">Privacy Policy</a>.</span>
             </p>
 
             <x-site.button type="submit" size="lg" data-contact-form-submit class="shrink-0 shadow-lg shadow-brand-accent/25 disabled:cursor-wait disabled:opacity-70">

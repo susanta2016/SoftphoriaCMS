@@ -32,6 +32,23 @@
         <x-site.header :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
     @endif
 
+    @php
+        $visibleSections = $page->sections->where('is_enabled', true)->sortBy('sort_order')->values();
+        $firstSection = $visibleSections->first();
+        // A page that opens with a Hero "Page header band" (e.g. About) gets
+        // its title and <h1> from that band, edge to edge — no default header.
+        $opensWithBand = $firstSection
+            && $firstSection->section_type === \App\Enums\PageSectionType::Hero->value
+            && ($firstSection->content_json['style'] ?? null) === 'band';
+    @endphp
+
+    @if ($page->template === \App\Enums\PageTemplate::Legal)
+        @include('pages.partials.legal')
+    @elseif ($opensWithBand)
+        <main class="flex-1">
+            <x-site.sections :sections="$visibleSections"/>
+        </main>
+    @else
     <main class="pt-24 pb-4 sm:pt-32">
         <div class="mx-auto max-w-4xl px-4 sm:px-6">
             @if ($page->featuredImage)
@@ -51,6 +68,7 @@
 
         <x-site.sections :sections="$page->sections->where('is_enabled', true)->sortBy('sort_order')"/>
     </main>
+    @endif
 
     @if ($showChrome)
         <x-site.footer :site-name="$siteName" :tagline="$tagline"/>

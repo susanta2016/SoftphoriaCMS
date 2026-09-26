@@ -178,7 +178,7 @@ class HomeController extends Controller
 
         if (preg_match('#youtu\.be/([\w-]+)#', $url, $matches)
             || preg_match('#youtube\.com/(?:watch\?v=|embed/|shorts/)([\w-]+)#', $url, $matches)) {
-            return "https://www.youtube.com/embed/{$matches[1]}?rel=0";
+            return "https://www.youtube-nocookie.com/embed/{$matches[1]}?rel=0";
         }
 
         if (preg_match('#vimeo\.com/(?:video/)?(\d+)#', $url, $matches)) {

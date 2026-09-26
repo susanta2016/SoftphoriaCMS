@@ -71,6 +71,7 @@
                 <svg data-contact-widget-spinner xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="hidden h-4 w-4 animate-spin" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-opacity=".3" stroke-width="3"/><path d="M21 12a9 9 0 00-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
                 <span data-contact-widget-submit-label>Send Message</span>
             </button>
+            <p class="text-center text-[0.7rem] text-brand-navy/45">See our <a href="/privacy-policy" class="underline hover:text-brand-accent">Privacy Policy</a>.</p>
         </form>
 
         <div data-contact-widget-success role="status" class="hidden px-5 py-8 text-center">

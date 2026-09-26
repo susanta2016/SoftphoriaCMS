@@ -12,7 +12,7 @@
         <div>
             <p class="text-xs font-semibold tracking-[0.18em] text-white/70 uppercase">Newsletter</p>
             <h2 id="blog-newsletter-heading" @class(['mt-2 font-bold', 'text-xl' => $compact, 'text-2xl sm:text-3xl' => ! $compact])>Get new articles in your inbox</h2>
-            <p class="mt-2 text-sm leading-relaxed text-white/75">Practical engineering notes, no fluff. Unsubscribe anytime.</p>
+            <p class="mt-2 text-sm leading-relaxed text-white/75">Practical engineering notes, no fluff. Unsubscribe anytime — see our <a href="/privacy-policy" class="underline hover:text-white">Privacy Policy</a>.</p>
         </div>
         <form method="POST" action="{{ route('newsletter.subscribe') }}" class="w-full">
             @csrf

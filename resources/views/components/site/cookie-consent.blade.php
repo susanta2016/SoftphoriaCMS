@@ -11,6 +11,7 @@
         $siteName = ($settings->get('general', 'site_name') ?? null) ?: config('app.name');
 
         $privacyPolicyPage = \App\Models\Page::query()->published()->where('slug', 'privacy-policy')->first();
+        $cookiePolicyPage = \App\Models\Page::query()->published()->where('slug', 'cookie-policy')->first();
 
         $categories = [
             ['key' => 'privacy', 'label' => 'Your privacy', 'toggle' => null],
@@ -69,7 +70,9 @@
                                 <h3 class="text-lg font-bold text-brand-navy">{{ $cookies['more_info_title'] ?? 'More information' }}</h3>
                                 <p class="text-sm text-brand-navy/75">{{ $cookies['more_info_description'] ?? '' }}</p>
                                 <p class="text-sm text-brand-navy/75">
-                                    @if ($privacyPolicyPage)
+                                    @if ($privacyPolicyPage && $cookiePolicyPage)
+                                        To find out more, please read our <a href="{{ route('pages.show', $cookiePolicyPage) }}" class="font-semibold text-brand-navy underline hover:text-brand-accent">Cookie Policy</a> and <a href="{{ route('pages.show', $privacyPolicyPage) }}" class="font-semibold text-brand-navy underline hover:text-brand-accent">Privacy Policy</a>.
+                                    @elseif ($privacyPolicyPage)
                                         To find out more, please visit our <a href="{{ route('pages.show', $privacyPolicyPage) }}" class="font-semibold text-brand-navy underline hover:text-brand-accent">Privacy Policy</a>.
                                     @else
                                         To find out more, please visit our Privacy Policy.

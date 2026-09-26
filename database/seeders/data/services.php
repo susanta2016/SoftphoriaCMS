@@ -135,4 +135,48 @@ return [
             ['question' => 'Will our team get training?', 'answer' => 'Yes. We walk your editors through the platform and provide simple documentation.'],
         ],
     ],
+    [
+        'title' => 'AI Development',
+        'slug' => 'ai-development',
+        'icon' => 'sparkles',
+        // Showcased in the Specialised Expertise spotlight, not the main homepage grid.
+        'is_featured' => false,
+        'tagline' => 'Practical AI that saves time and creates new value for your business.',
+        'summary' => 'AI assistants, automation and LLM integrations built into your products and workflows.',
+        'technologies' => ['Python', 'FastAPI', 'OpenAI API', 'Claude API', 'LangChain', 'Vector databases'],
+        'body' => '<p>AI is most valuable when it solves a specific business problem. We help you find those opportunities and turn them into reliable features: assistants that answer customer questions, automations that remove repetitive work, and tools that make your data easier to use.</p><h2>From idea to production</h2><p>We start with a focused use case, build a working prototype quickly, and measure it against real examples before rolling it out. Every solution is designed with data privacy, cost control and human oversight in mind.</p><h2>Built into what you already use</h2><p>We integrate AI into your existing website, apps and back-office systems through secure APIs, so your team gets the benefits without changing how they work.</p>',
+        'highlights' => [
+            ['title' => 'AI assistants & chatbots', 'description' => 'Answer customer and team questions using your own content.'],
+            ['title' => 'Workflow automation', 'description' => 'Classify, summarise and route documents and requests automatically.'],
+            ['title' => 'LLM integrations', 'description' => 'Add AI features to your website, apps and internal tools.'],
+            ['title' => 'Responsible AI', 'description' => 'Privacy-aware design, guardrails, testing and cost monitoring.'],
+        ],
+        'faqs' => [
+            ['question' => 'Where should we start with AI?', 'answer' => 'With one well-defined problem — for example, answering common customer questions or processing incoming documents. We help you pick a use case with clear value and build from there.'],
+            ['question' => 'Is our data safe when using AI services?', 'answer' => 'We design integrations to share only the data needed, use providers\' business terms that exclude training on your data where available, and keep sensitive information protected.'],
+            ['question' => 'Can AI be added to our existing website or software?', 'answer' => 'Yes. Most AI features are added through APIs, so they can be integrated into the systems you already have.'],
+        ],
+    ],
+    [
+        'title' => 'Digital Marketing',
+        'slug' => 'digital-marketing',
+        'icon' => 'megaphone',
+        // Showcased in the Specialised Expertise spotlight, not the main homepage grid.
+        'is_featured' => false,
+        'tagline' => 'Get found by the right customers — and turn visits into leads.',
+        'summary' => 'SEO, content, paid campaigns and analytics that grow your reach and conversions.',
+        'technologies' => ['Google Analytics 4', 'Google Search Console', 'Google Ads', 'Meta Ads', 'Google Tag Manager'],
+        'body' => '<p>A great website only works if the right people find it. We combine technical know-how with marketing to help your business get discovered, earn trust and convert visitors into enquiries and sales.</p><h2>Built on a strong technical foundation</h2><p>Because we build websites, we fix the technical issues that hold rankings back — speed, structure, structured data and indexing — before investing in content and campaigns.</p><h2>Measured, not guessed</h2><p>We set up clear tracking and reporting so you can see which channels bring results, and we keep improving what works.</p>',
+        'highlights' => [
+            ['title' => 'Search engine optimisation', 'description' => 'Technical SEO, on-page optimisation and local search.'],
+            ['title' => 'Content marketing', 'description' => 'Helpful articles and landing pages that attract and convert.'],
+            ['title' => 'Paid campaigns', 'description' => 'Search and social ad campaigns focused on qualified leads.'],
+            ['title' => 'Analytics & conversion', 'description' => 'Tracking, reporting and continuous conversion improvements.'],
+        ],
+        'faqs' => [
+            ['question' => 'How long does SEO take to show results?', 'answer' => 'Technical fixes can help quickly, but meaningful ranking improvements usually build over several months. We agree clear goals and report progress regularly.'],
+            ['question' => 'Do you run paid advertising?', 'answer' => 'Yes. We plan, launch and optimise search and social campaigns, with your ad budget paid directly to the platforms.'],
+            ['question' => 'Will we be able to see the results?', 'answer' => 'Yes. We set up analytics and share simple reports showing traffic, leads and what is driving them.'],
+        ],
+    ],
 ];

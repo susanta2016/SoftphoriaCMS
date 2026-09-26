@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\PruneSecurityDataCommand;
 use App\Console\Commands\PublishDuePagesCommand;
 use App\Http\Middleware\CheckMaintenanceMode;
 use App\Http\Middleware\EnsureFeatureEnabled;
@@ -36,5 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
     // ADMIN-006: flips Scheduled pages to Published once publish_at passes.
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command(PublishDuePagesCommand::class)->everyFiveMinutes();
+        // Privacy Policy §6: security data (IPs, user agents, IP locations) kept 12 months at most.
+        $schedule->command(PruneSecurityDataCommand::class)->dailyAt('03:15');
     })
     ->create();
