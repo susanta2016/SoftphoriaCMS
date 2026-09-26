@@ -50,7 +50,7 @@ class NavigationMenuSeeder extends Seeder
                 'Services' => '/#services',
                 'Solutions' => '/#why-softphoria',
                 'Expertise' => '/#technologies',
-                'Work' => '/#work',
+                'Portfolio' => '/#portfolio',
                 'About' => '/about',
                 'Blog' => '/#insights',
                 'Contact' => '/contact',
@@ -68,7 +68,7 @@ class NavigationMenuSeeder extends Seeder
 
             $this->seedFooterSection($footerMenu, 'Company', 2, [
                 'About' => '/about',
-                'Work' => '/#work',
+                'Portfolio' => '/#portfolio',
                 'Blog' => '/#insights',
                 'Contact' => '/contact',
             ]);

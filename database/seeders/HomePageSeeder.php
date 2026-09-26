@@ -8,6 +8,7 @@ use App\Enums\PageSectionType;
 use App\Enums\PageStatus;
 use App\Enums\PageTemplate;
 use App\Models\Page;
+use App\Models\PortfolioItem;
 use App\Models\Testimonial;
 use App\Models\User;
 use App\Shared\Services\Settings\SettingsRepository;
@@ -123,19 +124,22 @@ class HomePageSeeder extends Seeder
                     ['title' => 'Integrate', 'description' => 'We connect your digital systems so they work together.', 'icon' => 'link'],
                     ['title' => 'Support', 'description' => 'We stay involved beyond launch to maintain and improve your platform.', 'icon' => 'headset'],
                 ]),
-                $this->gallery($existingSections, 'Featured Work', 'projects', [
-                    'anchor' => 'work',
-                    'eyebrow' => 'Featured Work',
-                    'heading' => 'Selected projects',
-                    'link_label' => 'View All Projects',
-                    'link_url' => '#',
-                    'item_link_label' => 'View Case Study',
-                    'background' => 'tint',
-                ], [
-                    ['title' => 'B2B E-Commerce Platform', 'description' => 'A large scale e-commerce platform with complex product management, pricing and ERP integration.', 'icon' => 'cart', 'url' => '#'],
-                    ['title' => '3D Configurator Application', 'description' => 'Interactive 3D product configurator with backend integration and cloud deployment.', 'icon' => 'cog', 'url' => '#'],
-                    ['title' => 'Cloud Migration & Modernization', 'description' => 'Migration and modernization of existing applications to AWS with improved scalability and security.', 'icon' => 'aws', 'url' => '#'],
-                ]),
+                // Cards come from Admin → Portfolio (featured rows) — see seedPortfolioItems().
+                [
+                    'section_type' => PageSectionType::Portfolio->value,
+                    'title' => 'Featured Portfolio',
+                    'is_enabled' => true,
+                    'content_json' => [
+                        'anchor' => 'portfolio',
+                        'eyebrow' => 'Featured Portfolio',
+                        'heading' => 'Selected projects',
+                        'link_label' => 'View All Projects',
+                        'link_url' => '#',
+                        'item_link_label' => 'View Case Study',
+                        'background' => 'tint',
+                        'limit' => 6,
+                    ],
+                ],
                 $this->gallery($existingSections, 'Technologies', 'tech_groups', [
                     'anchor' => 'technologies',
                     'eyebrow' => 'Technologies We Work With',
@@ -227,6 +231,7 @@ class HomePageSeeder extends Seeder
         }
 
         $this->seedTestimonials();
+        $this->seedPortfolioItems();
         $this->seedContactSettingsIfUnset();
     }
 
@@ -280,6 +285,28 @@ class HomePageSeeder extends Seeder
      * are third-party statements, not our own copy). Matched by name, so a
      * re-seed never duplicates them or overwrites an admin's later edits.
      */
+    /**
+     * The redesign's three sample projects, as featured portfolio items.
+     * Only seeded into an empty table, so re-running never overwrites or
+     * re-adds projects an admin has edited or removed.
+     */
+    private function seedPortfolioItems(): void
+    {
+        if (PortfolioItem::query()->exists()) {
+            return;
+        }
+
+        $items = [
+            ['title' => 'B2B E-Commerce Platform', 'category' => 'E-Commerce', 'summary' => 'A large scale e-commerce platform with complex product management, pricing and ERP integration.', 'icon' => 'cart'],
+            ['title' => '3D Configurator Application', 'category' => 'Custom Software', 'summary' => 'Interactive 3D product configurator with backend integration and cloud deployment.', 'icon' => 'cog'],
+            ['title' => 'Cloud Migration & Modernization', 'category' => 'Cloud & DevOps', 'summary' => 'Migration and modernization of existing applications to AWS with improved scalability and security.', 'icon' => 'aws'],
+        ];
+
+        foreach ($items as $index => $item) {
+            PortfolioItem::query()->create([...$item, 'sort_order' => $index, 'is_featured' => true, 'is_published' => true]);
+        }
+    }
+
     private function seedTestimonials(): void
     {
         $testimonials = [

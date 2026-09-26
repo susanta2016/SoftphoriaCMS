@@ -37,6 +37,7 @@ trait FindsMediaUsage
             ['table' => 'poetry_prose', 'column' => 'featured_image_id', 'label' => "a poetry/prose entry's featured image"],
             ['table' => 'social_links', 'column' => 'icon_media_id', 'label' => 'a social media icon'],
             ['table' => 'testimonials', 'column' => 'avatar_media_id', 'label' => "a testimonial's avatar"],
+            ['table' => 'portfolio_items', 'column' => 'cover_media_id', 'label' => "a portfolio item's cover image"],
             ['table' => 'community_attachments', 'column' => 'media_id', 'label' => 'a community attachment'],
         ];
 

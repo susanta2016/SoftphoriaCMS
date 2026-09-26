@@ -27,6 +27,7 @@
         // x-site.section below. Everything else keeps its existing markup.
         $block = match (true) {
             $section->section_type === \App\Enums\PageSectionType::Testimonials->value => 'testimonials',
+            $section->section_type === \App\Enums\PageSectionType::Portfolio->value => 'portfolio',
             $section->section_type === \App\Enums\PageSectionType::Cta->value && ($content['style'] ?? null) === 'banner' => 'cta-banner',
             $section->section_type === \App\Enums\PageSectionType::Gallery->value => match ($content['display'] ?? 'grid') {
                 'logos' => 'logos',
@@ -42,7 +43,7 @@
         };
     @endphp
 
-    @if ($block === 'testimonials' || $block === 'cta-banner')
+    @if (in_array($block, ['testimonials', 'cta-banner', 'portfolio'], true))
         <x-dynamic-component :component="'site.blocks.'.$block" :section="$section" :content="$content"/>
         @continue
     @elseif ($block)

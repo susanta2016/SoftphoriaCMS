@@ -214,10 +214,10 @@ class PageForm
             // gives every block a small label + heading (e.g. "OUR SERVICES"
             // / "Technology solutions built around your business.").
             TextInput::make('content_json.eyebrow')->label('Eyebrow (small label above the heading)')
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::Gallery, PageSectionType::Testimonials])),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::Gallery, PageSectionType::Testimonials, PageSectionType::Portfolio])),
             Textarea::make('content_json.heading')->label('Heading')->rows(2)
                 ->helperText('Line breaks are kept.')
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::Gallery, PageSectionType::Testimonials])),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::Cta, PageSectionType::Gallery, PageSectionType::Testimonials, PageSectionType::Portfolio])),
             TextInput::make('content_json.heading_highlight')->label('Highlighted heading ending')
                 ->helperText('Optional — shown on its own line after the heading, in the accent color (e.g. "business forward.").')
                 ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero])),
@@ -228,7 +228,7 @@ class PageForm
             // section. Cta previously had no body text field, only a
             // heading + button. WEB-103: also a Gallery's intro line.
             Textarea::make('content_json.description')->label('Description')->rows(3)
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Cta, PageSectionType::Gallery])),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Cta, PageSectionType::Gallery, PageSectionType::Portfolio])),
             MediaPicker::make('content_json.media_id', 'Image')
                 ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Hero, PageSectionType::ImageText])),
             TextInput::make('content_json.cta_label')->label('Button label')
@@ -288,7 +288,7 @@ class PageForm
                 ->helperText('Optional — lowercase letters, numbers and dashes. Link to it as /#anchor (e.g. /#services).')
                 ->regex('/^[a-z0-9-]+$/')
                 ->maxLength(60)
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Gallery, PageSectionType::Cta, PageSectionType::Testimonials])),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Gallery, PageSectionType::Cta, PageSectionType::Testimonials, PageSectionType::Portfolio])),
             TextInput::make('content_json.tertiary_label')->label('Additional link label')
                 ->helperText('Optional — a plain link shown below the buttons (e.g. "Watch Introduction").')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
@@ -363,15 +363,29 @@ class PageForm
                 ])
                 ->default('white')
                 ->helperText('Used by the full-width layouts (everything except Card grid and Quotes).')
-                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Gallery->value),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Gallery, PageSectionType::Portfolio])),
             TextInput::make('content_json.link_label')->label('Header link label')
                 ->helperText('Optional — e.g. "View All Services". Shown beside the heading; for Intro + features it is the button under the intro.')
-                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Gallery->value),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Gallery, PageSectionType::Portfolio])),
             TextInput::make('content_json.link_url')->label('Header link URL')->maxLength(255)
-                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Gallery->value),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Gallery, PageSectionType::Portfolio])),
             TextInput::make('content_json.item_link_label')->label('Item link label')
                 ->helperText('Text for each item\'s link, e.g. "Learn More", "View Case Study", "Read More".')
-                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Gallery->value),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Gallery, PageSectionType::Portfolio])),
+
+            // Featured Portfolio: the cards come from Admin → Portfolio
+            // (published + Featured rows), never from this section.
+            TextInput::make('content_json.limit')
+                ->label('Maximum projects to show')
+                ->numeric()
+                ->minValue(1)
+                ->maxValue(12)
+                ->default(6)
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Portfolio])),
+            Placeholder::make('portfolio_notice')
+                ->hiddenLabel()
+                ->content('Shows published portfolio items marked "Featured on homepage" in Portfolio (admin sidebar), in their sort order. The section is hidden while none are featured.')
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Portfolio])),
 
             // WEB-101 item E: a structured repeater (same pattern as the FAQ
             // repeater above) replaces the old bare content_json.media_ids

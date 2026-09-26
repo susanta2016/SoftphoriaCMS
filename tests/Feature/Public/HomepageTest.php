@@ -219,7 +219,7 @@ class HomepageTest extends TestCase
         $response = $this->get('/');
 
         $response->assertSee('Be your tech partner');
-        $response->assertSeeInOrder(['Services', 'Solutions', 'Expertise', 'Work', 'About', 'Blog', 'Contact']);
+        $response->assertSeeInOrder(['Services', 'Solutions', 'Expertise', 'Portfolio', 'About', 'Blog', 'Contact']);
         $response->assertSee('href="/#services"', false);
         $response->assertSee("Let's Talk");
         $response->assertSee('href="'.route('contact.index').'"', false);
@@ -268,7 +268,7 @@ class HomepageTest extends TestCase
         $this->seed(NavigationMenuSeeder::class);
 
         $this->assertSame(
-            ['Services', 'Solutions', 'Expertise', 'Work', 'About', 'Blog', 'Contact'],
+            ['Services', 'Solutions', 'Expertise', 'Portfolio', 'About', 'Blog', 'Contact'],
             $legacy->items()->orderBy('sort_order')->pluck('label')->all(),
         );
         $this->assertSame(['My Own Link'], $custom->items()->pluck('label')->all());

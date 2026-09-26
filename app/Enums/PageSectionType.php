@@ -20,7 +20,9 @@ use Filament\Support\Contracts\HasLabel;
  * real, shared contact form (resources/views/components/site/contact-form.blade.php).
  * testimonials (WEB-103) renders every enabled row from the admin
  * Testimonials resource as a slider — the section itself only carries its
- * heading and background image.
+ * heading and background image. portfolio renders the published + featured
+ * rows from the admin Portfolio resource as project cards (up to
+ * content_json.limit) — the section carries only its heading/links.
  */
 enum PageSectionType: string implements HasLabel
 {
@@ -35,6 +37,7 @@ enum PageSectionType: string implements HasLabel
     case ContactForm = 'contact_form';
     case FeaturedContent = 'featured_content';
     case Testimonials = 'testimonials';
+    case Portfolio = 'portfolio';
 
     public function getLabel(): string
     {
@@ -50,6 +53,7 @@ enum PageSectionType: string implements HasLabel
             self::ContactForm => 'Contact Form',
             self::FeaturedContent => 'Featured Content',
             self::Testimonials => 'Testimonials',
+            self::Portfolio => 'Featured Portfolio',
         };
     }
 
