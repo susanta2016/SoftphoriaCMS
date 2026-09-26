@@ -30,8 +30,9 @@
             </button>
         </div>
 
-        <form data-contact-widget-form method="POST" action="{{ route('contact.submit') }}" novalidate class="grid gap-3 px-5 pt-4 pb-5">
+        <form data-contact-widget-form data-lead-form method="POST" action="{{ route('contact.submit') }}" novalidate class="grid gap-3 px-5 pt-4 pb-5">
             @csrf
+            <x-site.lead-context source="widget"/>
             <input type="hidden" name="{{ \App\Shared\Support\Spam\FormTimeTrap::FIELD }}" value="{{ app(\App\Shared\Support\Spam\FormTimeTrap::class)->issue() }}">
 
             {{-- Honeypot + time trap — see ContactController::store(). --}}

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ContactRequests\Schemas;
 
 use App\Enums\ContactRequestStatus;
+use App\Shared\Support\Contact\LeadContext;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -33,6 +34,34 @@ class ContactRequestInfolist
                 Section::make('Message')
                     ->schema([
                         TextEntry::make('message')->hiddenLabel()->columnSpanFull(),
+                    ]),
+
+                // Lead identification: where the visitor was and what they
+                // clicked (see App\Shared\Support\Contact\LeadContext).
+                Section::make('Lead source')
+                    ->columns(3)
+                    ->schema([
+                        TextEntry::make('page_title')->label('Page')->placeholder('—'),
+                        TextEntry::make('source')
+                            ->label('Form')
+                            ->badge()
+                            ->formatStateUsing(fn (?string $state): ?string => LeadContext::sourceLabel($state))
+                            ->placeholder('—'),
+                        TextEntry::make('cta_label')->label('Button clicked')->placeholder('—'),
+                        TextEntry::make('page_url')
+                            ->label('Page URL')
+                            ->url(fn (?string $state): ?string => $state, shouldOpenInNewTab: true)
+                            ->color('primary')
+                            ->copyable()
+                            ->placeholder('—')
+                            ->columnSpan(2),
+                        TextEntry::make('referrer')
+                            ->label('Arrived from')
+                            ->formatStateUsing(fn (?string $state): ?string => $state ? (parse_url($state, PHP_URL_HOST) ?: $state) : null)
+                            ->url(fn (?string $state): ?string => $state, shouldOpenInNewTab: true)
+                            ->placeholder('Direct / unknown'),
+                        TextEntry::make('ip_address')->label('IP address')->copyable()->placeholder('—'),
+                        TextEntry::make('user_agent')->label('Browser')->placeholder('—')->columnSpan(2),
                     ]),
 
                 Section::make('Workflow')

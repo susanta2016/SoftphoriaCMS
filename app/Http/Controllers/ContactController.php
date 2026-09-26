@@ -6,6 +6,7 @@ use App\Actions\Contact\SubmitContactRequestAction;
 use App\Models\Media;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Contact\ContactDetailMasker;
+use App\Shared\Support\Contact\LeadContext;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use App\Shared\Support\Spam\FormTimeTrap;
 use Closure;
@@ -133,7 +134,7 @@ class ContactController extends Controller
             return $silentSuccess();
         }
 
-        $action->handle($validator->validated(), $request->ip(), $request->userAgent());
+        $action->handle($validator->validated(), $request->ip(), $request->userAgent(), LeadContext::fromRequest($request));
 
         return $silentSuccess();
     }

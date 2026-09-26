@@ -88,6 +88,16 @@ class EmailTemplateSeeder extends Seeder
 
         $hasRealDefault = isset($definition['default_subject']) || isset($definition['default_html_body']);
 
+        // A row still holding an *earlier* shipped default (never edited)
+        // gets the current default body; its subject is left as is.
+        $previousBody = $this->pick($definition['previous_default_html_body'] ?? null, $recipientType->value);
+        if ($previousBody !== null && $template->html_body === $previousBody && $newHtmlBody !== $previousBody) {
+            $template->html_body = $newHtmlBody;
+            $template->save();
+
+            return;
+        }
+
         if (! $stillGeneric || ! $hasRealDefault) {
             return;
         }

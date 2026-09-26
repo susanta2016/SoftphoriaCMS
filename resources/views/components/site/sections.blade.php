@@ -215,7 +215,7 @@
                     :whatsapp="$contactSettings->get('contact', 'whatsapp')"
                     :address="$contactSettings->get('contact', 'address')"
                 />
-                <x-site.contact-form :heading="$section->title ?: null"/>
+                <x-site.contact-form :heading="$section->title ?: null" source="page_section"/>
                 @break
 
             @default

@@ -84,11 +84,20 @@ return [
     'contact_form_submitted' => [
         'label' => 'Contact Form',
         'recipients' => ['user', 'admin'],
-        'variables' => ['name', 'email', 'phone', 'subject', 'message', 'site_name'],
+        'variables' => ['name', 'email', 'phone', 'subject', 'message', 'site_name', 'page_url', 'page_title', 'lead_source', 'cta_label', 'referrer'],
         // Admin copy only: the admin notification must carry the actual
         // submission (the user receipt keeps the generic default/admin edits).
         'default_subject' => ['admin' => '[{{site_name}}] New contact message from {{name}}'],
         'default_html_body' => ['admin' => <<<'HTML'
+            <p>New contact message on {{site_name}}.</p>
+            <p><strong>Name:</strong> {{name}}<br><strong>Email:</strong> {{email}}<br><strong>Phone:</strong> {{phone}}<br><strong>Subject:</strong> {{subject}}</p>
+            <p><strong>Message:</strong><br>{{message}}</p>
+            <p><strong>Sent from:</strong> {{page_title}}<br>{{page_url}}<br><strong>Form:</strong> {{lead_source}}<br><strong>Button clicked:</strong> {{cta_label}}<br><strong>Arrived from:</strong> {{referrer}}</p>
+            HTML],
+        // The admin body shipped before lead context existed. A row still
+        // holding exactly this (never edited) is upgraded by
+        // EmailTemplateSeeder; an edited one is left alone.
+        'previous_default_html_body' => ['admin' => <<<'HTML'
             <p>New contact message on {{site_name}}.</p>
             <p><strong>Name:</strong> {{name}}<br><strong>Email:</strong> {{email}}<br><strong>Phone:</strong> {{phone}}<br><strong>Subject:</strong> {{subject}}</p>
             <p><strong>Message:</strong><br>{{message}}</p>

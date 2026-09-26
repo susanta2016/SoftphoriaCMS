@@ -7,6 +7,7 @@ use App\Enums\UserStatus;
 use App\Models\ContactRequest;
 use App\Models\Role;
 use App\Shared\Services\Notifications\TemplatedMailer;
+use App\Shared\Support\Contact\LeadContext;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -26,13 +27,18 @@ class SubmitContactRequestAction
 
     /**
      * @param  array<string, mixed>  $data
+     * @param  array<string, ?string>  $context  already-validated lead context (LeadContext::fromRequest())
      */
-    public function handle(array $data, ?string $ipAddress, ?string $userAgent): ContactRequest
+    public function handle(array $data, ?string $ipAddress, ?string $userAgent, array $context = []): ContactRequest
     {
         $contactRequest = new ContactRequest;
         $contactRequest->fill($data);
         $contactRequest->ip_address = $ipAddress;
         $contactRequest->user_agent = $userAgent;
+        // Set explicitly (not #[Fillable]): never mass-assigned from input.
+        foreach (['page_url', 'page_title', 'source', 'cta_label', 'referrer'] as $field) {
+            $contactRequest->{$field} = $context[$field] ?? null;
+        }
         $contactRequest->save();
 
         $variables = [
@@ -41,6 +47,11 @@ class SubmitContactRequestAction
             'phone' => $contactRequest->phone ?? '',
             'subject' => $contactRequest->subject ?? '',
             'message' => $contactRequest->message,
+            'page_url' => $contactRequest->page_url ?? '',
+            'page_title' => $contactRequest->page_title ?? '',
+            'lead_source' => LeadContext::sourceLabel($contactRequest->source) ?? '',
+            'cta_label' => $contactRequest->cta_label ?? '',
+            'referrer' => $contactRequest->referrer ?? '',
         ];
 
         $this->notifySubmitter($contactRequest, $variables);

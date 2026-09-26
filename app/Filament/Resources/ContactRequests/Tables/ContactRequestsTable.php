@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ContactRequests\Tables;
 
 use App\Enums\ContactRequestStatus;
 use App\Filament\Resources\ContactRequests\ContactRequestResource;
+use App\Shared\Support\Contact\LeadContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
@@ -20,6 +21,16 @@ class ContactRequestsTable
                 TextColumn::make('name')->searchable(),
                 TextColumn::make('email')->searchable(),
                 TextColumn::make('subject')->placeholder('—')->limit(40),
+                // Lead identification: which page and form the message came from.
+                TextColumn::make('page_url')
+                    ->label('From page')
+                    ->formatStateUsing(fn (?string $state): string => $state ? ((string) parse_url($state, PHP_URL_PATH) ?: '/') : '—')
+                    ->description(fn ($record): ?string => LeadContext::sourceLabel($record->source))
+                    ->url(fn ($record): ?string => $record->page_url, shouldOpenInNewTab: true)
+                    ->limit(40)
+                    ->searchable()
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn (ContactRequestStatus $state): string => $state->getLabel())
@@ -34,6 +45,9 @@ class ContactRequestsTable
             ->filters([
                 SelectFilter::make('status')
                     ->options(ContactRequestStatus::options()),
+                SelectFilter::make('source')
+                    ->label('Form')
+                    ->options(LeadContext::SOURCES),
             ])
             ->recordActions([
                 ActionGroup::make([

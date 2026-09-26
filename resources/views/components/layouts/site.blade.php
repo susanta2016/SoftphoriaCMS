@@ -36,6 +36,10 @@
     @if (! request()->routeIs('contact.index') && app(\App\Shared\Support\Features\Features::class)->enabled('contact_widget'))
         <x-site.contact-widget/>
     @endif
+    {{-- Contact-page call-to-action links open this instead (Contact Popup feature). --}}
+    @if (! request()->routeIs('contact.index') && app(\App\Shared\Support\Features\Features::class)->enabled('contact_popup'))
+        <x-site.contact-modal/>
+    @endif
     <x-site.cookie-consent/>
 </body>
 </html>

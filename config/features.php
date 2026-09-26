@@ -7,6 +7,7 @@ use App\Filament\Resources\BlogComments\BlogCommentResource;
 use App\Filament\Resources\BlogPosts\BlogPostResource;
 use App\Filament\Resources\BlogReactions\BlogReactionResource;
 use App\Filament\Resources\BlogTags\BlogTagResource;
+use App\Filament\Resources\ContactRequests\ContactRequestResource;
 use App\Filament\Resources\NewsletterSubscribers\NewsletterSubscriberResource;
 use App\Filament\Resources\PortfolioItems\PortfolioItemResource;
 use App\Filament\Resources\Services\ServiceResource;
@@ -133,6 +134,12 @@ return [
                     'description' => 'The footer and blog newsletter signup forms.',
                     'default' => true,
                     'edit' => NewsletterSubscriberResource::class,
+                ],
+                'contact_popup' => [
+                    'label' => 'Contact Popup',
+                    'description' => 'Call-to-action links to the Contact page ("Start a Conversation", "Let\'s Talk"…) open a quick contact form in a popup. Menu links still open the Contact page.',
+                    'default' => true,
+                    'edit' => ContactRequestResource::class,
                 ],
                 'contact_widget' => [
                     'label' => 'Contact Widget',

@@ -7,7 +7,7 @@
     explicit rule. Progressive enhancement (busy state, message counter)
     lives in resources/js/app.js ([data-contact-form]).
 --}}
-@props(['heading' => null, 'description' => null])
+@props(['heading' => null, 'description' => null, 'source' => 'contact_page'])
 
 <div {{ $attributes }}>
     @if ($heading)
@@ -22,9 +22,11 @@
         method="POST"
         action="{{ route('contact.submit') }}"
         data-contact-form
+        data-lead-form
         class="relative grid gap-5 sm:grid-cols-2 {{ ($heading || $description) ? 'mt-6' : '' }}"
     >
         @csrf
+        <x-site.lead-context :source="$source"/>
 
         {{-- Time trap: when this form was served (encrypted) — see FormTimeTrap / ContactController::store(). --}}
         <input type="hidden" name="{{ \App\Shared\Support\Spam\FormTimeTrap::FIELD }}" value="{{ app(\App\Shared\Support\Spam\FormTimeTrap::class)->issue() }}">

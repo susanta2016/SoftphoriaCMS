@@ -787,3 +787,172 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// Lead context (resources/views/components/site/lead-context.blade.php):
+// every contact form reports the page it was sent from, its title and the
+// site the visitor first arrived from (kept for the browsing session), so
+// Admin → Contact Requests can tell where each lead came from. Filled in
+// the capture phase, before any other submit handler reads the form.
+(() => {
+    const REFERRER_KEY = 'softphoria.lead_referrer';
+
+    try {
+        const referrer = document.referrer ? new URL(document.referrer) : null;
+        if (referrer && referrer.host !== window.location.host && !sessionStorage.getItem(REFERRER_KEY)) {
+            sessionStorage.setItem(REFERRER_KEY, referrer.href);
+        }
+    } catch {
+        // Storage unavailable (private mode) — the server falls back to Referer.
+    }
+
+    document.addEventListener('submit', (event) => {
+        const form = event.target.closest?.('form[data-lead-form]');
+        if (!form) return;
+
+        const set = (name, value) => {
+            const input = form.querySelector(`[data-lead-field="${name}"]`);
+            if (input) input.value = value;
+        };
+
+        set('page_url', window.location.href);
+        set('page_title', document.title);
+        try {
+            set('referrer', sessionStorage.getItem(REFERRER_KEY) ?? '');
+        } catch {
+            set('referrer', '');
+        }
+    }, true);
+})();
+
+// Quick-contact popup (resources/views/components/site/contact-modal.blade.php):
+// call-to-action links to the Contact page open it instead of navigating.
+// Menus (nav/footer), new-tab clicks and links marked data-no-contact-popup
+// keep their normal behaviour.
+document.addEventListener('DOMContentLoaded', () => {
+    const dialog = document.querySelector('dialog[data-contact-modal]');
+    if (!dialog || typeof dialog.showModal !== 'function') return;
+
+    const form = dialog.querySelector('[data-contact-modal-form]');
+    const alertBox = dialog.querySelector('[data-contact-modal-alert]');
+    const submit = dialog.querySelector('[data-contact-modal-submit]');
+    const spinner = dialog.querySelector('[data-contact-modal-spinner]');
+    const success = dialog.querySelector('[data-contact-modal-success]');
+    const ctaField = form.querySelector('[data-lead-field="lead_cta"]');
+    const contactPath = new URL(dialog.querySelector('a[data-no-contact-popup]').href).pathname.replace(/\/+$/, '');
+
+    const isContactCta = (link) => {
+        if (link.hasAttribute('data-no-contact-popup') || link.target === '_blank' || link.hasAttribute('download')) return false;
+        if (link.closest('nav, footer, dialog, [data-contact-widget]')) return false;
+
+        const url = new URL(link.href, window.location.href);
+        return url.origin === window.location.origin && url.pathname.replace(/\/+$/, '') === contactPath && url.hash === '';
+    };
+
+    const reset = () => {
+        success.classList.add('hidden');
+        form.classList.remove('hidden');
+        alertBox.classList.add('hidden');
+        form.querySelectorAll('[data-error-for]').forEach((el) => {
+            el.textContent = '';
+            el.classList.add('hidden');
+        });
+        form.querySelectorAll('[aria-invalid]').forEach((el) => el.removeAttribute('aria-invalid'));
+    };
+
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('a[href]');
+        if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        if (!isContactCta(link)) return;
+
+        event.preventDefault();
+        if (!success.classList.contains('hidden')) {
+            form.reset();
+        }
+        reset();
+        ctaField.value = (link.getAttribute('aria-label') || link.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+        dialog.showModal();
+        dialog.querySelector('#cm-name')?.focus();
+    });
+
+    dialog.querySelectorAll('[data-contact-modal-close]').forEach((button) => {
+        button.addEventListener('click', () => dialog.close());
+    });
+
+    // A click on the backdrop (the dialog element itself, outside its box) closes it.
+    dialog.addEventListener('click', (event) => {
+        if (event.target !== dialog) return;
+        const box = dialog.getBoundingClientRect();
+        const inside = event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
+        if (!inside) dialog.close();
+    });
+
+    form.addEventListener('input', (event) => {
+        if (event.target.getAttribute('aria-invalid') !== 'true') return;
+        event.target.removeAttribute('aria-invalid');
+        form.querySelector(`[data-error-for="${event.target.name}"]`)?.classList.add('hidden');
+    });
+
+    const showAlert = (message) => {
+        alertBox.textContent = message;
+        alertBox.classList.remove('hidden');
+    };
+
+    const showFieldErrors = (errors) => {
+        Object.entries(errors).forEach(([name, messages]) => {
+            form.elements[name]?.setAttribute('aria-invalid', 'true');
+            const error = form.querySelector(`[data-error-for="${name}"]`);
+            if (error) {
+                error.textContent = Array.isArray(messages) ? messages[0] : messages;
+                error.classList.remove('hidden');
+            }
+        });
+        form.querySelector('[aria-invalid="true"]')?.focus();
+    };
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        reset();
+
+        if (!form.checkValidity()) {
+            const errors = {};
+            [...form.elements].filter((el) => el.name && !el.checkValidity()).forEach((el) => {
+                errors[el.name] = el.validationMessage;
+            });
+            showFieldErrors(errors);
+            return;
+        }
+
+        submit.disabled = true;
+        spinner.classList.remove('hidden');
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new FormData(form),
+            });
+            const data = await response.json().catch(() => ({}));
+
+            if (response.ok) {
+                form.reset();
+                form.classList.add('hidden');
+                success.querySelector('[data-contact-modal-success-text]').textContent = data.message ?? '';
+                success.classList.remove('hidden');
+                success.querySelector('[data-contact-modal-close]')?.focus();
+            } else if (response.status === 422 && data.errors) {
+                showFieldErrors(data.errors);
+            } else if (response.status === 429) {
+                showAlert('Too many messages in a short time — please wait a minute and try again.');
+            } else if (response.status === 419) {
+                showAlert('Your session has expired — please refresh the page and try again.');
+            } else {
+                showAlert('Something went wrong sending your message. Please try again.');
+            }
+        } catch {
+            showAlert('Could not reach the server — please check your connection and try again.');
+        } finally {
+            submit.disabled = false;
+            spinner.classList.add('hidden');
+        }
+    });
+});
