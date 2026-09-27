@@ -41,6 +41,7 @@ jobs:
           chmod 644 ~/.ssh/known_hosts
 
           ssh \
+            -p 21098 \
             -i ~/.ssh/softphoria_cicd \
             -o BatchMode=yes \
             -o StrictHostKeyChecking=yes \
