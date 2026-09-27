@@ -68,15 +68,10 @@ else
     echo "New deployment available."
 fi
 
-# ------------------------------------------------
 # 3. Database backup
-# ------------------------------------------------
-
 echo
 echo "[3/10] Creating database backup..."
-
 mkdir -p "$BACKUP_DIR"
-
 DB_BACKUP="${BACKUP_DIR}/softphoria-db-${DATE}.sql"
 
 DB_PASSWORD=$(php artisan tinker --execute="echo config('database.connections.mysql.password');")
