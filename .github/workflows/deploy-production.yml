@@ -1,0 +1,48 @@
+name: Deploy Softphoria CMS
+
+on:
+  push:
+    branches:
+      - develop
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+
+    steps:
+      - name: Deploy via SSH
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+          SERVER_HOST: ${{ secrets.PRODUCTION_HOST }}
+          SERVER_USER: ${{ secrets.PRODUCTION_USER }}
+        run: |
+          set -e
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/softphoria_cicd
+          chmod 600 ~/.ssh/softphoria_cicd
+
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+          ssh \
+            -i ~/.ssh/softphoria_cicd \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$SERVER_USER@$SERVER_HOST" \
+            'cd /home/softphuk/softphoria-cms && ./scripts/deploy-production.sh'
