@@ -79,7 +79,7 @@ mkdir -p "$BACKUP_DIR"
 
 DB_BACKUP="${BACKUP_DIR}/softphoria-db-${DATE}.sql"
 
-mysqldump \
+mariadb-dump \
     -u "$DB_USER" \
     -p \
     "$DB_NAME" \
