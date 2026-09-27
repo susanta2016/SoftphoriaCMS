@@ -44,7 +44,6 @@ class ServiceController extends Controller
 
         return view('services.index', $this->chrome() + [
             'services' => $services,
-            'technologies' => $services->flatMap(fn (Service $service): array => $service->technologies ?? [])->unique(fn (string $t): string => mb_strtolower($t))->values(),
             'settings' => $this->settings,
             'portfolioOn' => $this->features->enabled('portfolio'),
             'seo' => SeoTagBuilder::build(null, [

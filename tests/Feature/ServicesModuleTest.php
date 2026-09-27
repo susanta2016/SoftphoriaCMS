@@ -111,7 +111,7 @@ class ServicesModuleTest extends TestCase
             ->assertOk()
             ->assertSee('Visible Service')
             ->assertDontSee('Hidden Service')
-            ->assertSee('Laravel')
+            ->assertDontSee('Proven tools, chosen for your project')
             ->assertSee('"@type":"CollectionPage"', false)
             ->assertSee('"@type":"ItemList"', false)
             ->assertSee('<link rel="canonical" href="'.url('/services').'"', false);

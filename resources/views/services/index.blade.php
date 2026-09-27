@@ -1,6 +1,6 @@
 {{--
     /services — the Services landing page: hero with quick links to every
-    service, the service grid, the combined tech stack, how we work, and the
+    service, the service grid, how we work, and the
     Services Settings call to action.
 --}}
 <x-layouts.site :seo="$seo">
@@ -76,21 +76,6 @@
                 @endif
             </div>
         </section>
-
-        {{-- Tech stack --}}
-        @if ($technologies->isNotEmpty())
-            <section id="technologies" class="scroll-mt-24 bg-white py-16" aria-labelledby="tech-heading">
-                <div class="mx-auto max-w-6xl px-4 text-center sm:px-6">
-                    <p class="text-sm font-semibold tracking-[0.15em] text-brand-accent uppercase">Technology</p>
-                    <h2 id="tech-heading" class="mt-2 text-3xl font-bold tracking-tight text-brand-navy">Proven tools, chosen for your project</h2>
-                    <ul class="mx-auto mt-8 flex max-w-4xl flex-wrap justify-center gap-2.5">
-                        @foreach ($technologies as $technology)
-                            <li class="rounded-full border border-brand-navy/10 bg-brand-mist px-4 py-2 text-sm font-medium text-brand-navy/80">{{ $technology }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            </section>
-        @endif
 
         {{-- How we work --}}
         <section class="border-t border-brand-navy/5 bg-white py-16 sm:py-20" aria-labelledby="process-heading">
