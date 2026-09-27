@@ -79,12 +79,20 @@ mkdir -p "$BACKUP_DIR"
 
 DB_BACKUP="${BACKUP_DIR}/softphoria-db-${DATE}.sql"
 
+DB_PASSWORD=$(php artisan tinker --execute="echo config('database.connections.mysql.password');")
 
-mariadb-dump \
+if [[ -z "$DB_PASSWORD" ]]; then
+    echo
+    echo "ERROR: Production database password could not be read from Laravel configuration."
+    exit 1
+fi
+
+MYSQL_PWD="$DB_PASSWORD" mariadb-dump \
     -u "$DB_USER" \
-    -p \
     "$DB_NAME" \
     > "$DB_BACKUP"
+
+unset DB_PASSWORD
 
 if [[ ! -s "$DB_BACKUP" ]]; then
     echo
