@@ -41,9 +41,15 @@ jobs:
           chmod 644 ~/.ssh/known_hosts
 
           ssh \
-            -p 21098 \
-            -i ~/.ssh/softphoria_cicd \
-            -o BatchMode=yes \
-            -o StrictHostKeyChecking=yes \
-            "$SERVER_USER@$SERVER_HOST" \
-            'cd /home/softphuk/softphoria-cms && ./scripts/deploy-production.sh'
+          -p 21098 \
+          -i ~/.ssh/softphoria_cicd \
+          -o BatchMode=yes \
+          -o StrictHostKeyChecking=yes \
+          "$SERVER_USER@$SERVER_HOST" \
+          'cd /home/softphuk/softphoria-cms && \
+          CURRENT_BRANCH=$(git branch --show-current) && \
+          [ "$CURRENT_BRANCH" = "develop" ] || { echo "ERROR: Expected develop branch, found $CURRENT_BRANCH"; exit 1; } && \
+          [ -z "$(git status --porcelain)" ] || { echo "ERROR: Production working tree is not clean"; git status --short; exit 1; } && \
+          git fetch origin develop && \
+          git pull --ff-only origin develop && \
+          ./scripts/deploy-production.sh'
