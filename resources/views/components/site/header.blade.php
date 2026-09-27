@@ -53,12 +53,11 @@
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
             <a href="{{ route('home') }}" class="min-w-0 shrink">
                 @if ($logo)
-                    {{-- The uploaded lockup has a lot of empty canvas above/below the ring+wordmark, so a plain height cap renders it unreadably small. Cropping to the artwork's own aspect ratio keeps the header compact while showing it at a legible size. --}}
+                    {{-- Shown whole at its own aspect ratio (height cap only) — never cropped, so any uploaded logo keeps its full artwork. --}}
                     <img
                         src="{{ \Illuminate\Support\Facades\Storage::disk($logo->disk)->url($logo->path) }}"
                         alt="{{ $siteName }}"
-                        class="h-11 w-auto object-cover sm:h-12"
-                        style="aspect-ratio: 4.7 / 1; object-position: 50% 45%;"
+                        class="h-11 w-auto max-w-full object-contain sm:h-12"
                     >
                 @else
                     <x-site.brand-mark :site-name="$siteName" :tagline="$tagline" :on-dark="false" class="min-w-0"/>
