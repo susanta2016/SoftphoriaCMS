@@ -79,6 +79,7 @@ mkdir -p "$BACKUP_DIR"
 
 DB_BACKUP="${BACKUP_DIR}/softphoria-db-${DATE}.sql"
 
+
 mariadb-dump \
     -u "$DB_USER" \
     -p \
