@@ -78,7 +78,7 @@ class LegalPagesTest extends TestCase
         $this->seed(LegalPagesSeeder::class);
 
         $this->get('/privacy-policy')
-            ->assertSee('Last updated')
+            ->assertDontSee('Last updated')
             ->assertSee('On this page')
             ->assertSee('href="#1-who-is-responsible-for-your-data"', false)
             ->assertSee('id="1-who-is-responsible-for-your-data"', false)

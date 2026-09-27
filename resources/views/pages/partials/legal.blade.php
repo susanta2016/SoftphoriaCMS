@@ -1,6 +1,6 @@
 {{--
     Layout for Legal/Policy-template CMS pages (Privacy Policy, Terms of
-    Service, Cookie Policy…): a calm header with the last-updated date, the
+    Service, Cookie Policy…): a calm title header, the
     document in readable long-form typography (.blog-prose), a sticky table
     of contents built from its Heading 2s, and links to the sibling
     policies. The content is still the page's own Rich Text section(s),
@@ -38,10 +38,6 @@
             @if ($page->summary)
                 <p class="mt-4 max-w-3xl text-lg leading-relaxed text-brand-navy/70">{{ $page->summary }}</p>
             @endif
-            <p class="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm text-brand-navy/65 shadow-sm ring-1 ring-brand-navy/5">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 text-brand-accent" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>
-                Last updated <time datetime="{{ $page->updated_at->toDateString() }}" class="font-semibold text-brand-navy">{{ $page->updated_at->format('j F Y') }}</time>
-            </p>
         </div>
     </header>
 
