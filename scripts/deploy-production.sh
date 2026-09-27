@@ -12,6 +12,9 @@ DB_USER="softphuk_softphoria"
 
 DATE=$(date +%Y%m%d-%H%M%S)
 
+# Internal flag used when the script restarts itself
+POST_UPDATE="${1:-false}"
+
 echo
 echo "=============================================="
 echo " Softphoria CMS Production Deployment"
@@ -48,7 +51,7 @@ echo "Git working tree is clean."
 echo "Current commit: $(git rev-parse --short HEAD)"
 
 # ------------------------------------------------
-# 2. Fetch remote
+# 2. Fetch and synchronize GitHub
 # ------------------------------------------------
 
 echo
@@ -63,15 +66,36 @@ echo "Local : ${LOCAL_COMMIT}"
 echo "Remote: ${REMOTE_COMMIT}"
 
 if [[ "$LOCAL_COMMIT" == "$REMOTE_COMMIT" ]]; then
+
     echo "Production is already up to date."
+
 else
+
     echo "New deployment available."
+    echo
+    echo "Updating application code..."
+
+    git pull --ff-only origin "$BRANCH"
+
+    echo "Now running commit:"
+    git rev-parse --short HEAD
+
+    echo
+    echo "Restarting deployment script from updated code..."
+
+    exec "$APP_DIR/scripts/deploy-production.sh" --post-update
+
 fi
 
+# ------------------------------------------------
 # 3. Database backup
+# ------------------------------------------------
+
 echo
 echo "[3/10] Creating database backup..."
+
 mkdir -p "$BACKUP_DIR"
+
 DB_BACKUP="${BACKUP_DIR}/softphoria-db-${DATE}.sql"
 
 DB_PASSWORD=$(php artisan tinker --execute="echo config('database.connections.mysql.password');")
@@ -99,23 +123,11 @@ echo "Database backup created:"
 echo "$DB_BACKUP"
 
 # ------------------------------------------------
-# 4. Deploy Git code
+# 4. Install PHP dependencies
 # ------------------------------------------------
 
 echo
-echo "[4/10] Updating application code..."
-
-git pull --ff-only origin "$BRANCH"
-
-echo "Now running commit:"
-git rev-parse --short HEAD
-
-# ------------------------------------------------
-# 5. Install PHP dependencies
-# ------------------------------------------------
-
-echo
-echo "[5/10] Installing Composer dependencies..."
+echo "[4/10] Installing Composer dependencies..."
 
 /home/softphuk/bin/composer install \
     --no-dev \
@@ -123,49 +135,54 @@ echo "[5/10] Installing Composer dependencies..."
     --optimize-autoloader
 
 # ------------------------------------------------
-# 6. Database migrations
+# 5. Database migrations
 # ------------------------------------------------
 
 echo
-echo "[6/10] Running database migrations..."
+echo "[5/10] Running database migrations..."
 
 php artisan migrate --force
 
 # ------------------------------------------------
-# 7. Verify storage
+# 6. Verify storage
 # ------------------------------------------------
 
 echo
-echo "[7/10] Verifying storage..."
+echo "[6/10] Verifying storage..."
 
 STORAGE_TARGET="$APP_DIR/storage/app/public"
 STORAGE_LINK="$PUBLIC_DIR/storage"
 
 if [[ ! -L "$STORAGE_LINK" ]]; then
+
     echo "Storage symlink missing."
 
     php artisan storage:link
+
 else
+
     LINK_TARGET=$(readlink "$STORAGE_LINK")
 
     echo "Storage link:"
     echo "$STORAGE_LINK -> $LINK_TARGET"
 
     if [[ "$LINK_TARGET" != "$STORAGE_TARGET" ]]; then
+
         echo
         echo "ERROR: Storage symlink points to an unexpected location."
         echo "Expected: $STORAGE_TARGET"
         echo "Actual:   $LINK_TARGET"
+
         exit 1
     fi
 fi
 
 # ------------------------------------------------
-# 8. Permissions
+# 7. Permissions
 # ------------------------------------------------
 
 echo
-echo "[8/10] Verifying Laravel permissions..."
+echo "[7/10] Verifying Laravel permissions..."
 
 chmod -R ug+rwX storage bootstrap/cache
 
@@ -178,27 +195,31 @@ find storage/app/public \
     -exec chmod 644 {} \;
 
 # ------------------------------------------------
-# 9. Laravel optimization
+# 8. Laravel optimization
 # ------------------------------------------------
 
 echo
-echo "[9/10] Optimizing Laravel..."
+echo "[8/10] Optimizing Laravel..."
 
 php artisan optimize:clear
 php artisan optimize
 
 # ------------------------------------------------
-# 10. Final verification
+# 9. Final verification
 # ------------------------------------------------
 
 echo
-echo "[10/10] Final verification..."
+echo "[9/10] Final verification..."
 
 php artisan about --only=environment
 
 echo
 echo "Git status:"
 git status --short
+
+# ------------------------------------------------
+# 10. Deployment complete
+# ------------------------------------------------
 
 echo
 echo "=============================================="
