@@ -8,6 +8,7 @@ use App\Models\Media;
 use App\Models\Page;
 use App\Models\Role;
 use App\Models\User;
+use App\Shared\Support\Features\Features;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -151,6 +152,7 @@ class PageRenderingTest extends TestCase
 
     public function test_guest_sees_login_and_register_links_on_a_public_page(): void
     {
+        app(Features::class)->set('header_account_links', true);
         $page = $this->publishedPage(['title' => 'Guest Header', 'slug' => 'guest-header']);
 
         $response = $this->get('/'.$page->slug);
@@ -162,6 +164,7 @@ class PageRenderingTest extends TestCase
 
     public function test_authenticated_user_sees_profile_and_logout_instead(): void
     {
+        app(Features::class)->set('header_account_links', true);
         $user = User::factory()->create(['status' => 'active']);
         $page = $this->publishedPage(['title' => 'Auth Header', 'slug' => 'auth-header']);
 

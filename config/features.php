@@ -167,6 +167,11 @@ return [
                     'description' => 'The site-wide "Contact Us" tab on the right edge of every page.',
                     'default' => true,
                 ],
+                'header_account_links' => [
+                    'label' => 'Header Account Links',
+                    'description' => 'Log In / Register (guests) and My Profile / Log Out (members) in the public site header and mobile menu. Off only hides the links — the login and account pages keep working.',
+                    'default' => false,
+                ],
             ],
         ],
     ],

@@ -20,6 +20,10 @@
         ->reject(fn ($item) => $features->hidesLink($item->resolvedUrl()))
         ->values();
 
+    // Log In / account links are opt-in (Features Activation → "Header
+    // Account Links", off by default); the login/account pages still work.
+    $accountLinks = $features->enabled('header_account_links');
+
     // WEB-103: the redesign's single header call-to-action — editable in
     // Website Setup → General; defaults to "Let's Talk" → the Contact page.
     $generalSettings = app(\App\Shared\Services\Settings\SettingsRepository::class);
@@ -37,9 +41,9 @@
     WEB-103 redesign — a plain white bar: logo, primary nav (Menus →
     Primary Navigation) and a "Let's Talk" button. The WEB-102 gold
     utility bar and phone module were dropped to match the design; the
-    Contact page still shows those contact details. Account links stay
-    (a quiet "Log In" for guests, profile/logout when signed in) since
-    they're the only way into AUTH-002/AUTH-005.
+    Contact page still shows those contact details. Account links (a
+    quiet "Log In" for guests, profile/logout when signed in) only show
+    while Features Activation → "Header Account Links" is on.
 --}}
 <div class="fixed inset-x-0 top-0 z-30 w-full">
     <header
@@ -84,23 +88,25 @@
                     existed. @guest/@auth here are the only auth-state-aware
                     markup in this component.
                 --}}
-                @guest
-                    <a href="{{ route('login') }}" class="hidden text-sm font-medium text-brand-navy transition hover:text-brand-accent sm:inline-block">
-                        Log In
-                    </a>
-                @else
-                    @if (Route::has('account.profile.edit'))
-                        <a href="{{ route('account.profile.edit') }}" class="hidden text-sm font-medium text-brand-navy transition hover:text-brand-accent sm:inline-block">
-                            My Profile
+                @if ($accountLinks)
+                    @guest
+                        <a href="{{ route('login') }}" class="hidden text-sm font-medium text-brand-navy transition hover:text-brand-accent sm:inline-block">
+                            Log In
                         </a>
-                    @endif
-                    <form method="POST" action="{{ route('logout') }}" class="hidden sm:block">
-                        @csrf
-                        <button type="submit" class="text-sm font-medium text-brand-navy transition hover:text-brand-accent">
-                            Log Out
-                        </button>
-                    </form>
-                @endguest
+                    @else
+                        @if (Route::has('account.profile.edit'))
+                            <a href="{{ route('account.profile.edit') }}" class="hidden text-sm font-medium text-brand-navy transition hover:text-brand-accent sm:inline-block">
+                                My Profile
+                            </a>
+                        @endif
+                        <form method="POST" action="{{ route('logout') }}" class="hidden sm:block">
+                            @csrf
+                            <button type="submit" class="text-sm font-medium text-brand-navy transition hover:text-brand-accent">
+                                Log Out
+                            </button>
+                        </form>
+                    @endguest
+                @endif
 
                 <span class="hidden sm:block">
                     <x-site.button :href="$talkUrl" class="whitespace-nowrap">
@@ -135,31 +141,33 @@
                 @endforeach
             </nav>
 
-            {{-- From sm up the header row already shows these (except Register), so a signed-in user's copy would just be an empty bordered row there. --}}
+            {{-- From sm up the header row already shows these (except Register), so a signed-in user's copy — or, with account links off, the phone-only Let's Talk button — would just be an empty bordered row there. --}}
             <div @class([
                 'mx-auto flex max-w-7xl flex-col gap-1 border-t border-brand-navy/10 px-4 py-3 sm:px-6',
-                'sm:hidden' => auth()->check(),
+                'sm:hidden' => auth()->check() || ! $accountLinks,
             ])>
-                @guest
-                    <a href="{{ route('login') }}" class="rounded-md px-3 py-3 text-base font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent sm:hidden">
-                        Log In
-                    </a>
-                    <a href="{{ route('register') }}" class="rounded-md px-3 py-3 text-base font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent">
-                        Register
-                    </a>
-                @else
-                    @if (Route::has('account.profile.edit'))
-                        <a href="{{ route('account.profile.edit') }}" class="rounded-md px-3 py-3 text-base font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent sm:hidden">
-                            My Profile
+                @if ($accountLinks)
+                    @guest
+                        <a href="{{ route('login') }}" class="rounded-md px-3 py-3 text-base font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent sm:hidden">
+                            Log In
                         </a>
-                    @endif
-                    <form method="POST" action="{{ route('logout') }}" class="sm:hidden">
-                        @csrf
-                        <button type="submit" class="w-full rounded-md px-3 py-2.5 text-left text-sm font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent">
-                            Log Out
-                        </button>
-                    </form>
-                @endguest
+                        <a href="{{ route('register') }}" class="rounded-md px-3 py-3 text-base font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent">
+                            Register
+                        </a>
+                    @else
+                        @if (Route::has('account.profile.edit'))
+                            <a href="{{ route('account.profile.edit') }}" class="rounded-md px-3 py-3 text-base font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent sm:hidden">
+                                My Profile
+                            </a>
+                        @endif
+                        <form method="POST" action="{{ route('logout') }}" class="sm:hidden">
+                            @csrf
+                            <button type="submit" class="w-full rounded-md px-3 py-2.5 text-left text-sm font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent">
+                                Log Out
+                            </button>
+                        </form>
+                    @endguest
+                @endif
                 <x-site.button :href="$talkUrl" class="mt-2 sm:hidden">
                     {{ $talkLabel }} <x-site.arrow class="h-4 w-4"/>
                 </x-site.button>

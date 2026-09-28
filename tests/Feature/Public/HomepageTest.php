@@ -14,6 +14,7 @@ use App\Models\Role;
 use App\Models\Testimonial;
 use App\Models\User;
 use App\Shared\Services\Settings\SettingsRepository;
+use App\Shared\Support\Features\Features;
 use Database\Seeders\HomePageSeeder;
 use Database\Seeders\NavigationMenuSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -348,9 +349,29 @@ class HomepageTest extends TestCase
         $response->assertDontSee('noindex');
     }
 
-    public function test_guest_sees_login_and_register_links_on_the_homepage(): void
+    public function test_the_header_hides_account_links_by_default_but_login_still_works(): void
     {
         $this->seedHomepage();
+        $user = User::factory()->create(['status' => 'active']);
+
+        $guest = $this->get('/');
+        $guest->assertOk();
+        $guest->assertDontSee(route('login'), false);
+        $guest->assertDontSee(route('register'), false);
+        $guest->assertSee("Let's Talk");
+
+        $member = $this->actingAs($user)->get('/');
+        $member->assertDontSee(route('account.profile.edit'), false);
+        $member->assertDontSee(route('logout'), false);
+
+        auth()->logout();
+        $this->get(route('login'))->assertOk();
+    }
+
+    public function test_guest_sees_login_and_register_links_when_header_account_links_are_on(): void
+    {
+        $this->seedHomepage();
+        app(Features::class)->set('header_account_links', true);
 
         $response = $this->get('/');
 
@@ -358,9 +379,10 @@ class HomepageTest extends TestCase
         $response->assertSee(route('register'), false);
     }
 
-    public function test_authenticated_user_sees_profile_and_logout_on_the_homepage(): void
+    public function test_authenticated_user_sees_profile_and_logout_when_header_account_links_are_on(): void
     {
         $this->seedHomepage();
+        app(Features::class)->set('header_account_links', true);
         $user = User::factory()->create(['status' => 'active']);
 
         $response = $this->actingAs($user)->get('/');
