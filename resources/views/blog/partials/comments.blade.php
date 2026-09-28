@@ -3,8 +3,15 @@
     can be deleted by its author and reported (red flag) by other members
     when Comment Reporting is on — reports land in Admin → Blog → Comments.
     The comment form carries the site's standard honeypot + time trap.
+    Posting/deleting needs an Active account with a verified email
+    (EnsureAccountCanComment); other signed-in members see a "verify your
+    email" notice instead of the form.
 --}}
-@php $initials = $initials ?? fn (?string $name): string => mb_strtoupper(mb_substr($name ?? '?', 0, 1)); @endphp
+@php
+    $initials = $initials ?? fn (?string $name): string => mb_strtoupper(mb_substr($name ?? '?', 0, 1));
+    // Posting and deleting comments need an Active + verified account.
+    $canComment = \App\Http\Middleware\EnsureAccountCanComment::allows(auth()->user());
+@endphp
 
 <section id="discussion" class="mt-16 scroll-mt-28" aria-labelledby="comments-heading">
     <h2 id="comments-heading" class="flex items-center gap-3 text-2xl font-bold text-brand-navy">
@@ -18,6 +25,7 @@
     @endif
 
     @auth
+        @if ($canComment)
         <form method="POST" action="{{ route('blog.comments.store', $post) }}" class="mt-6 rounded-2xl border border-brand-navy/10 bg-white p-5 shadow-sm" data-comment-form>
             @csrf
             <input type="hidden" name="{{ \App\Shared\Support\Spam\FormTimeTrap::FIELD }}" value="{{ app(\App\Shared\Support\Spam\FormTimeTrap::class)->issue() }}">
@@ -43,6 +51,33 @@
                 </div>
             </div>
         </form>
+        @else
+            {{--
+                Signed in but not allowed to comment yet (EnsureAccountCanComment):
+                no comment form. A PendingVerification member gets the existing
+                resend-verification action (ResendVerificationEmailAction only
+                acts on pending accounts, so it isn't offered otherwise).
+            --}}
+            <div class="mt-6 rounded-2xl border border-brand-accent/15 bg-brand-sky/60 p-6" data-comment-verify-notice>
+                <p class="font-semibold text-brand-navy">{{ \App\Http\Middleware\EnsureAccountCanComment::MESSAGE }}</p>
+                @if (auth()->user()->status === \App\Enums\UserStatus::PendingVerification->value)
+                    <p class="mt-1 text-sm text-brand-navy/70">We sent a verification link to <span class="font-medium text-brand-navy">{{ auth()->user()->email }}</span>. Didn't get it?</p>
+                    @if (session('status'))
+                        <p role="status" class="mt-3 text-sm font-medium text-emerald-800">{{ session('status') }}</p>
+                    @endif
+                    <form method="POST" action="{{ route('verification.resend') }}" class="mt-4">
+                        @csrf
+                        <input type="hidden" name="email" value="{{ auth()->user()->email }}">
+                        <button type="submit" class="rounded-xl bg-brand-accent px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-accent-dark">Resend verification email</button>
+                    </form>
+                @else
+                    <p class="mt-1 text-sm text-brand-navy/70">Your email address hasn't been verified yet. Please <a href="{{ route('contact.index') }}" class="font-semibold text-brand-accent hover:text-brand-accent-dark">contact us</a> if you need help.</p>
+                @endif
+                @if ($errors->comment->has('body'))
+                    <p class="mt-3 text-sm text-red-700">{{ $errors->comment->first('body') }}</p>
+                @endif
+            </div>
+        @endif
     @else
         <div class="mt-6 flex flex-col items-start gap-4 rounded-2xl border border-brand-accent/15 bg-brand-sky/60 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -80,11 +115,13 @@
 
                                 <div class="flex items-center gap-1">
                                     @if ($isMine)
-                                        <form method="POST" action="{{ route('blog.comments.destroy', $comment) }}" data-confirm="Delete your comment?">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="rounded-lg px-2 py-1 text-xs font-medium text-brand-navy/50 transition hover:bg-red-50 hover:text-red-600">Delete</button>
-                                        </form>
+                                        @if ($canComment)
+                                            <form method="POST" action="{{ route('blog.comments.destroy', $comment) }}" data-confirm="Delete your comment?">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="rounded-lg px-2 py-1 text-xs font-medium text-brand-navy/50 transition hover:bg-red-50 hover:text-red-600">Delete</button>
+                                            </form>
+                                        @endif
                                     @elseif ($reportsOn)
                                         @auth
                                             <details class="relative" data-report-menu>

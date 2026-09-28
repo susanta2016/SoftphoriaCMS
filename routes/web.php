@@ -23,6 +23,7 @@ use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\ToolController;
+use App\Http\Middleware\EnsureAccountCanComment;
 use App\Http\Middleware\EnsureAccountIsUsable;
 use App\Http\Middleware\EnsureAccountNotBlocked;
 use Illuminate\Http\Request;
@@ -179,11 +180,13 @@ Route::prefix('blog')->name('blog.')->middleware('feature:blog.posts')->group(fu
     Route::get('/{post:slug}', [BlogController::class, 'show'])->name('show');
 
     Route::middleware(['auth', EnsureAccountNotBlocked::class])->group(function (): void {
+        // Commenting (posting and deleting) also needs an Active account with
+        // a verified email — see EnsureAccountCanComment. Reports/reactions don't.
         Route::post('/{post:slug}/comments', [BlogCommentController::class, 'store'])
-            ->middleware(['feature:blog.comments', 'throttle:6,1'])
+            ->middleware(['feature:blog.comments', EnsureAccountCanComment::class, 'throttle:6,1'])
             ->name('comments.store');
         Route::delete('/comments/{comment}', [BlogCommentController::class, 'destroy'])
-            ->middleware('feature:blog.comments')
+            ->middleware(['feature:blog.comments', EnsureAccountCanComment::class])
             ->name('comments.destroy');
         Route::post('/comments/{comment}/report', [BlogCommentController::class, 'report'])
             ->middleware(['feature:blog.comment_reports', 'throttle:10,1'])
