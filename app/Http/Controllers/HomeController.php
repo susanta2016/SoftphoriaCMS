@@ -11,7 +11,10 @@ use App\Shared\Support\Seo\SeoTagBuilder;
 use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * The approved Home_page_layout_V4.1.1.png homepage (WEB-001..005). Content
@@ -155,7 +158,7 @@ class HomeController extends Controller implements Sitemapable
             'cta_url' => '#',
             'secondary_cta_label' => 'Read Writing',
             'secondary_cta_url' => '#',
-            'live_cta_label' => 'Gather Live',
+            'live_cta_label' => 'Register to receive the Gather Live link',
             'live_cta_url' => route('register.show'),
             'tertiary_label' => 'Watch Introduction',
             'tertiary_url' => '#',
@@ -181,6 +184,23 @@ class HomeController extends Controller implements Sitemapable
      * a normal watch/share URL into its embeddable player URL. Any other
      * URL (or no match) falls back to a plain outbound link in the view.
      */
+    /**
+     * Whether a URL's path resolves to a route behind the auth middleware.
+     * The host is deliberately ignored: the saved URL may carry the
+     * production domain while this runs elsewhere (or behind a proxy).
+     * Placeholders ("#") and unknown paths count as public.
+     */
+    private static function requiresLogin(string $url): bool
+    {
+        try {
+            $route = Route::getRoutes()->match(Request::create(parse_url($url, PHP_URL_PATH) ?: '/'));
+        } catch (HttpException) {
+            return false;
+        }
+
+        return collect($route->gatherMiddleware())->contains(fn (mixed $middleware): bool => is_string($middleware) && str_starts_with($middleware, 'auth'));
+    }
+
     private static function resolveEmbedUrl(?string $url): ?string
     {
         if (! $url) {
@@ -249,6 +269,12 @@ class HomeController extends Controller implements Sitemapable
         $content = $section?->content_json ?? [];
 
         $merged = [...$defaults, ...array_filter($content, fn (mixed $value): bool => $value !== null && $value !== '')];
+
+        // An admin-set members-only destination (e.g. /account/dashboard)
+        // would drop a guest on the login wall — "Join" means register.
+        if (! auth()->check() && self::requiresLogin($merged['cta_url'])) {
+            $merged['cta_url'] = route('register.show');
+        }
 
         return [
             'enabled' => (bool) $section,

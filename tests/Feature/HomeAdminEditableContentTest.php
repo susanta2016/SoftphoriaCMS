@@ -121,7 +121,7 @@ class HomeAdminEditableContentTest extends TestCase
         $response = $this->get(route('home'));
 
         $response->assertOk();
-        $response->assertSee('Gather Live');
+        $response->assertSee('Register to receive the Gather Live link');
         $response->assertSee('href="'.route('register.show').'"', false);
     }
 
@@ -135,6 +135,27 @@ class HomeAdminEditableContentTest extends TestCase
         $response->assertOk();
         $response->assertSee('Join the Live Gathering');
         $response->assertSee('href="'.$zoom.'"  target="_blank" rel="noopener noreferrer"', false);
+    }
+
+    public function test_a_members_only_join_now_url_sends_guests_to_registration(): void
+    {
+        $this->publishedHomePageWithFeaturedContentSection(['cta_url' => 'https://allthethingslight.com/account/dashboard']);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee('href="'.route('register.show').'"', false);
+        $response->assertDontSee('/account/dashboard', false);
+    }
+
+    public function test_a_members_only_join_now_url_is_kept_for_signed_in_members(): void
+    {
+        $this->publishedHomePageWithFeaturedContentSection(['cta_url' => url('/account/dashboard')]);
+
+        $response = $this->actingAs(User::factory()->create())->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee('href="'.url('/account/dashboard').'"', false);
     }
 
     /**

@@ -220,10 +220,10 @@ class PageForm
             TextInput::make('content_json.secondary_cta_url')->label('Secondary button URL')->maxLength(255)
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
             TextInput::make('content_json.live_cta_label')->label('Gather Live button label')
-                ->helperText('The third outlined button (default "Gather Live").')
+                ->helperText('The third outlined button (default "Register to receive the Gather Live link").')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
             TextInput::make('content_json.live_cta_url')->label('Gather Live button URL')->maxLength(2048)
-                ->helperText('E.g. the Zoom meeting link. A link to another site opens in a new tab. Leave blank to link to registration.')
+                ->helperText('E.g. /register. Avoid a public meeting link (Zoom etc.) here — anyone could join. A link to another site opens in a new tab. Leave blank to link to registration.')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::Hero->value),
             TextInput::make('content_json.tertiary_label')->label('Additional link label')
                 ->helperText('Optional — a plain link shown below the buttons (e.g. "Watch Introduction").')
