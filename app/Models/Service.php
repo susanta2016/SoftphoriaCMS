@@ -6,14 +6,16 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 /**
  * One service (Admin → Services), public at /services/{slug} while
- * published. Featured services also appear in the homepage's Services
+ * published. Primary services (is_featured, "Primary service" in the admin)
+ * make up the /services grid and appear in the homepage's Services
  * section (PageSectionType::Services).
  *
- * highlights: [{title, description}] — "What's included"
+ * highlights: [{title, description}] — "What we deliver"
  * technologies: [string]
  * faqs: [{question, answer}] — rendered with FAQPage structured data
  */
@@ -63,6 +65,16 @@ class Service extends Model
     public function cover(): BelongsTo
     {
         return $this->belongsTo(Media::class, 'cover_media_id');
+    }
+
+    /**
+     * Portfolio projects that involved this service — the same
+     * portfolio_item_service pivot PortfolioItem::services() uses, so
+     * either side of the link can be edited in the admin.
+     */
+    public function portfolioItems(): BelongsToMany
+    {
+        return $this->belongsToMany(PortfolioItem::class)->orderBy('portfolio_items.sort_order')->orderBy('portfolio_items.id');
     }
 
     public function seo(): MorphOne

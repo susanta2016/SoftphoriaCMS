@@ -23,9 +23,10 @@ use UnitEnum;
 
 /**
  * Services → Services. Public at /services/{slug} while published; the
- * /services landing page lists every published service, and those marked
- * "Show on homepage" appear in the homepage Services section. SEO is saved
- * to the shared seo_metadata relation by the Create/Edit pages.
+ * /services landing page links every published service; those marked
+ * "Primary service" form its main grid and the homepage Services section.
+ * SEO is saved to the shared seo_metadata relation by the Create/Edit
+ * pages. Related portfolio projects share Portfolio's pivot table.
  */
 class ServiceResource extends Resource
 {
@@ -67,7 +68,7 @@ class ServiceResource extends Resource
                     ->state(fn (Service $record): int => count($record->faqs ?? []))
                     ->toggleable(),
                 ToggleColumn::make('is_featured')
-                    ->label('Homepage')
+                    ->label('Primary')
                     ->afterStateUpdated($touch),
                 ToggleColumn::make('is_published')
                     ->label('Published')
@@ -78,7 +79,7 @@ class ServiceResource extends Resource
             ])
             ->filters([
                 TernaryFilter::make('is_published')->label('Published'),
-                TernaryFilter::make('is_featured')->label('On homepage'),
+                TernaryFilter::make('is_featured')->label('Primary service'),
             ])
             ->recordActions([
                 Action::make('view')

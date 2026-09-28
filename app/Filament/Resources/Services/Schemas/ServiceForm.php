@@ -141,8 +141,8 @@ class ServiceForm
                                 ->helperText('Unpublished services are hidden everywhere on the site.')
                                 ->default(true),
                             Toggle::make('is_featured')
-                                ->label('Show on homepage')
-                                ->helperText("Listed in the homepage's Services section.")
+                                ->label('Primary service')
+                                ->helperText("One of the main services: shown in the homepage's Services section and the /services grid. Every published service keeps its own page.")
                                 ->default(true),
                             TextInput::make('sort_order')
                                 ->label('Sort order')
@@ -170,6 +170,18 @@ class ServiceForm
                                 ->placeholder('Add and press Enter')
                                 ->helperText('Shown as a tech stack list. Blog posts tagged with the same names appear as related reading.')
                                 ->nestedRecursiveRules(['max:40']),
+                        ]),
+
+                    Section::make('Related portfolio')
+                        ->schema([
+                            // The same project ↔ service link as Portfolio → Services.
+                            Select::make('portfolioItems')
+                                ->label('Portfolio projects')
+                                ->relationship('portfolioItems', 'title')
+                                ->multiple()
+                                ->preload()
+                                ->searchable()
+                                ->helperText('Projects that involved this service. Only published projects are shown on the service page.'),
                         ]),
                 ])->columnSpan(['lg' => 1]),
             ]);

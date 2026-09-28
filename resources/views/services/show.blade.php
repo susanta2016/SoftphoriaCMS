@@ -1,8 +1,10 @@
 {{--
-    /services/{slug} — one service: header, overview with a sticky sidebar
-    (tech stack + call to action + other services), what's included, FAQs
-    (FAQPage structured data is built in ServiceController), related blog
-    posts, other services and the call-to-action band.
+    /services/{slug} — one template for every service: header, overview
+    with a sticky sidebar (tech stack + call to action + other services),
+    what we deliver, related portfolio projects, the homepage's process
+    section, FAQs (FAQPage structured data is built in ServiceController),
+    related blog posts, other services and the call-to-action band. Every
+    block is CMS content and is omitted when empty.
 --}}
 <x-layouts.site :seo="$seo">
     <x-site.header :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
@@ -24,8 +26,9 @@
                     <span class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand-accent text-white shadow-lg shadow-brand-accent/25" aria-hidden="true">
                         <x-site.icon :name="$service->icon ?: 'monitor'" :mono="true" class="h-8 w-8"/>
                     </span>
-                    <div class="max-w-3xl">
-                        <h1 class="text-4xl leading-tight font-bold tracking-tight text-brand-navy sm:text-5xl">{{ $service->title }}</h1>
+                    <div class="min-w-0 max-w-3xl">
+                        <p class="text-xs font-semibold tracking-[0.18em] text-brand-accent uppercase">Service</p>
+                        <h1 class="mt-2 text-4xl leading-tight font-bold tracking-tight [overflow-wrap:anywhere] text-brand-navy sm:text-5xl">{{ $service->title }}</h1>
                         @if ($service->tagline)
                             <p class="mt-4 text-xl font-medium text-brand-navy/80">{{ $service->tagline }}</p>
                         @endif
@@ -33,12 +36,14 @@
                             <p class="mt-3 text-lg leading-relaxed text-brand-navy/65">{{ $service->summary }}</p>
                         @endif
                         <div class="mt-8 flex flex-wrap gap-3">
-                            @if ($settings->get('cta_label') && $settings->get('cta_url'))
-                                <a href="{{ $settings->get('cta_url') }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-accent px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-accent/25 transition hover:bg-brand-accent-dark">
-                                    {{ $settings->get('cta_label') }} <x-site.arrow class="h-4 w-4"/>
-                                </a>
+                            <a href="{{ route('contact.index') }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-accent px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-accent/25 transition hover:bg-brand-accent-dark">
+                                Start a project <x-site.arrow class="h-4 w-4"/>
+                            </a>
+                            @if ($portfolioOn)
+                                <a href="{{ route('portfolio.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-brand-navy/15 bg-white px-6 py-3.5 text-sm font-semibold text-brand-navy transition hover:border-brand-accent hover:text-brand-accent">View portfolio</a>
+                            @else
+                                <a href="{{ route('services.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-brand-navy/15 bg-white px-6 py-3.5 text-sm font-semibold text-brand-navy transition hover:border-brand-accent hover:text-brand-accent">All services</a>
                             @endif
-                            <a href="{{ route('services.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-brand-navy/15 bg-white px-6 py-3.5 text-sm font-semibold text-brand-navy transition hover:border-brand-accent hover:text-brand-accent">All services</a>
                         </div>
                     </div>
                 </div>
@@ -103,12 +108,12 @@
             </aside>
         </div>
 
-        {{-- What's included --}}
+        {{-- What we deliver (the service's CMS capability items) --}}
         @if (filled($service->highlights))
             <section class="mt-20 bg-brand-mist py-16 sm:py-20" aria-labelledby="included-heading">
                 <div class="mx-auto max-w-6xl px-4 sm:px-6">
-                    <p class="text-sm font-semibold tracking-[0.15em] text-brand-accent uppercase">What's included</p>
-                    <h2 id="included-heading" class="mt-2 text-3xl font-bold tracking-tight text-brand-navy">What you get with {{ $service->title }}</h2>
+                    <p class="text-sm font-semibold tracking-[0.15em] text-brand-accent uppercase">Capabilities</p>
+                    <h2 id="included-heading" class="mt-2 text-3xl font-bold tracking-tight text-brand-navy">What we deliver</h2>
                     <ul @class(['mt-10 grid gap-5 sm:grid-cols-2', 'lg:grid-cols-3' => count($service->highlights) % 3 === 0])>
                         @foreach ($service->highlights as $highlight)
                             <li class="flex gap-4 rounded-2xl border border-brand-navy/8 bg-white p-6 shadow-sm">
@@ -128,6 +133,33 @@
             </section>
         @else
             <div class="h-20"></div>
+        @endif
+
+        {{-- Related portfolio: published projects linked to this service (Admin → Portfolio / Services) --}}
+        @if ($relatedProjects->isNotEmpty())
+            <section class="bg-white py-16 sm:py-20" aria-labelledby="projects-heading">
+                <div class="mx-auto max-w-6xl px-4 sm:px-6">
+                    <div class="flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <p class="text-sm font-semibold tracking-[0.15em] text-brand-accent uppercase">Portfolio</p>
+                            <h2 id="projects-heading" class="mt-2 text-3xl font-bold tracking-tight text-brand-navy">Related projects</h2>
+                        </div>
+                        <a href="{{ route('portfolio.index') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent hover:text-brand-accent-dark">All projects <x-site.arrow class="h-3.5 w-3.5"/></a>
+                    </div>
+                    <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach ($relatedProjects as $project)
+                            <x-portfolio.card :item="$project" link-label="View project"/>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        {{-- Our process — the homepage's own "Numbered steps" section (Pages → Home) --}}
+        @if ($processSection->isNotEmpty())
+            <div class="[&>section>div]:max-w-6xl lg:[&>section>div]:px-6">
+                <x-site.sections :sections="$processSection"/>
+            </div>
         @endif
 
         {{-- FAQs --}}

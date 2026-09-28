@@ -1,7 +1,8 @@
 {{--
     /services — the Services landing page: hero with quick links to every
-    service, the service grid, how we work, and the
-    Services Settings call to action.
+    published service, the grid of primary services, the homepage's own
+    "Why Softphoria" and process sections, and the Services Settings call
+    to action (→ the existing Contact page).
 --}}
 <x-layouts.site :seo="$seo">
     <x-site.header :site-name="$siteName" :tagline="$tagline" :logo="$logo"/>
@@ -20,7 +21,7 @@
                     <div class="lg:col-span-7">
                         <p class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-semibold tracking-widest text-white/85 uppercase backdrop-blur">
                             <span class="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true"></span>
-                            Services
+                            What we do
                         </p>
                         <h1 class="mt-5 text-4xl leading-tight font-bold tracking-tight sm:text-5xl">{{ $settings->get('title') }}</h1>
                         @if ($settings->get('intro'))
@@ -60,16 +61,13 @@
         {{-- Service grid --}}
         <section id="all-services" class="scroll-mt-24 bg-brand-mist py-16 sm:py-20" aria-labelledby="all-services-heading">
             <div class="mx-auto max-w-6xl px-4 sm:px-6">
-                <div class="max-w-2xl">
-                    <p class="text-sm font-semibold tracking-[0.15em] text-brand-accent uppercase">What we do</p>
-                    <h2 id="all-services-heading" class="mt-2 text-3xl font-bold tracking-tight text-brand-navy">Everything you need to build, launch and grow</h2>
-                </div>
+                <h2 id="all-services-heading" class="text-3xl font-bold tracking-tight text-brand-navy">Our services</h2>
 
-                @if ($services->isEmpty())
+                @if ($primaryServices->isEmpty())
                     <p class="mt-10 rounded-3xl border border-dashed border-brand-navy/15 bg-white px-6 py-16 text-center text-brand-navy/60">Our services are being updated — please check back soon.</p>
                 @else
                     <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        @foreach ($services as $service)
+                        @foreach ($primaryServices as $service)
                             <x-service.card :service="$service" :detailed="true" heading-level="h3"/>
                         @endforeach
                     </div>
@@ -77,32 +75,13 @@
             </div>
         </section>
 
-        {{-- How we work --}}
-        <section class="border-t border-brand-navy/5 bg-white py-16 sm:py-20" aria-labelledby="process-heading">
-            <div class="mx-auto max-w-6xl px-4 sm:px-6">
-                <div class="max-w-2xl">
-                    <p class="text-sm font-semibold tracking-[0.15em] text-brand-accent uppercase">How we work</p>
-                    <h2 id="process-heading" class="mt-2 text-3xl font-bold tracking-tight text-brand-navy">From idea to launch — and beyond</h2>
-                </div>
-                <ol class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                    @foreach ([
-                        ['Discover', 'Understand your business, users and requirements.', 'search'],
-                        ['Plan', 'Architecture, technology and a clear implementation plan.', 'plan'],
-                        ['Build', 'Design, development, integration and testing.', 'code'],
-                        ['Deliver', 'Launch, optimization and ongoing support.', 'rocket'],
-                    ] as $i => [$step, $text, $icon])
-                        <li class="relative rounded-2xl border border-brand-navy/8 bg-brand-mist/60 p-6">
-                            <span class="text-sm font-bold text-brand-accent">0{{ $i + 1 }}</span>
-                            <span class="absolute top-5 right-5 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-brand-accent shadow-sm" aria-hidden="true">
-                                <x-site.icon :name="$icon" class="h-5 w-5"/>
-                            </span>
-                            <h3 class="mt-4 text-lg font-bold text-brand-navy">{{ $step }}</h3>
-                            <p class="mt-2 text-sm leading-relaxed text-brand-navy/70">{{ $text }}</p>
-                        </li>
-                    @endforeach
-                </ol>
+        {{-- The homepage's own "Why Softphoria" and "Our Process" blocks (Pages → Home), not second copies. --}}
+        @if ($sharedSections->isNotEmpty())
+            {{-- Narrowed to this page's max-w-6xl column so they line up with the grid above. --}}
+            <div class="[&>section>div]:max-w-6xl lg:[&>section>div]:px-6">
+                <x-site.sections :sections="$sharedSections"/>
             </div>
-        </section>
+        @endif
 
         <x-service.cta :settings="$settings"/>
     </main>

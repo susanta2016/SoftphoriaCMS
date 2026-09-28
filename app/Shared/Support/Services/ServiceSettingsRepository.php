@@ -17,7 +17,7 @@ class ServiceSettingsRepository extends DefaultedSettings
      * key => [default, storage type]
      */
     public const FIELDS = [
-        'title' => ['Technology services built around your business', 'string'],
+        'title' => ['Technology solutions built around your business.', 'string'],
         'intro' => ['From first idea to long-term support — we design, build, integrate and run the software your business depends on.', 'string'],
         'meta_title' => [null, 'string'],
         'meta_description' => [null, 'string'],

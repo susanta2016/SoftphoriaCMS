@@ -4,15 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\BlogPost;
 use App\Models\Media;
+use App\Models\PortfolioItem;
 use App\Models\Service;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Blog\BlogContent;
 use App\Shared\Support\Features\Features;
+use App\Shared\Support\Pages\HomeSections;
 use App\Shared\Support\Seo\SchemaOrg;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use App\Shared\Support\Services\ServiceSettingsRepository;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +29,9 @@ use Illuminate\Support\Facades\Storage;
  * CollectionPage + ItemList on the landing page, self-referencing
  * canonicals, and entries in the sitemap. Detail pages cross-link other
  * services and related blog posts (matched by technology tag) to build
- * topical internal links.
+ * topical internal links, plus the published portfolio projects linked to
+ * the service. The "Why Softphoria" and process blocks are the homepage's
+ * own CMS sections (HomeSections), not second copies.
  */
 class ServiceController extends Controller
 {
@@ -38,12 +43,17 @@ class ServiceController extends Controller
 
     public function index(): View
     {
+        // Every published service is linked from the hero; the main grid is
+        // the primary services ("Primary service" in the admin).
         $services = Service::query()->published()->ordered()->with('cover')->get();
         $title = $this->settings->get('title');
         $siteName = $this->siteName();
 
         return view('services.index', $this->chrome() + [
             'services' => $services,
+            'primaryServices' => $services->where('is_featured', true)->values(),
+            // The homepage's own "Why Softphoria" and "Our Process" blocks.
+            'sharedSections' => HomeSections::get([HomeSections::WHY, HomeSections::PROCESS]),
             'settings' => $this->settings,
             'portfolioOn' => $this->features->enabled('portfolio'),
             'seo' => SeoTagBuilder::build(null, [
@@ -79,6 +89,9 @@ class ServiceController extends Controller
             'coverUrl' => $coverUrl,
             'others' => Service::query()->published()->ordered()->whereKeyNot($service->getKey())->limit(3)->get(),
             'relatedPosts' => $this->relatedPosts($service),
+            'relatedProjects' => $this->relatedProjects($service),
+            'portfolioOn' => $this->features->enabled('portfolio'),
+            'processSection' => HomeSections::get([HomeSections::PROCESS]),
             'settings' => $this->settings,
             'seo' => SeoTagBuilder::build($service->seo, [
                 'title' => "{$service->title} — {$siteName}",
@@ -139,6 +152,25 @@ class ServiceController extends Controller
             ->whereHas('tags', fn (Builder $query) => $query->whereIn(DB::raw('lower(name)'), $technologies))
             ->latestFirst()
             ->limit(3)
+            ->get();
+    }
+
+    /**
+     * Published portfolio projects linked to this service (the Portfolio
+     * module's portfolio_item_service pivot), while Portfolio is on. Draft
+     * projects are never included.
+     *
+     * @return EloquentCollection<int, PortfolioItem>
+     */
+    private function relatedProjects(Service $service): EloquentCollection
+    {
+        if ($this->features->disabled('portfolio')) {
+            return new EloquentCollection;
+        }
+
+        return $service->portfolioItems()
+            ->published()
+            ->with(['cover', 'services' => fn ($query) => $query->published()])
             ->get();
     }
 
