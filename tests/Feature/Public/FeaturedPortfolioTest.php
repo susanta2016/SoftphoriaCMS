@@ -38,7 +38,9 @@ class FeaturedPortfolioTest extends TestCase
         $response->assertSee('Featured Portfolio');
         $response->assertSeeInOrder(['First Project', 'Second Project']);
         $response->assertSee('Django');
-        $response->assertSeeInOrder(['href="https://first.example"', 'target="_blank" rel="noopener noreferrer"', 'View Case Study'], false);
+        // Cards open the project's own page; the external URL only appears there.
+        $response->assertSeeInOrder(['href="'.route('portfolio.show', ['item' => 'first-project']).'"', 'View Case Study'], false);
+        $response->assertDontSee('href="https://first.example"', false);
         $response->assertDontSee('Not Featured');
         $response->assertDontSee('Draft Project');
     }

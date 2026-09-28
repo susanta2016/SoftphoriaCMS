@@ -3,6 +3,8 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 /**
  * "Work" becomes "Portfolio":
@@ -42,7 +44,14 @@ return new class extends Migration
 
                 $url = $item['url'] ?? null;
 
-                DB::table('portfolio_items')->insert([
+                // A later migration (2026_09_28_110000) added a required slug
+                // and backfills it; when this runs against that newer schema
+                // (e.g. re-run in a test), supply one here too.
+                $slug = Schema::hasColumn('portfolio_items', 'slug')
+                    ? ['slug' => Str::slug($item['title']).'-'.Str::lower(Str::random(6))]
+                    : [];
+
+                DB::table('portfolio_items')->insert($slug + [
                     'title' => $item['title'],
                     'summary' => $item['description'] ?? null,
                     'cover_media_id' => $item['media_id'] ?? null,

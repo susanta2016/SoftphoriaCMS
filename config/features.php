@@ -138,10 +138,10 @@ return [
             'features' => [
                 'portfolio' => [
                     'label' => 'Portfolio',
-                    'description' => 'The homepage Featured Portfolio section and the /portfolio page.',
+                    'description' => 'The homepage Featured Portfolio section, the /portfolio page and each project page (/portfolio/{slug}).',
                     'default' => true,
                     'edit' => PortfolioItemResource::class,
-                    'links' => ['/portfolio', '/#portfolio'],
+                    'links' => ['/portfolio', '/portfolio/*', '/#portfolio'],
                 ],
                 'testimonials' => [
                     'label' => 'Testimonials',

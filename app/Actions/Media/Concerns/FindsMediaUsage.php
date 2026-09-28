@@ -72,6 +72,10 @@ trait FindsMediaUsage
             $usedBy[] = 'a page section (hero, gallery, or content block)';
         }
 
+        if ($this->jsonColumnsReferenceMedia('portfolio_items', ['gallery_media_ids'], $id)) {
+            $usedBy[] = "a portfolio project's gallery";
+        }
+
         if ($this->jsonColumnsReferenceMedia('homepage_settings', ['hero_json', 'sections_json'], $id)) {
             $usedBy[] = 'the homepage configuration';
         }

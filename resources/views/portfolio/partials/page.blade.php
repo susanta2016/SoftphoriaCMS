@@ -16,7 +16,7 @@
                 Portfolio
             </p>
             <h1 class="mt-5 text-4xl font-bold tracking-tight sm:text-5xl">Selected projects</h1>
-            <p class="mt-4 max-w-2xl text-lg leading-relaxed text-white/75">A look at the websites, platforms and integrations we've built for our clients.</p>
+            <p class="mt-4 max-w-2xl text-lg leading-relaxed text-white/75">A selection of websites, platforms and technology solutions delivered across different industries.</p>
 
             @if ($categories->count() > 1)
                 <nav aria-label="Filter projects" class="mt-10 -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
@@ -55,15 +55,7 @@
                 </div>
             @endif
 
-            <div class="mt-14 flex flex-col items-start justify-between gap-6 rounded-3xl bg-white p-8 shadow-sm sm:flex-row sm:items-center">
-                <div>
-                    <h2 class="text-xl font-bold text-brand-navy">Have a project like these in mind?</h2>
-                    <p class="mt-1 text-brand-navy/65">Tell us about it — we'll reply with practical next steps.</p>
-                </div>
-                <a href="{{ route('contact.index') }}" class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-accent px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-accent-dark">
-                    Start a project <x-site.arrow class="h-4 w-4"/>
-                </a>
-            </div>
+            <x-portfolio.cta class="mt-14"/>
         </div>
     </section>
 </div>

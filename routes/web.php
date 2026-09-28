@@ -143,6 +143,11 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
 Route::get('/portfolio', PortfolioController::class)
     ->middleware('feature:portfolio')
     ->name('portfolio.index');
+// One project per published portfolio item — unpublished ones 404 for the
+// public (admins get a noindex preview), see PortfolioController::show().
+Route::get('/portfolio/{item:slug}', [PortfolioController::class, 'show'])
+    ->middleware('feature:portfolio')
+    ->name('portfolio.show');
 
 // Public Services pages — 404 while Features Activation has "Services
 // Pages" off. See ServiceController's docblock for the SEO notes.

@@ -15,10 +15,12 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 /**
- * Portfolio projects. Items marked Featured (and Published) appear in the
- * homepage's Featured Portfolio section (PageSectionType::Portfolio). The
- * cover image goes through the shared MediaPicker and is registered in
- * FindsMediaUsage like every other media-referencing column.
+ * Portfolio projects. Published items are listed at /portfolio and get a
+ * detail page at /portfolio/{slug}; items marked Featured (and Published)
+ * also appear in the homepage's Featured Portfolio section
+ * (PageSectionType::Portfolio). The featured image and gallery go through
+ * the shared MediaPicker and are registered in FindsMediaUsage like every
+ * other media-referencing column; services link to Admin → Services.
  */
 class PortfolioItemResource extends Resource
 {

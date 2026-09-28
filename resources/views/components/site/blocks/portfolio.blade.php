@@ -12,7 +12,7 @@
     // Hidden entirely while Features Activation has Portfolio off.
     $items = app(\App\Shared\Support\Features\Features::class)->enabled('portfolio')
         ? \App\Models\PortfolioItem::query()
-            ->with('cover')
+            ->with(['cover', 'services' => fn ($query) => $query->published()])
             ->published()
             ->featured()
             ->ordered()

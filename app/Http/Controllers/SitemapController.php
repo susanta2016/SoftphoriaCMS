@@ -75,17 +75,30 @@ class SitemapController extends Controller
     }
 
     /**
-     * /portfolio, while Portfolio is switched on and has published projects.
+     * /portfolio and every published project page, while Portfolio is
+     * switched on and has published projects — skipping noindex or
+     * canonicalised projects. Unpublished projects are never listed.
      *
      * @return Collection<int, array{loc: string, lastmod: mixed}>
      */
     private function portfolioUrls(): Collection
     {
-        $lastmod = app(Features::class)->enabled('portfolio')
-            ? PortfolioItem::query()->published()->max('updated_at')
-            : null;
+        if (app(Features::class)->disabled('portfolio')) {
+            return collect();
+        }
 
-        return $lastmod ? collect([['loc' => route('portfolio.index'), 'lastmod' => Carbon::parse($lastmod)]]) : collect();
+        $items = PortfolioItem::query()->published()->with('seo')->ordered()->get();
+
+        if ($items->isEmpty()) {
+            return collect();
+        }
+
+        return collect([['loc' => route('portfolio.index'), 'lastmod' => Carbon::parse($items->max('updated_at'))]])
+            ->merge($items
+                ->reject(fn (PortfolioItem $item): bool => str_contains(strtolower($item->seo?->robots ?? ''), 'noindex')
+                    || (filled($item->seo?->canonical_url) && $item->seo->canonical_url !== $item->url()))
+                ->map(fn (PortfolioItem $item): array => ['loc' => $item->url(), 'lastmod' => $item->updated_at]))
+            ->values();
     }
 
     /**
