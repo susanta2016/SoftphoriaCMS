@@ -31,9 +31,15 @@
             :link-url="(($content['link_url'] ?? null) && $content['link_url'] !== '#') ? $content['link_url'] : route('portfolio.index')"
         />
 
-        <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {{-- Column count follows the item count, so one or two featured projects fill the row as larger cards instead of leaving empty grid cells. --}}
+        <div @class([
+            'mt-10 grid gap-6 lg:gap-8',
+            'mx-auto max-w-3xl' => $items->count() === 1,
+            'md:grid-cols-2' => $items->count() === 2 || $items->count() === 4,
+            'sm:grid-cols-2 lg:grid-cols-3' => $items->count() === 3 || $items->count() > 4,
+        ])>
             @foreach ($items as $item)
-                <x-portfolio.card :item="$item" :link-label="$content['item_link_label'] ?? null"/>
+                <x-portfolio.card :item="$item" :link-label="$content['item_link_label'] ?? null" :aspect="$items->count() <= 2 ? 'aspect-[16/9] lg:aspect-[2/1]' : 'aspect-[16/10]'"/>
             @endforeach
         </div>
     </x-site.band>

@@ -9,6 +9,7 @@ use App\Models\BlogPost;
 use App\Models\Media;
 use App\Models\Menu;
 use App\Models\Page;
+use App\Models\PageSection;
 use App\Models\Role;
 use App\Models\Testimonial;
 use App\Models\User;
@@ -213,6 +214,35 @@ class HomepageTest extends TestCase
         $response = $this->get('/');
         $response->assertSee('media/images/hero.png', false);
         $response->assertSee("background-image: url('".asset('storage/media/images/mountains.png')."')", false);
+    }
+
+    public function test_the_testimonials_band_uses_the_navy_tech_background_not_a_photo(): void
+    {
+        $this->seedHomepage();
+        $photo = $this->imageMedia('media/images/testimonial-photo.png');
+
+        $section = PageSection::query()->where('section_type', PageSectionType::Testimonials->value)->firstOrFail();
+        $section->update(['content_json' => [...$section->content_json, 'background_media_id' => $photo->id]]);
+
+        $response = $this->get('/');
+
+        $response->assertSee('data-testimonial-slider', false);
+        $response->assertSee('tech-grid', false);
+        $response->assertDontSee('testimonial-photo.png', false);
+    }
+
+    public function test_the_footer_never_prints_the_raw_site_email_or_phone(): void
+    {
+        $this->seedHomepage();
+        $settings = app(SettingsRepository::class);
+        $settings->set('contact', 'email', 'hello@softphoria.test');
+        $settings->set('contact', 'phone', '+91 98765 43210');
+
+        $response = $this->get('/');
+
+        $response->assertSee(route('newsletter.subscribe'), false);
+        $response->assertDontSee('hello@softphoria.test');
+        $response->assertDontSee('98765 43210');
     }
 
     public function test_the_header_shows_the_redesigned_nav_and_lets_talk_button(): void

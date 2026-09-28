@@ -43,39 +43,42 @@
 --}}
 <div class="fixed inset-x-0 top-0 z-30 w-full">
     <header
+        data-site-header
         @if ($transparent) data-transparent-header @endif
         {{ $attributes->class([
             'w-full border-b transition-colors duration-200',
             'border-transparent bg-transparent' => $transparent,
-            'border-brand-navy/5 bg-white/95 shadow-sm backdrop-blur' => ! $transparent,
+            // Solid near-white with a hairline border; once scrolled (data-scrolled,
+            // set by resources/js/app.js) it turns translucent with a backdrop blur.
+            'border-brand-line bg-white data-scrolled:bg-white/85 data-scrolled:shadow-sm data-scrolled:backdrop-blur-md' => ! $transparent,
         ]) }}
     >
-        <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-            <a href="{{ route('home') }}" class="min-w-0 shrink">
+        <div class="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 py-2.5 sm:px-6 lg:min-h-[4.5rem] lg:px-8">
+            <a href="{{ route('home') }}" class="min-w-0 shrink rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-accent">
                 @if ($logo)
                     {{-- Shown whole at its own aspect ratio (height cap only) — never cropped, so any uploaded logo keeps its full artwork. --}}
                     <img
                         src="{{ \Illuminate\Support\Facades\Storage::disk($logo->disk)->url($logo->path) }}"
                         alt="{{ $siteName }}"
-                        class="h-11 w-auto max-w-full object-contain sm:h-12"
+                        class="h-11 w-auto max-w-full object-contain sm:h-12 lg:h-[3.25rem]"
                     >
                 @else
                     <x-site.brand-mark :site-name="$siteName" :tagline="$tagline" :on-dark="false" class="min-w-0"/>
                 @endif
             </a>
 
-            <nav aria-label="Primary" class="hidden lg:flex lg:items-center lg:gap-8">
+            <nav aria-label="Primary" class="hidden lg:flex lg:items-center lg:gap-1 xl:gap-2">
                 @foreach ($navItems as $item)
                     <a
                         href="{{ $item->resolvedUrl() ?? '#' }}"
-                        class="text-sm font-medium whitespace-nowrap text-brand-navy transition hover:text-brand-accent"
+                        class="rounded-md px-3 py-2 text-[0.9375rem] font-medium whitespace-nowrap text-brand-ink transition hover:text-brand-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-accent"
                     >
                         {{ $item->label }}
                     </a>
                 @endforeach
             </nav>
 
-            <div class="flex shrink-0 items-center gap-2 sm:gap-4">
+            <div class="flex shrink-0 items-center gap-2 sm:gap-4 lg:border-l lg:border-brand-line lg:pl-6">
                 {{--
                     AUTH-002: these were dead "#" links until login/register
                     existed. @guest/@auth here are the only auth-state-aware
@@ -111,22 +114,22 @@
                     aria-label="Toggle menu"
                     aria-expanded="false"
                     aria-controls="mobile-menu"
-                    class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-brand-navy/15 text-brand-navy transition hover:border-brand-accent hover:text-brand-accent lg:hidden"
+                    class="inline-flex h-11 w-11 items-center justify-center rounded-md border border-brand-navy/15 text-brand-navy transition hover:border-brand-accent hover:text-brand-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent lg:hidden"
                 >
-                    <svg data-mobile-menu-icon-open xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5">
+                    <svg data-mobile-menu-icon-open aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5">
                         <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/>
                     </svg>
-                    <svg data-mobile-menu-icon-close xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden h-5 w-5">
+                    <svg data-mobile-menu-icon-close aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden h-5 w-5">
                         <path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/>
                     </svg>
                 </button>
             </div>
         </div>
 
-        <div id="mobile-menu" data-mobile-menu class="hidden max-h-[calc(100vh-4.5rem)] overflow-y-auto border-t border-brand-navy/10 bg-white lg:hidden">
+        <div id="mobile-menu" data-mobile-menu class="hidden max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-brand-line bg-white lg:hidden">
             <nav aria-label="Primary" class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 sm:px-6">
                 @foreach ($navItems as $item)
-                    <a href="{{ $item->resolvedUrl() ?? '#' }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent">
+                    <a href="{{ $item->resolvedUrl() ?? '#' }}" class="rounded-md px-3 py-3 text-base font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent">
                         {{ $item->label }}
                     </a>
                 @endforeach
@@ -138,15 +141,15 @@
                 'sm:hidden' => auth()->check(),
             ])>
                 @guest
-                    <a href="{{ route('login') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent sm:hidden">
+                    <a href="{{ route('login') }}" class="rounded-md px-3 py-3 text-base font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent sm:hidden">
                         Log In
                     </a>
-                    <a href="{{ route('register') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent">
+                    <a href="{{ route('register') }}" class="rounded-md px-3 py-3 text-base font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent">
                         Register
                     </a>
                 @else
                     @if (Route::has('account.profile.edit'))
-                        <a href="{{ route('account.profile.edit') }}" class="rounded-md px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent sm:hidden">
+                        <a href="{{ route('account.profile.edit') }}" class="rounded-md px-3 py-3 text-base font-medium text-brand-navy transition hover:bg-brand-sky hover:text-brand-accent sm:hidden">
                             My Profile
                         </a>
                     @endif

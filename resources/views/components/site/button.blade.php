@@ -5,23 +5,25 @@
     its absence renders a <button> (defaulting to type="button", override
     via the `type` prop for a submit button). WEB-103 added `outline-light`
     (for dark bands) and `size="lg"`; `light` is a solid white button for dark bands.
+    WEB-103 polish: fixed min-heights (40px / 48px) so paired buttons always
+    line up, a light `outline`, and a disabled state for <button>s.
 --}}
 @props(['href' => null, 'variant' => 'primary', 'type' => 'button', 'size' => 'md'])
 
 @php
     $variantClasses = match ($variant) {
-        'outline' => 'border border-brand-navy bg-transparent text-brand-navy hover:bg-brand-navy hover:text-white',
-        'outline-light' => 'border border-white/70 bg-transparent text-white hover:border-white hover:bg-white/10',
+        'outline' => 'border border-brand-navy/20 bg-white/80 text-brand-navy hover:border-brand-accent hover:bg-white hover:text-brand-accent',
+        'outline-light' => 'border border-white/60 bg-transparent text-white hover:border-white hover:bg-white/10',
         'light' => 'border border-white bg-white text-brand-navy hover:border-brand-sky hover:bg-brand-sky',
         'secondary' => 'border border-brand-navy/20 bg-white text-brand-navy hover:border-brand-accent hover:text-brand-accent',
-        default => 'border border-brand-accent bg-brand-accent text-white hover:border-brand-accent-dark hover:bg-brand-accent-dark',
+        default => 'border border-brand-accent bg-brand-accent text-white shadow-sm shadow-brand-accent/20 hover:border-brand-accent-dark hover:bg-brand-accent-dark',
     };
 
-    $sizeClasses = $size === 'lg' ? 'px-6 py-3' : 'px-5 py-2.5';
+    $sizeClasses = $size === 'lg' ? 'min-h-12 px-6 py-3' : 'min-h-10 px-5 py-2';
 
     $baseClasses = 'inline-flex items-center justify-center gap-2 rounded-md text-sm font-semibold '
         .'transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 '
-        .'focus-visible:outline-brand-accent '.$sizeClasses.' '.$variantClasses;
+        .'focus-visible:outline-brand-accent disabled:pointer-events-none disabled:opacity-50 '.$sizeClasses.' '.$variantClasses;
 
     // A link to a frontend feature switched off in Features Activation
     // (e.g. "View Our Services" while Services is off) isn't rendered.

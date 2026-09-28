@@ -55,6 +55,20 @@ class FeaturedPortfolioTest extends TestCase
         $this->get('/')->assertSee('Project 6')->assertDontSee('Project 7');
     }
 
+    public function test_two_featured_projects_render_as_a_wide_two_column_row(): void
+    {
+        $this->seedHomepage();
+        PortfolioItem::query()->delete();
+        PortfolioItem::query()->create(['title' => 'Project A', 'is_featured' => true, 'sort_order' => 1]);
+        PortfolioItem::query()->create(['title' => 'Project B', 'is_featured' => true, 'sort_order' => 2]);
+
+        $this->get('/')->assertSeeInOrder(['Project A', 'Project B'])->assertSee('lg:aspect-[2/1]', false);
+
+        PortfolioItem::query()->create(['title' => 'Project C', 'is_featured' => true, 'sort_order' => 3]);
+
+        $this->get('/')->assertSee('Project C')->assertDontSee('lg:aspect-[2/1]', false);
+    }
+
     public function test_the_section_is_hidden_when_nothing_is_featured(): void
     {
         $this->seedHomepage();

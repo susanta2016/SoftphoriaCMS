@@ -288,7 +288,7 @@ class PageForm
                 ->live()
                 ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Cta, PageSectionType::Hero, PageSectionType::ImageText, PageSectionType::Services])),
             MediaPicker::make('content_json.background_media_id', 'Background image')
-                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Cta, PageSectionType::Testimonials])),
+                ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Cta])),
             TextInput::make('content_json.autoplay_seconds')
                 ->label('Autoplay interval (seconds)')
                 ->numeric()

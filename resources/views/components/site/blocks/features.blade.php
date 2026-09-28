@@ -7,16 +7,16 @@
 @props(['section', 'content', 'media'])
 
 <x-site.band :background="$content['background'] ?? 'white'" :anchor="$content['anchor'] ?? null">
-    <div class="grid gap-10 lg:grid-cols-12 lg:gap-12">
+    <div class="grid gap-12 lg:grid-cols-12 lg:items-center lg:gap-12">
         <div class="lg:col-span-4">
             @if (!empty($content['eyebrow']))
                 <p class="text-xs font-semibold tracking-[0.18em] text-brand-accent uppercase">{{ $content['eyebrow'] }}</p>
             @endif
             @if (!empty($content['heading']))
-                <h2 class="mt-2 text-2xl leading-tight font-bold whitespace-pre-line text-brand-navy sm:text-3xl">{{ $content['heading'] }}</h2>
+                <h2 class="mt-3 text-[1.75rem] leading-tight font-bold tracking-tight whitespace-pre-line text-brand-navy sm:text-3xl lg:text-[2.25rem]">{{ $content['heading'] }}</h2>
             @endif
             @if (!empty($content['description']))
-                <p class="mt-4 text-sm leading-relaxed text-brand-navy/70 sm:text-base">{{ $content['description'] }}</p>
+                <p class="mt-4 text-base leading-relaxed text-brand-muted">{{ $content['description'] }}</p>
             @endif
             @if (!empty($content['link_label']) && !empty($content['link_url']))
                 <x-site.button :href="$content['link_url']" class="mt-6">
@@ -25,22 +25,22 @@
             @endif
         </div>
 
-        <ul class="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4 lg:col-span-8 lg:pt-2">
+        <ul class="grid gap-x-6 gap-y-10 min-[420px]:grid-cols-2 md:grid-cols-4 lg:col-span-8">
             @foreach ($content['gallery_items'] ?? [] as $item)
                 @php $itemMedia = $media->get($item['media_id'] ?? null); @endphp
                 <li class="text-center">
-                    <span class="inline-flex h-12 w-12 items-center justify-center text-brand-accent">
+                    <span class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-brand-sky text-brand-accent ring-1 ring-brand-accent/10" aria-hidden="true">
                         @if ($itemMedia)
-                            <img src="{{ \Illuminate\Support\Facades\Storage::disk($itemMedia->disk)->url($itemMedia->path) }}" alt="" class="h-10 w-10 object-contain" loading="lazy">
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk($itemMedia->disk)->url($itemMedia->path) }}" alt="" class="h-8 w-8 object-contain" loading="lazy">
                         @else
-                            <x-site.icon :name="$item['icon'] ?? null" class="h-10 w-10"/>
+                            <x-site.icon :name="$item['icon'] ?? null" class="h-8 w-8"/>
                         @endif
                     </span>
                     @if (!empty($item['title']))
-                        <h3 class="mt-3 text-lg font-bold text-brand-navy">{{ $item['title'] }}</h3>
+                        <h3 class="mt-4 text-lg font-bold text-brand-navy">{{ $item['title'] }}</h3>
                     @endif
                     @if (!empty($item['description']))
-                        <p class="mx-auto mt-2 max-w-[12rem] text-sm leading-relaxed text-brand-navy/65">{{ $item['description'] }}</p>
+                        <p class="mx-auto mt-2 max-w-[15rem] text-[0.9375rem] leading-relaxed text-brand-muted">{{ $item['description'] }}</p>
                     @endif
                 </li>
             @endforeach

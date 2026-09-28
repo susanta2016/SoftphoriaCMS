@@ -18,9 +18,9 @@
 
 @php
     $frame = match ($style) {
-        'bordered' => 'rounded-2xl border border-brand-navy/12 bg-white hover:border-brand-accent/40',
+        'bordered' => 'rounded-xl border border-brand-line bg-white hover:border-brand-accent/40',
         'minimal' => 'rounded-2xl bg-transparent',
-        default => 'rounded-2xl border border-brand-navy/5 bg-white shadow-sm shadow-brand-navy/5 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand-navy/10',
+        default => 'rounded-xl border border-brand-line bg-white shadow-xs shadow-brand-navy/5 hover:-translate-y-0.5 hover:border-brand-accent/35 hover:shadow-md hover:shadow-brand-navy/8',
     };
     $isList = $layout === 'list';
     $cover = $post->cover;
@@ -47,8 +47,9 @@
                 class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
             >
         @else
-            <div class="flex h-full min-h-40 w-full items-center justify-center bg-gradient-to-br from-brand-navy via-brand-navy to-brand-accent" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="h-12 w-12 text-white/70"><path d="M4 5.5A1.5 1.5 0 015.5 4h13A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 18.5v-13z"/><path d="M8 9h8M8 12.5h8M8 16h5" stroke-linecap="round"/></svg>
+            <div class="relative isolate flex h-full min-h-40 w-full items-center justify-center bg-gradient-to-br from-brand-navy via-brand-navy-mid to-brand-royal" aria-hidden="true">
+                <div class="tech-grid absolute inset-0 -z-10"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="h-11 w-11 text-white/60"><path d="M4 5.5A1.5 1.5 0 015.5 4h13A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 18.5v-13z"/><path d="M8 9h8M8 12.5h8M8 16h5" stroke-linecap="round"/></svg>
             </div>
         @endif
         @if ($showCategory && $post->category)
@@ -57,7 +58,7 @@
     </div>
 
     <div @class(['flex flex-1 flex-col', 'p-5 sm:p-6' => $style !== 'minimal', 'pt-4' => $style === 'minimal'])>
-        <p class="flex flex-wrap items-center gap-x-2 text-xs text-brand-navy/55">
+        <p class="flex flex-wrap items-center gap-x-2 text-xs text-brand-muted sm:text-[0.8125rem]">
             <time datetime="{{ $post->published_at?->toDateString() }}">{{ $post->published_at?->format('M j, Y') }}</time>
             @if ($showReadingTime)
                 <span aria-hidden="true">·</span>
@@ -66,11 +67,11 @@
         </p>
 
         <{{ $headingLevel }} class="mt-2 text-lg leading-snug font-bold text-brand-navy transition group-hover:text-brand-accent">
-            <a href="{{ $post->url() }}" class="after:absolute after:inset-0 focus:outline-none focus-visible:after:rounded-2xl focus-visible:after:ring-2 focus-visible:after:ring-brand-accent">{{ $post->title }}</a>
+            <a href="{{ $post->url() }}" class="after:absolute after:inset-0 focus:outline-none focus-visible:after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-brand-accent">{{ $post->title }}</a>
         </{{ $headingLevel }}>
 
         @if ($post->excerpt)
-            <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-brand-navy/70">{{ $post->excerpt }}</p>
+            <p class="mt-2 line-clamp-3 text-[0.9375rem] leading-relaxed text-brand-muted">{{ $post->excerpt }}</p>
         @endif
 
         <div class="mt-auto flex items-center justify-between gap-3 pt-5">

@@ -23,6 +23,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// WEB-103 — the solid site header turns translucent + blurred once the page
+// scrolls (styled via data-scrolled: variants in site/header.blade.php).
+document.addEventListener('DOMContentLoaded', () => {
+    const header = document.querySelector('[data-site-header]:not([data-transparent-header])');
+
+    if (!header) return;
+
+    const applyScrollState = () => header.toggleAttribute('data-scrolled', window.scrollY > 8);
+
+    applyScrollState();
+    window.addEventListener('scroll', applyScrollState, { passive: true });
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const header = document.querySelector('[data-transparent-header]');
 
@@ -295,9 +308,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 slide.setAttribute('aria-hidden', String(i !== current));
             });
             dots.forEach((dot, i) => {
+                // The active-dot look is styled off aria-current in the Blade markup.
                 const active = i === current;
-                dot.classList.toggle('bg-white', active);
-                dot.classList.toggle('bg-transparent', !active);
                 if (active) dot.setAttribute('aria-current', 'true');
                 else dot.removeAttribute('aria-current');
             });

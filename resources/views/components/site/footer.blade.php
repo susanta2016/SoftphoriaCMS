@@ -58,113 +58,127 @@
     + the newsletter signup), and a bottom bar with the copyright, the
     Footer Legal Links menu. (Cookie choices are reopened from the
     bottom-left Consent Preferences button — see x-site.cookie-consent.)
+
+    WEB-103 polish: a very dark navy band (darker than the Expertise
+    section) with light text and blue link hovers. An uploaded footer logo
+    sits on a small white plate so a dark-lettered logo stays legible; an
+    optional footer background image is kept as a faint texture only. The
+    site's email/phone are deliberately not printed here — they're only
+    ever shown masked (x-site.contact-info) to stop address harvesting.
 --}}
-<footer
-    class="relative isolate mt-auto overflow-hidden border-t border-brand-navy/10 bg-white bg-cover bg-center bg-no-repeat"
-    @style([$footerBackgroundUrl ? "background-image: url('$footerBackgroundUrl')" : ''])
->
-    <div class="mx-auto max-w-7xl px-4 pt-12 pb-6 sm:px-6 lg:px-8 lg:pt-14">
-        <div class="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-12">
-            <div class="col-span-2 sm:col-span-3 lg:col-span-4">
-                <a href="{{ route('home') }}" class="inline-block">
+<footer class="relative isolate mt-auto overflow-hidden bg-brand-navy-dark text-white">
+    @if ($footerBackgroundUrl)
+        <div class="absolute inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-10" style="background-image: url('{{ $footerBackgroundUrl }}')" aria-hidden="true"></div>
+    @endif
+    <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-px bg-gradient-to-r from-transparent via-brand-accent/60 to-transparent" aria-hidden="true"></div>
+
+    <div class="mx-auto max-w-7xl px-4 pt-16 pb-8 sm:px-6 lg:px-8 lg:pt-20">
+        <div class="grid gap-12 lg:grid-cols-12 lg:gap-8">
+            <div class="lg:col-span-4">
+                <a href="{{ route('home') }}" class="inline-block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
                     @if ($footerLogo)
-                        <img
-                            src="{{ \Illuminate\Support\Facades\Storage::disk($footerLogo->disk)->url($footerLogo->path) }}"
-                            alt="{{ $siteName }}"
-                            class="h-10 w-auto max-w-[220px] object-contain"
-                        >
+                        <span class="inline-flex rounded-lg bg-white px-3.5 py-2.5">
+                            <img
+                                src="{{ \Illuminate\Support\Facades\Storage::disk($footerLogo->disk)->url($footerLogo->path) }}"
+                                alt="{{ $siteName }}"
+                                class="h-10 w-auto max-w-[220px] object-contain"
+                            >
+                        </span>
                     @else
-                        <x-site.brand-mark :site-name="$siteName" :tagline="$tagline" :on-dark="false"/>
+                        <x-site.brand-mark :site-name="$siteName" :tagline="$tagline" :on-dark="true"/>
                     @endif
                 </a>
                 @if ($footerSubheading)
-                    <p class="mt-4 max-w-xs text-sm leading-relaxed text-brand-navy/65">
+                    <p class="mt-5 max-w-xs text-[0.9375rem] leading-relaxed text-white/70">
                         {{ $footerSubheading }}
                     </p>
                 @endif
             </div>
 
-            @foreach ($footerSections as $section)
-                <div class="lg:col-span-2">
-                    <h3 class="text-sm font-semibold text-brand-navy">{{ $section->label }}</h3>
-                    <ul class="mt-4 space-y-2.5">
-                        @foreach ($section->children as $link)
-                            <li><a href="{{ $link->resolvedUrl() ?? '#' }}" class="text-sm text-brand-navy/65 transition hover:text-brand-accent">{{ $link->label }}</a></li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endforeach
-
-            <div id="newsletter-subscribe" class="col-span-2 scroll-mt-24 sm:col-span-3 lg:col-span-2">
-                @if ($socialLinks->isNotEmpty())
-                    <h3 class="text-sm font-semibold text-brand-navy">{{ $settings->get('footer', 'social_heading') ?: 'Follow Us' }}</h3>
-                    <div class="mt-4 flex flex-wrap gap-2">
-                        @foreach ($socialLinks as $link)
-                            <a href="{{ $link->url }}" aria-label="{{ $link->label }}" target="_blank" rel="noopener" class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-navy text-white transition hover:bg-brand-accent">
-                                @if ($link->icon)
-                                    <img
-                                        src="{{ \Illuminate\Support\Facades\Storage::disk($link->icon->disk)->url($link->icon->path) }}"
-                                        alt=""
-                                        class="object-contain"
-                                    >
-                                @else
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
-                                        <path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11.5 4.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        <path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.36-1.36" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                @endif
-                            </a>
-                        @endforeach
+            {{-- Menu groups + the Follow Us column share the remaining width evenly, however many groups the Footer Navigation menu has. --}}
+            <div class="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] lg:col-span-8">
+                @foreach ($footerSections as $section)
+                    <div>
+                        <h3 class="text-sm font-semibold tracking-wide text-white">{{ $section->label }}</h3>
+                        <ul class="mt-5 space-y-3">
+                            @foreach ($section->children as $link)
+                                <li><a href="{{ $link->resolvedUrl() ?? '#' }}" class="text-[0.9375rem] text-white/65 transition hover:text-brand-accent-light">{{ $link->label }}</a></li>
+                            @endforeach
+                        </ul>
                     </div>
-                @endif
+                @endforeach
 
-                @if ($newsletterOn)
-                <h3 @class(['text-sm font-semibold text-brand-navy', 'mt-6' => $socialLinks->isNotEmpty()])>{{ $settings->get('footer', 'newsletter_heading') ?: 'Newsletter' }}</h3>
-                @if (session('newsletter_status'))
-                    <p class="mt-3 rounded-md border border-brand-accent/30 bg-brand-sky px-3 py-2.5 text-sm text-brand-navy">
-                        {{ session('newsletter_status') }}
-                    </p>
-                @else
-                    <form method="POST" action="{{ route('newsletter.subscribe') }}" class="mt-3 max-w-sm">
-                        @csrf
-                        {{-- Honeypot — see NewsletterController::subscribe(). --}}
-                        <div style="position:absolute;left:-9999px;height:0;width:0;overflow:hidden" aria-hidden="true">
-                            <label for="footer-newsletter-hp_website">Website</label>
-                            <input type="text" id="footer-newsletter-hp_website" name="hp_website" tabindex="-1" autocomplete="off">
+                <div id="newsletter-subscribe" class="col-span-2 scroll-mt-24 sm:col-span-1">
+                    @if ($socialLinks->isNotEmpty())
+                        <h3 class="text-sm font-semibold tracking-wide text-white">{{ $settings->get('footer', 'social_heading') ?: 'Follow Us' }}</h3>
+                        <div class="mt-5 flex flex-wrap gap-2.5">
+                            @foreach ($socialLinks as $link)
+                                <a href="{{ $link->url }}" aria-label="{{ $link->label }}" target="_blank" rel="noopener" class="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-white/10 text-white ring-1 ring-white/10 transition hover:bg-brand-accent hover:ring-brand-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                                    @if ($link->icon)
+                                        <img
+                                            src="{{ \Illuminate\Support\Facades\Storage::disk($link->icon->disk)->url($link->icon->path) }}"
+                                            alt=""
+                                            class="h-full w-full rounded-full object-cover"
+                                        >
+                                    @else
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4" aria-hidden="true">
+                                            <path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11.5 4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.36-1.36" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    @endif
+                                </a>
+                            @endforeach
                         </div>
-                        <div @class([
-                            'flex overflow-hidden rounded-md border bg-white',
-                            'border-red-400' => $errors->has('email'),
-                            'border-brand-navy/20' => ! $errors->has('email'),
-                        ])>
-                            <label for="footer-newsletter-email" class="sr-only">Email address</label>
-                            <input
-                                id="footer-newsletter-email"
-                                name="email"
-                                type="email"
-                                value="{{ old('email') }}"
-                                placeholder="Your email"
-                                required
-                                class="w-full min-w-0 border-0 px-3 py-2 text-sm text-brand-navy placeholder:text-brand-navy/40 focus:outline-none"
-                            >
-                            <button type="submit" aria-label="Subscribe" class="shrink-0 bg-brand-accent px-3 py-2 text-white transition hover:bg-brand-accent-dark">
-                                <x-site.arrow class="h-4 w-4"/>
-                            </button>
-                        </div>
-                        @error('email')
-                            <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
-                        @enderror
-                    </form>
-                @endif
-                @endif
+                    @endif
+
+                    @if ($newsletterOn)
+                    <h3 @class(['text-sm font-semibold tracking-wide text-white', 'mt-8' => $socialLinks->isNotEmpty()])>{{ $settings->get('footer', 'newsletter_heading') ?: 'Newsletter' }}</h3>
+                    @if (session('newsletter_status'))
+                        <p class="mt-4 rounded-md border border-brand-accent-light/30 bg-white/5 px-3 py-2.5 text-sm text-white/90">
+                            {{ session('newsletter_status') }}
+                        </p>
+                    @else
+                        <form method="POST" action="{{ route('newsletter.subscribe') }}" class="mt-4 max-w-sm">
+                            @csrf
+                            {{-- Honeypot — see NewsletterController::subscribe(). --}}
+                            <div style="position:absolute;left:-9999px;height:0;width:0;overflow:hidden" aria-hidden="true">
+                                <label for="footer-newsletter-hp_website">Website</label>
+                                <input type="text" id="footer-newsletter-hp_website" name="hp_website" tabindex="-1" autocomplete="off">
+                            </div>
+                            <div @class([
+                                'flex overflow-hidden rounded-md border bg-white/5 transition focus-within:border-brand-accent-light',
+                                'border-red-400' => $errors->has('email'),
+                                'border-white/15' => ! $errors->has('email'),
+                            ])>
+                                <label for="footer-newsletter-email" class="sr-only">Email address</label>
+                                <input
+                                    id="footer-newsletter-email"
+                                    name="email"
+                                    type="email"
+                                    value="{{ old('email') }}"
+                                    placeholder="Your email"
+                                    required
+                                    class="w-full min-w-0 border-0 bg-transparent px-3 py-2.5 text-sm text-white placeholder:text-white/45 focus:outline-none"
+                                >
+                                <button type="submit" aria-label="Subscribe" class="shrink-0 bg-brand-accent px-3.5 py-2.5 text-white transition hover:bg-brand-blue focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white">
+                                    <x-site.arrow class="h-4 w-4"/>
+                                </button>
+                            </div>
+                            @error('email')
+                                <p class="mt-2 text-xs text-red-300">{{ $message }}</p>
+                            @enderror
+                        </form>
+                    @endif
+                    @endif
+                </div>
             </div>
         </div>
 
-        <div class="mt-10 flex flex-col gap-3 border-t border-brand-navy/10 pt-6 text-xs text-brand-navy/60 sm:flex-row sm:items-center sm:justify-between">
+        <div class="mt-14 flex flex-col gap-4 border-t border-white/10 pt-7 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between">
             <p>{{ $footerCopyrightText }}</p>
-            <ul class="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <ul class="flex flex-wrap items-center gap-x-6 gap-y-2">
                 @foreach ($legalLinks as $link)
-                    <li><a href="{{ $link->resolvedUrl() ?? '#' }}" class="transition hover:text-brand-accent">{{ $link->label }}</a></li>
+                    <li><a href="{{ $link->resolvedUrl() ?? '#' }}" class="transition hover:text-brand-accent-light">{{ $link->label }}</a></li>
                 @endforeach
             </ul>
         </div>

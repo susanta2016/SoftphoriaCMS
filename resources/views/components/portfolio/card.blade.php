@@ -2,29 +2,30 @@
     One portfolio project card — the homepage Featured Portfolio section and
     the /portfolio page. External links open in a new tab. With no cover
     image, a branded placeholder (the item's icon on a navy-to-blue
-    gradient) keeps the card shape.
+    gradient) keeps the card shape. `aspect` sets the image ratio (the
+    homepage uses a wider one when only one or two projects are featured).
 --}}
-@props(['item', 'linkLabel' => null, 'headingLevel' => 'h3'])
+@props(['item', 'linkLabel' => null, 'headingLevel' => 'h3', 'aspect' => 'aspect-[16/10]'])
 
 @php $external = $item->link_url && str_starts_with($item->link_url, 'http'); @endphp
 
-<article class="group flex flex-col overflow-hidden rounded-xl border border-brand-navy/10 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+<article class="group flex flex-col overflow-hidden rounded-xl border border-brand-line bg-white shadow-xs shadow-brand-navy/5 transition duration-300 hover:-translate-y-0.5 hover:border-brand-accent/35 hover:shadow-md hover:shadow-brand-navy/8">
     <div class="overflow-hidden">
         @if ($item->cover)
-            <img src="{{ \Illuminate\Support\Facades\Storage::disk($item->cover->disk)->url($item->cover->path) }}" alt="{{ $item->cover->alt_text ?: $item->title }}" class="aspect-[16/10] w-full object-cover transition duration-500 group-hover:scale-[1.03]" loading="lazy">
+            <img src="{{ \Illuminate\Support\Facades\Storage::disk($item->cover->disk)->url($item->cover->path) }}" alt="{{ $item->cover->alt_text ?: $item->title }}" class="{{ $aspect }} w-full object-cover transition duration-500 group-hover:scale-[1.03]" loading="lazy" decoding="async">
         @else
-            <div class="flex aspect-[16/10] w-full items-center justify-center bg-gradient-to-br from-brand-navy to-brand-accent text-white/85" aria-hidden="true">
+            <div class="flex {{ $aspect }} w-full items-center justify-center bg-gradient-to-br from-brand-navy via-brand-navy-mid to-brand-royal text-white/85" aria-hidden="true">
                 <x-site.icon :name="$item->icon ?: 'monitor'" :mono="true" class="h-14 w-14"/>
             </div>
         @endif
     </div>
-    <div class="flex flex-1 flex-col p-5 sm:p-6">
+    <div class="flex flex-1 flex-col p-6 sm:p-7">
         @if ($item->category)
             <p class="text-xs font-semibold tracking-[0.12em] text-brand-accent uppercase">{{ $item->category }}</p>
         @endif
-        <{{ $headingLevel }} @class(['text-lg font-bold text-brand-navy', 'mt-1.5' => $item->category])>{{ $item->title }}</{{ $headingLevel }}>
+        <{{ $headingLevel }} @class(['text-lg font-bold text-brand-navy sm:text-xl', 'mt-2' => $item->category])>{{ $item->title }}</{{ $headingLevel }}>
         @if ($item->summary)
-            <p class="mt-2 text-sm leading-relaxed text-brand-navy/75">{{ $item->summary }}</p>
+            <p class="mt-2 text-[0.9375rem] leading-relaxed text-brand-muted">{{ $item->summary }}</p>
         @endif
         @if (! empty($item->technologies))
             <ul class="mt-4 flex flex-wrap gap-1.5" aria-label="Technologies">
@@ -37,7 +38,7 @@
             <a
                 href="{{ $item->link_url }}"
                 @if ($external) target="_blank" rel="noopener noreferrer" @endif
-                class="mt-auto inline-flex items-center gap-1.5 pt-4 text-sm font-semibold text-brand-accent transition hover:text-brand-accent-dark"
+                class="mt-auto inline-flex items-center gap-1.5 self-start pt-5 text-sm font-semibold text-brand-accent transition hover:text-brand-accent-dark"
             >
                 {{ $linkLabel }}<span class="sr-only">: {{ $item->title }}</span>
                 <x-site.arrow class="h-3.5 w-3.5 transition group-hover:translate-x-0.5"/>

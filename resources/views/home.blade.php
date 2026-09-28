@@ -16,20 +16,21 @@
 
     <main class="flex-1">
     {{--
-        Matched to the reference design: a flat pale ice-blue band, the hero
+        Matched to the reference design: a pale ice-blue band (WEB-103 polish:
+        a soft left-to-right gradient rather than a flat fill), the hero
         image bleeding off the right edge from lg up (below the
         copy, full-width, on smaller screens), feathered into the band on its
         left via .hero-image-fade. The band is deliberately a shade deeper
         than the reference so it reads as clearly separate from the white
         "Trusted technologies" strip below (no fade into white).
     --}}
-    <div class="relative isolate overflow-hidden border-b border-brand-navy/5 bg-gradient-to-br from-brand-ice to-brand-ice-deep">
-        <div class="relative z-10 mx-auto grid max-w-7xl items-center px-4 pt-28 pb-8 sm:px-6 sm:pt-32 lg:min-h-[38rem] lg:grid-cols-12 lg:px-8 lg:pt-24 lg:pb-16">
+    <div class="relative isolate overflow-hidden border-b border-brand-line bg-gradient-to-r from-brand-ice via-brand-ice to-brand-ice-deep">
+        <div class="relative z-10 mx-auto grid max-w-7xl items-center px-4 pt-28 pb-8 sm:px-6 sm:pt-32 lg:min-h-[38rem] lg:grid-cols-12 lg:px-8 lg:pt-32 lg:pb-20">
             <div class="lg:col-span-5">
                 @if ($hero['eyebrow'])
-                    <p class="text-xs font-semibold tracking-[0.2em] text-brand-navy/70 uppercase">{{ $hero['eyebrow'] }}</p>
+                    <p class="text-xs font-semibold tracking-[0.2em] text-brand-accent uppercase">{{ $hero['eyebrow'] }}</p>
                 @endif
-                <h1 class="mt-3 text-4xl leading-[1.08] font-extrabold tracking-tight text-brand-navy [text-wrap:balance] sm:text-5xl xl:text-[3.5rem]">
+                <h1 class="mt-4 text-4xl leading-[1.08] font-extrabold tracking-tight text-brand-navy [text-wrap:balance] sm:text-5xl xl:text-[3.5rem]">
                     <span class="whitespace-pre-line">{{ $hero['heading'] }}</span>
                     @if ($hero['heading_highlight'])
                         <span class="block text-brand-accent">{{ $hero['heading_highlight'] }}</span>
@@ -37,11 +38,11 @@
                 </h1>
 
                 @if ($hero['subheading'])
-                    <p class="mt-5 max-w-xl text-base leading-relaxed whitespace-pre-line text-brand-navy/75">{{ $hero['subheading'] }}</p>
+                    <p class="mt-5 max-w-xl text-base leading-relaxed whitespace-pre-line text-brand-ink/75 sm:text-lg">{{ $hero['subheading'] }}</p>
                 @endif
 
                 @if (($hero['cta_label'] && $hero['cta_url']) || ($hero['secondary_cta_label'] && $hero['secondary_cta_url']))
-                    <div class="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                         @if ($hero['cta_label'] && $hero['cta_url'])
                             <x-site.button :href="$hero['cta_url']" size="lg">
                                 {{ $hero['cta_label'] }} <x-site.arrow class="h-4 w-4"/>
@@ -69,11 +70,12 @@
                 @endif
 
                 @if ($stats->isNotEmpty())
-                    <dl class="mt-9 grid grid-cols-3 gap-4 sm:max-w-md sm:gap-8">
+                    {{-- Hairline dividers between the figures; a top rule separates them from the buttons. --}}
+                    <dl class="mt-10 grid max-w-lg grid-cols-3 divide-x divide-brand-navy/10 border-t border-brand-navy/10 pt-6">
                         @foreach ($stats as $stat)
-                            <div class="flex flex-col-reverse">
-                                <dt class="mt-1 text-xs leading-snug text-brand-navy/60">{{ $stat['label'] }}</dt>
-                                <dd class="text-lg font-bold whitespace-nowrap text-brand-navy sm:text-2xl">{{ $stat['value'] }}</dd>
+                            <div class="flex min-w-0 flex-col-reverse justify-end px-2.5 first:pl-0 sm:px-6 lg:px-4 xl:px-6">
+                                <dt class="mt-1.5 text-xs leading-snug text-brand-muted sm:text-sm">{{ $stat['label'] }}</dt>
+                                <dd class="text-base font-extrabold tracking-tight whitespace-nowrap text-brand-navy min-[360px]:text-lg sm:text-[1.75rem] lg:text-2xl xl:text-[1.75rem]">{{ $stat['value'] }}</dd>
                             </div>
                         @endforeach
                     </dl>

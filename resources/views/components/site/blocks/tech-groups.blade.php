@@ -18,21 +18,21 @@
         :link-url="$content['link_url'] ?? null"
     />
 
-    <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         @foreach ($groups as $group => $items)
-            <div class="rounded-xl border border-brand-navy/10 bg-white p-5 shadow-sm">
-                <h3 class="text-sm font-semibold text-brand-navy">{{ $group }}</h3>
+            <div class="rounded-xl border border-brand-line bg-white p-5 shadow-xs shadow-brand-navy/5 sm:p-6">
+                <h3 class="border-b border-brand-line pb-3 text-base font-semibold text-brand-navy">{{ $group }}</h3>
                 {{-- auto-fill with a minimum cell width, so longer labels (PostgreSQL, Kubernetes) wrap to a new row instead of colliding. --}}
-                <ul class="mt-4 grid grid-cols-[repeat(auto-fill,minmax(3.75rem,1fr))] gap-x-1 gap-y-4">
+                <ul class="mt-5 grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-x-2 gap-y-5">
                     @foreach ($items as $item)
                         @php $itemMedia = $media->get($item['media_id'] ?? null); @endphp
-                        <li class="flex flex-col items-center gap-1.5 text-center">
+                        <li class="flex flex-col items-center gap-2 text-center">
                             @if ($itemMedia)
-                                <img src="{{ \Illuminate\Support\Facades\Storage::disk($itemMedia->disk)->url($itemMedia->path) }}" alt="" class="h-8 w-8 object-contain" loading="lazy">
+                                <img src="{{ \Illuminate\Support\Facades\Storage::disk($itemMedia->disk)->url($itemMedia->path) }}" alt="" class="h-9 w-9 object-contain" loading="lazy">
                             @else
-                                <x-site.icon :name="$item['icon'] ?? null" class="h-8 w-8"/>
+                                <x-site.icon :name="$item['icon'] ?? null" class="h-9 w-9"/>
                             @endif
-                            <span class="text-[10px] leading-tight text-brand-navy/65">{{ $item['title'] ?? '' }}</span>
+                            <span class="text-xs leading-tight font-medium text-brand-ink/75">{{ $item['title'] ?? '' }}</span>
                         </li>
                     @endforeach
                 </ul>

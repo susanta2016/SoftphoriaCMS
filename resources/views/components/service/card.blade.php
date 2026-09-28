@@ -6,17 +6,17 @@
 --}}
 @props(['service', 'detailed' => false, 'linkLabel' => 'Explore service', 'headingLevel' => 'h3'])
 
-<article class="group relative flex h-full flex-col rounded-2xl border border-brand-navy/8 bg-white p-6 shadow-sm shadow-brand-navy/5 transition duration-300 hover:-translate-y-1 hover:border-brand-accent/30 hover:shadow-xl hover:shadow-brand-navy/10 sm:p-7">
-    <span class="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-sky text-brand-accent transition duration-300 group-hover:bg-brand-accent group-hover:text-white" aria-hidden="true">
-        <x-site.icon :name="$service->icon ?: 'monitor'" class="h-7 w-7"/>
+<article class="group relative flex h-full flex-col rounded-xl border border-brand-line bg-white p-6 shadow-xs shadow-brand-navy/5 transition duration-300 hover:-translate-y-0.5 hover:border-brand-accent/35 hover:shadow-md hover:shadow-brand-navy/8 sm:p-7">
+    <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-brand-sky text-brand-accent transition duration-300 group-hover:bg-brand-accent group-hover:text-white" aria-hidden="true">
+        <x-site.icon :name="$service->icon ?: 'monitor'" class="h-6 w-6"/>
     </span>
 
     <{{ $headingLevel }} class="mt-5 text-lg font-bold text-brand-navy transition group-hover:text-brand-accent">
-        <a href="{{ $service->url() }}" class="after:absolute after:inset-0 focus:outline-none focus-visible:after:rounded-2xl focus-visible:after:ring-2 focus-visible:after:ring-brand-accent">{{ $service->title }}</a>
+        <a href="{{ $service->url() }}" class="after:absolute after:inset-0 focus:outline-none focus-visible:after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-brand-accent">{{ $service->title }}</a>
     </{{ $headingLevel }}>
 
     @if ($service->summary)
-        <p class="mt-2 text-sm leading-relaxed text-brand-navy/70">{{ $service->summary }}</p>
+        <p class="mt-2 text-[0.9375rem] leading-relaxed text-brand-muted">{{ $service->summary }}</p>
     @endif
 
     @if ($detailed && filled($service->highlights))
@@ -30,7 +30,7 @@
         </ul>
     @endif
 
-    <span class="mt-auto inline-flex items-center gap-1.5 pt-6 text-sm font-semibold text-brand-accent" aria-hidden="true">
+    <span class="mt-auto inline-flex items-center gap-1.5 pt-5 text-sm font-semibold text-brand-accent" aria-hidden="true">
         {{ $linkLabel }}
         <x-site.arrow class="h-3.5 w-3.5 transition group-hover:translate-x-1"/>
     </span>

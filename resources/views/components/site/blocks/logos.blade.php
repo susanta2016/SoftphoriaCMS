@@ -17,9 +17,9 @@
     $duration = max(20, count($items) * 4);
 @endphp
 
-<x-site.band :background="$content['background'] ?? 'white'" :anchor="$content['anchor'] ?? null" class="!py-10 sm:!py-12">
+<x-site.band :background="$content['background'] ?? 'white'" :anchor="$content['anchor'] ?? null" class="border-b border-brand-line !py-9 sm:!py-11">
     @if (!empty($content['eyebrow']))
-        <p class="text-xs font-semibold tracking-[0.18em] text-brand-navy/45 uppercase">{{ $content['eyebrow'] }}</p>
+        <p class="text-center text-xs font-semibold tracking-[0.18em] text-brand-muted uppercase sm:text-left">{{ $content['eyebrow'] }}</p>
     @endif
 
     @if ($items)
@@ -30,13 +30,13 @@
                     <ul class="flex shrink-0 items-center gap-x-12 gap-y-6 pr-12 sm:gap-x-16 sm:pr-16" @if ($isCopy) aria-hidden="true" @endif>
                         @foreach ($items as $item)
                             @php $itemMedia = $media->get($item['media_id'] ?? null); @endphp
-                            <li class="flex shrink-0 items-center gap-2">
+                            <li class="flex h-9 shrink-0 items-center gap-2.5 opacity-80 grayscale-[35%] transition hover:opacity-100 hover:grayscale-0">
                                 @if ($itemMedia)
-                                    <img src="{{ \Illuminate\Support\Facades\Storage::disk($itemMedia->disk)->url($itemMedia->path) }}" alt="{{ $isCopy ? '' : ($item['title'] ?? $itemMedia->alt_text) }}" class="h-8 w-auto max-w-[140px] object-contain" loading="lazy">
+                                    <img src="{{ \Illuminate\Support\Facades\Storage::disk($itemMedia->disk)->url($itemMedia->path) }}" alt="{{ $isCopy ? '' : ($item['title'] ?? $itemMedia->alt_text) }}" class="h-8 w-auto max-w-[140px] object-contain" loading="lazy" decoding="async">
                                 @else
                                     <x-site.icon :name="$item['icon'] ?? null" class="h-7 w-7 shrink-0"/>
                                     @if (!empty($item['title']))
-                                        <span class="text-base font-bold tracking-tight whitespace-nowrap sm:text-lg text-brand-navy/80">{{ $item['title'] }}</span>
+                                        <span class="text-base font-semibold tracking-tight whitespace-nowrap text-brand-ink sm:text-lg">{{ $item['title'] }}</span>
                                     @endif
                                 @endif
                             </li>

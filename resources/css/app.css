@@ -8,22 +8,32 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 
     /* Softphoria public design system — brand color tokens (WEB-101,
-       re-themed to the blue WEB-103 homepage design). Single source of
-       truth for the public site's palette: every public Blade
-       view/component references these custom properties (via Tailwind's
-       brand-* utilities) instead of one-off hex values, so a future brand
-       refresh only ever touches this block. */
-    --color-brand-navy: #0b1b36;
-    --color-brand-navy-dark: #061329;
-    --color-brand-accent: #1661e8;
-    --color-brand-accent-dark: #0f4fc4;
-    --color-brand-accent-light: #5b93f5;
-    --color-brand-sky: #eaf1fd;
-    --color-brand-mist: #f5f8fd;
-    /* The homepage hero band — a light blue, deep enough to read as its own
-       band against the white "Trusted technologies" strip below it. */
-    --color-brand-ice: #e1edfb;
-    --color-brand-ice-deep: #d3e3f7;
+       re-themed blue by the homepage redesign, refined by WEB-103 visual
+       polish to deep navy / modern blue / sky). Single source of truth for
+       the public site's palette: every public Blade view/component
+       references these custom properties (via Tailwind's brand-* utilities)
+       instead of one-off hex values, so a future brand refresh only ever
+       touches this block. */
+    --color-brand-navy: #07162f;
+    --color-brand-navy-dark: #07111f;
+    /* Middle and end stops of the dark "Specialised Expertise" gradient. */
+    --color-brand-navy-mid: #0b2855;
+    --color-brand-royal: #123f8c;
+    --color-brand-accent: #2563eb;
+    --color-brand-accent-dark: #1d4ed8;
+    /* Accent text/icons on dark bands — keeps AA contrast on brand-navy. */
+    --color-brand-accent-light: #60a5fa;
+    --color-brand-blue: #3b82f6;
+    --color-brand-cyan: #38bdf8;
+    --color-brand-sky: #eaf2fe;
+    /* Light ("tint") section background. */
+    --color-brand-mist: #f7f9fc;
+    --color-brand-ink: #0f172a;
+    --color-brand-muted: #64748b;
+    --color-brand-line: #e2e8f0;
+    /* The homepage hero band's left → right gradient stops. */
+    --color-brand-ice: #f8fbff;
+    --color-brand-ice-deep: #dcebff;
 }
 
 /* WEB-103 — feathers the homepage hero image into the ice-blue band, as in
@@ -99,6 +109,19 @@
 @keyframes logo-marquee {
     to {
         transform: translateX(-50%);
+    }
+}
+
+/* WEB-103 — very low-opacity technical grid for dark bands (the homepage
+   Testimonials section); faded out towards the edges. Decorative only. */
+@layer components {
+    .tech-grid {
+        background-image:
+            linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
+            linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+        background-size: 44px 44px;
+        -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+        mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
     }
 }
 
