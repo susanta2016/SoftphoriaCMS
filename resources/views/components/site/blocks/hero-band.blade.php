@@ -59,11 +59,11 @@
                 @endif
 
                 @if (!empty($content['stats']))
-                    <dl class="mt-10 grid max-w-xl grid-cols-3 gap-4 border-t border-white/10 pt-8">
+                    <dl class="mt-10 grid max-w-xl grid-cols-3 gap-3 border-t border-white/10 pt-8 sm:gap-6">
                         @foreach ($content['stats'] as $stat)
-                            <div class="flex flex-col">
-                                <dt class="order-2 mt-1 text-xs text-white/60 sm:text-sm">{{ $stat['label'] ?? '' }}</dt>
-                                <dd class="order-1 text-2xl font-bold sm:text-3xl">{{ $stat['value'] ?? '' }}</dd>
+                            <div class="flex min-w-0 flex-col">
+                                <dt class="order-2 mt-1.5 text-sm leading-snug text-white/70 sm:text-[0.9375rem]">{{ $stat['label'] ?? '' }}</dt>
+                                <dd class="order-1 text-lg font-bold whitespace-nowrap min-[360px]:text-xl sm:text-3xl">{{ $stat['value'] ?? '' }}</dd>
                             </div>
                         @endforeach
                     </dl>

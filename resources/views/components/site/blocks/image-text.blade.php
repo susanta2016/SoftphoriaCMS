@@ -83,7 +83,7 @@
                     <p class="mt-3 text-lg font-medium text-brand-navy/80">{{ $content['subheading'] }}</p>
                 @endif
                 @foreach ($paragraphs as $paragraph)
-                    <p @class(['leading-relaxed text-brand-navy/70', 'mt-5' => $loop->first, 'mt-4' => ! $loop->first])>{{ $paragraph }}</p>
+                    <p @class(['leading-relaxed text-brand-navy/75 sm:text-[1.0625rem]', 'mt-5' => $loop->first, 'mt-4' => ! $loop->first])>{{ $paragraph }}</p>
                 @endforeach
                 @if ($hasButton)
                     <x-site.button :href="$content['cta_url']" size="lg" class="mt-8">

@@ -53,13 +53,48 @@ class HomepageTest extends TestCase
             'Our Services',
             // Each stat's <dt> label precedes its <dd> value in the markup
             // (flex-col-reverse shows the value on top).
-            'Years Experience',
+            'Years of Experience',
             '20+',
-            'Projects Delivered',
-            '100+',
+            'Projects Personally Delivered',
+            '15–20+',
             'Client Relationships',
             'Long-term',
         ]);
+        // 100+ is broader career experience, never Susanta's personal count.
+        $response->assertDontSee('100+');
+    }
+
+    public function test_the_stats_migration_corrects_old_wording_but_keeps_admin_edits(): void
+    {
+        $this->seedHomepage();
+        $section = PageSection::query()->where('section_type', PageSectionType::Hero->value)->firstOrFail();
+        $section->update(['content_json' => [...$section->content_json, 'stats' => [
+            ['value' => '20+', 'label' => 'Years Experience'],
+            ['value' => '100+', 'label' => 'Projects Delivered'],
+            ['value' => '30', 'label' => 'Happy Clients'],
+        ]]]);
+
+        (require database_path('migrations/2026_09_28_100000_correct_hero_experience_stats.php'))->up();
+
+        $this->assertSame([
+            ['value' => '20+', 'label' => 'Years of Experience'],
+            ['value' => '15–20+', 'label' => 'Projects Personally Delivered'],
+            ['value' => '30', 'label' => 'Happy Clients'],
+        ], $section->fresh()->content_json['stats']);
+    }
+
+    public function test_every_public_page_uses_the_same_cms_primary_navigation(): void
+    {
+        $this->seedHomepage();
+        $expected = ['Home', 'About', 'Portfolio', 'Services', 'Blog', 'Contact'];
+
+        foreach (['/', '/portfolio', '/services', '/blog', '/contact', '/login'] as $url) {
+            $response = $this->get($url)->assertOk();
+            preg_match('~<nav aria-label="Primary" class="hidden lg:flex[^"]*">(.*?)</nav>~s', $response->getContent(), $nav);
+            preg_match_all('~<a[^>]*>\s*(.*?)\s*</a>~s', $nav[1] ?? '', $links);
+
+            $this->assertSame($expected, $links[1], "Primary navigation differs on {$url}");
+        }
     }
 
     public function test_every_redesigned_block_renders_in_order(): void
@@ -253,7 +288,7 @@ class HomepageTest extends TestCase
         $response = $this->get('/');
 
         $response->assertSee('Be your tech partner');
-        $response->assertSeeInOrder(['Services', 'Solutions', 'Expertise', 'Portfolio', 'About', 'Blog', 'Contact']);
+        $response->assertSeeInOrder(['Home', 'About', 'Portfolio', 'Services', 'Blog', 'Contact']);
         $response->assertSee('href="/services"', false);
         $response->assertSee("Let's Talk");
         $response->assertSee('href="'.route('contact.index').'"', false);
@@ -303,7 +338,7 @@ class HomepageTest extends TestCase
         $this->seed(NavigationMenuSeeder::class);
 
         $this->assertSame(
-            ['Services', 'Solutions', 'Expertise', 'Portfolio', 'About', 'Blog', 'Contact'],
+            ['Home', 'About', 'Portfolio', 'Services', 'Blog', 'Contact'],
             $legacy->items()->orderBy('sort_order')->pluck('label')->all(),
         );
         $this->assertSame(['My Own Link'], $custom->items()->pluck('label')->all());

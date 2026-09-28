@@ -251,7 +251,7 @@ class PageForm
                 ->label('Stats')
                 ->schema([
                     TextInput::make('value')->required()->maxLength(40)->placeholder('20+'),
-                    TextInput::make('label')->required()->maxLength(80)->placeholder('Years Experience'),
+                    TextInput::make('label')->required()->maxLength(80)->placeholder('Years of Experience'),
                 ])
                 ->columns(2)
                 ->defaultItems(0)

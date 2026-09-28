@@ -49,9 +49,11 @@ class AboutPageTest extends TestCase
             'Our Technical Expertise', 'WooCommerce', 'FastAPI', 'GraphQL', 'MongoDB', 'Webpack',
             'Meet the Founder', 'Susanta Bera', 'Founder &amp; Full-Stack Developer',
             'Let&#039;s build something great together.', 'Get a Free Consultation',
+            '20+', 'Years of Experience', '15–20+', 'Projects Personally Delivered', 'Long-term', 'Client Relationships',
         ] as $text) {
             $this->assertStringContainsString($text, $html, "missing: {$text}");
         }
+        $this->assertStringNotContainsString('100+', $html, '100+ must not read as personally delivered');
     }
 
     public function test_the_original_photos_are_imported_once_with_alt_text(): void

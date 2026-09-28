@@ -46,12 +46,13 @@ class NavigationMenuSeeder extends Seeder
         );
 
         if ($this->needsSeeding($primaryMenu)) {
+            // The confirmed site-wide primary navigation, shared by every
+            // public page through x-site.header.
             $this->seedLinks($primaryMenu, null, [
-                'Services' => '/services',
-                'Solutions' => '/#why-softphoria',
-                'Expertise' => '/#technologies',
-                'Portfolio' => '/portfolio',
+                'Home' => '/',
                 'About' => '/about',
+                'Portfolio' => '/portfolio',
+                'Services' => '/services',
                 'Blog' => '/blog',
                 'Contact' => '/contact',
             ]);

@@ -72,8 +72,8 @@ class HomePageSeeder extends Seeder
                         'secondary_cta_label' => 'Our Services',
                         'secondary_cta_url' => '/services',
                         'stats' => [
-                            ['value' => '20+', 'label' => 'Years Experience'],
-                            ['value' => '100+', 'label' => 'Projects Delivered'],
+                            ['value' => '20+', 'label' => 'Years of Experience'],
+                            ['value' => '15–20+', 'label' => 'Projects Personally Delivered'],
                             ['value' => 'Long-term', 'label' => 'Client Relationships'],
                         ],
                         'media_id' => $this->existingValue($existingSections, PageSectionType::Hero, null, 'media_id'),
