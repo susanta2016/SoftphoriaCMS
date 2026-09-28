@@ -400,6 +400,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let pinned = false;
     let closeTimer = null;
 
+    // WEB-103.1 — on phones the widget is a bottom-right button, which would
+    // sit over the hero's buttons at load; it appears once the visitor has
+    // scrolled half a screen (straight away on pages too short to scroll).
+    // Styled in app.css; data-reveal-on-scroll is only set when JS runs.
+    widget.setAttribute('data-reveal-on-scroll', '');
+    const applyReveal = () => {
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        widget.toggleAttribute('data-revealed', window.scrollY > Math.min(window.innerHeight / 2, maxScroll - 1));
+    };
+    applyReveal();
+    window.addEventListener('scroll', applyReveal, { passive: true });
+    window.addEventListener('resize', applyReveal, { passive: true });
+
     const isOpen = () => widget.hasAttribute('data-open');
 
     const setOpen = (open) => {

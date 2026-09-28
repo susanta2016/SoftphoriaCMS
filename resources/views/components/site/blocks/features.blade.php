@@ -29,18 +29,18 @@
             @foreach ($content['gallery_items'] ?? [] as $item)
                 @php $itemMedia = $media->get($item['media_id'] ?? null); @endphp
                 <li class="text-center">
-                    <span class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-brand-sky text-brand-accent ring-1 ring-brand-accent/10" aria-hidden="true">
+                    <span class="inline-flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full bg-brand-sky text-brand-accent ring-1 ring-brand-accent/15" aria-hidden="true">
                         @if ($itemMedia)
-                            <img src="{{ \Illuminate\Support\Facades\Storage::disk($itemMedia->disk)->url($itemMedia->path) }}" alt="" class="h-8 w-8 object-contain" loading="lazy">
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk($itemMedia->disk)->url($itemMedia->path) }}" alt="" class="h-9 w-9 object-contain" loading="lazy">
                         @else
-                            <x-site.icon :name="$item['icon'] ?? null" class="h-8 w-8"/>
+                            <x-site.icon :name="$item['icon'] ?? null" class="h-9 w-9"/>
                         @endif
                     </span>
                     @if (!empty($item['title']))
-                        <h3 class="mt-4 text-lg font-bold text-brand-navy">{{ $item['title'] }}</h3>
+                        <h3 class="mt-5 text-xl font-bold tracking-tight text-brand-navy">{{ $item['title'] }}</h3>
                     @endif
                     @if (!empty($item['description']))
-                        <p class="mx-auto mt-2 max-w-[15rem] text-[0.9375rem] leading-relaxed text-brand-muted">{{ $item['description'] }}</p>
+                        <p class="mx-auto mt-2.5 max-w-[15rem] text-[0.9375rem] leading-7 text-brand-muted">{{ $item['description'] }}</p>
                     @endif
                 </li>
             @endforeach

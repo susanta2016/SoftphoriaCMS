@@ -199,6 +199,33 @@
 .blog-prose th, .blog-prose td { border: 1px solid color-mix(in srgb, var(--color-brand-navy) 12%, transparent); padding: 0.6rem 0.9rem; text-align: left; }
 .blog-prose th { background: var(--color-brand-mist); color: var(--color-brand-navy); font-weight: 600; }
 
+/* WEB-103.1 — on phones the Contact Us widget is a round button in the
+   bottom-right corner (x-site.contact-widget), where the back-to-top button
+   also lives; lift back-to-top above it whenever the widget is on the page. */
+@media (width < 40rem) {
+    body:has([data-contact-widget]) [data-scroll-to-top] {
+        bottom: 5.25rem;
+        right: 1.25rem;
+    }
+
+    /* Hidden over the hero until the visitor scrolls (see app.js). */
+    [data-contact-widget] {
+        transition: opacity 0.25s, transform 0.25s, visibility 0.25s;
+    }
+
+    [data-contact-widget][data-reveal-on-scroll]:not([data-revealed], [data-open]) {
+        visibility: hidden;
+        opacity: 0;
+        transform: translateY(1rem);
+    }
+}
+
+@media (width < 40rem) and (prefers-reduced-motion: reduce) {
+    [data-contact-widget] {
+        transition: none;
+    }
+}
+
 /* Quick-contact popup (resources/views/components/site/contact-modal.blade.php). */
 @keyframes contact-modal-in {
     from { opacity: 0; transform: translateY(12px) scale(0.98); }

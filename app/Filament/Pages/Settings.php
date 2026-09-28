@@ -176,7 +176,7 @@ class Settings extends Page
     protected function footerTabSchema(): array
     {
         return [
-            MediaPicker::make('footer.logo_media_id', 'Footer Logo', MediaCategory::Image),
+            MediaPicker::make('footer.logo_media_id', 'Footer Logo (light version — shown on the dark footer)', MediaCategory::Image),
             TextInput::make('footer.subheading')
                 ->label('Sub-heading text')
                 ->maxLength(255)

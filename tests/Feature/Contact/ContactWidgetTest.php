@@ -31,6 +31,16 @@ class ContactWidgetTest extends TestCase
         $response->assertSee('id="cw-hp_website"', false);
     }
 
+    public function test_the_toggle_keeps_its_accessible_name_and_controls_on_every_screen_size(): void
+    {
+        $response = $this->get('/');
+
+        // Icon-only on phones: the label stays in the DOM for screen readers.
+        $response->assertSee('aria-controls="contact-widget-panel"', false);
+        $response->assertSee('aria-expanded="false"', false);
+        $response->assertSee('<span class="sr-only sm:not-sr-only">Contact Us</span>', false);
+    }
+
     public function test_the_widget_is_not_shown_on_the_contact_page(): void
     {
         $this->get('/contact')->assertOk()->assertDontSee('data-contact-widget', false);

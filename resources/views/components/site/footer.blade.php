@@ -60,11 +60,15 @@
     bottom-left Consent Preferences button — see x-site.cookie-consent.)
 
     WEB-103 polish: a very dark navy band (darker than the Expertise
-    section) with light text and blue link hovers. An uploaded footer logo
-    sits on a small white plate so a dark-lettered logo stays legible; an
-    optional footer background image is kept as a faint texture only. The
-    site's email/phone are deliberately not printed here — they're only
-    ever shown masked (x-site.contact-info) to stop address harvesting.
+    section) with light text and blue link hovers. The Footer Logo setting
+    sits directly on the navy, so it should be a light version (one is
+    kept in database/seeders/assets/brand/). Social icons blend with
+    `screen`, so an icon uploaded as a white glyph on a black disc shows
+    as just the glyph. An optional footer background image is kept as a faint
+    texture only. The site's email/phone are deliberately not printed here
+    — they're only ever shown masked (x-site.contact-info) to stop address
+    harvesting. Extra bottom padding on phones keeps the floating Contact
+    Us button (x-site.contact-widget) clear of the last row.
 --}}
 <footer class="relative isolate mt-auto overflow-hidden bg-brand-navy-dark text-white">
     @if ($footerBackgroundUrl)
@@ -72,18 +76,16 @@
     @endif
     <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-px bg-gradient-to-r from-transparent via-brand-accent/60 to-transparent" aria-hidden="true"></div>
 
-    <div class="mx-auto max-w-7xl px-4 pt-16 pb-8 sm:px-6 lg:px-8 lg:pt-20">
+    <div class="mx-auto max-w-7xl px-4 pt-16 pb-24 sm:px-6 sm:pb-8 lg:px-8 lg:pt-20">
         <div class="grid gap-12 lg:grid-cols-12 lg:gap-8">
             <div class="lg:col-span-4">
                 <a href="{{ route('home') }}" class="inline-block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
                     @if ($footerLogo)
-                        <span class="inline-flex rounded-lg bg-white px-3.5 py-2.5">
-                            <img
-                                src="{{ \Illuminate\Support\Facades\Storage::disk($footerLogo->disk)->url($footerLogo->path) }}"
-                                alt="{{ $siteName }}"
-                                class="h-10 w-auto max-w-[220px] object-contain"
-                            >
-                        </span>
+                        <img
+                            src="{{ \Illuminate\Support\Facades\Storage::disk($footerLogo->disk)->url($footerLogo->path) }}"
+                            alt="{{ $siteName }}"
+                            class="h-11 w-auto max-w-[240px] object-contain"
+                        >
                     @else
                         <x-site.brand-mark :site-name="$siteName" :tagline="$tagline" :on-dark="true"/>
                     @endif
@@ -118,7 +120,7 @@
                                         <img
                                             src="{{ \Illuminate\Support\Facades\Storage::disk($link->icon->disk)->url($link->icon->path) }}"
                                             alt=""
-                                            class="h-full w-full rounded-full object-cover"
+                                            class="h-full w-full rounded-full object-cover mix-blend-screen"
                                         >
                                     @else
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4" aria-hidden="true">

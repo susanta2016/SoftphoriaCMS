@@ -7,20 +7,27 @@
     second contact-processing path. Behaviour lives in resources/js/app.js
     ([data-contact-widget]); field ids are cw-prefixed so they never clash
     with a full contact form on the same page.
+
+    WEB-103.1: below sm (phones) the side tab would sit over the hero copy,
+    so there it is a round icon button at the bottom right (label kept for
+    screen readers) and the panel opens above it, and it only fades in
+    once the visitor scrolls past the top of the page (app.js/app.css) so it
+    never covers the hero's buttons. From sm up it is the original
+    right-edge tab. Same markup and JS in both cases.
 --}}
 @php
     $inputClasses = 'mt-1 block w-full rounded-lg border border-brand-navy/15 bg-brand-mist px-3 py-2 text-sm text-brand-navy placeholder:text-brand-navy/40 transition focus:border-brand-accent focus:bg-white focus:ring-2 focus:ring-brand-accent/25 focus:outline-none aria-[invalid=true]:border-red-400';
 @endphp
 
 {{-- The wrapper spans the (hidden) panel too, so it ignores the pointer: only the tab, and the panel once open, react to hover/clicks — never the empty space beside the tab. --}}
-<div data-contact-widget class="group pointer-events-none fixed top-1/2 right-0 z-40 flex -translate-y-1/2 items-center perspective-distant print:hidden">
+<div data-contact-widget class="group pointer-events-none fixed right-4 bottom-4 z-40 flex flex-col items-end perspective-distant sm:top-1/2 sm:right-0 sm:bottom-auto sm:-translate-y-1/2 sm:flex-row sm:items-center print:hidden">
     <div
         id="contact-widget-panel"
         data-contact-widget-panel
         role="dialog"
         aria-labelledby="contact-widget-title"
         inert
-        class="pointer-events-none invisible mr-2 max-h-[calc(100dvh-2rem)] w-[min(21rem,calc(100vw-4.5rem))] origin-right overflow-y-auto rounded-2xl border border-brand-navy/10 bg-white opacity-0 shadow-2xl shadow-brand-navy/20 transition-[transform,opacity,visibility] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] rotate-y-[-75deg] group-data-open:pointer-events-auto group-data-open:visible group-data-open:opacity-100 group-data-open:rotate-y-0 motion-reduce:transition-none"
+        class="pointer-events-none invisible mb-3 max-h-[calc(100dvh-6.5rem)] w-[min(21rem,calc(100vw-2rem))] origin-bottom-right overflow-y-auto sm:mr-2 sm:mb-0 sm:max-h-[calc(100dvh-2rem)] sm:w-[min(21rem,calc(100vw-4.5rem))] sm:origin-right rounded-2xl border border-brand-navy/10 bg-white opacity-0 shadow-2xl shadow-brand-navy/20 transition-[transform,opacity,visibility] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] rotate-y-[-75deg] group-data-open:pointer-events-auto group-data-open:visible group-data-open:opacity-100 group-data-open:rotate-y-0 motion-reduce:transition-none"
     >
         <div class="relative bg-gradient-to-br from-brand-navy to-brand-accent px-5 py-4 text-white">
             <p id="contact-widget-title" class="text-lg font-bold">Contact Us</p>
@@ -89,9 +96,9 @@
         data-contact-widget-toggle
         aria-expanded="false"
         aria-controls="contact-widget-panel"
-        class="pointer-events-auto flex rotate-180 items-center gap-2 rounded-r-xl bg-brand-accent px-2.5 py-4 text-sm font-semibold tracking-wide text-white shadow-lg shadow-brand-navy/20 transition-colors [writing-mode:vertical-rl] hover:bg-brand-accent-dark group-data-open:bg-brand-navy focus-visible:ring-2 focus-visible:ring-brand-accent/40 focus-visible:outline-none"
+        class="pointer-events-auto flex h-13 w-13 items-center justify-center rounded-full bg-brand-accent text-sm font-semibold tracking-wide text-white shadow-lg shadow-brand-navy/30 ring-4 ring-white/70 transition-colors hover:bg-brand-accent-dark group-data-open:bg-brand-navy focus-visible:ring-brand-accent/40 focus-visible:outline-none sm:h-auto sm:w-auto sm:rotate-180 sm:gap-2 sm:rounded-none sm:rounded-r-xl sm:px-2.5 sm:py-4 sm:ring-0 sm:[writing-mode:vertical-rl] sm:focus-visible:ring-2"
     >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 rotate-180" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6" stroke-linejoin="round"/></svg>
-        <span>Contact Us</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5 sm:h-4 sm:w-4 sm:rotate-180" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6" stroke-linejoin="round"/></svg>
+        <span class="sr-only sm:not-sr-only">Contact Us</span>
     </button>
 </div>
