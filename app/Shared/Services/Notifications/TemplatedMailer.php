@@ -4,6 +4,7 @@ namespace App\Shared\Services\Notifications;
 
 use App\Enums\EmailRecipientType;
 use App\Models\EmailTemplate;
+use App\Shared\Mail\BrandedEmailLayout;
 use App\Shared\Mail\TemplatedNotificationMail;
 use App\Shared\Services\Settings\MailSettingsApplier;
 use App\Shared\Services\Settings\SettingsRepository;
@@ -17,12 +18,19 @@ use Illuminate\Support\Facades\Mail;
  * the same TemplatedNotificationMail — one real Mailable class, so both
  * paths are observable via Mail::fake(), unlike a raw Mail::send() array
  * call (which MailFake silently ignores).
+ *
+ * Every send is wrapped in the shared BrandedEmailLayout (EMAIL-001): the
+ * stored template supplies only its subject + body, the layout adds the
+ * Softphoria header/footer, and a plain-text part is always attached —
+ * the template's own Plain-Text Fallback when filled, otherwise one
+ * derived from its HTML body.
  */
 class TemplatedMailer
 {
     public function __construct(
         private readonly MailSettingsApplier $mailSettings,
         private readonly SettingsRepository $settings,
+        private readonly BrandedEmailLayout $layout,
     ) {}
 
     /**
@@ -68,16 +76,45 @@ class TemplatedMailer
 
         $this->mailSettings->apply();
 
+        $subject = $this->substitute($template->subject, $variables);
+        $heading = self::heading($notificationKey, $recipientType, $variables);
+
+        // Values are escaped for the HTML body: several are visitor-typed
+        // (e.g. a Contact message), and must never inject markup/links
+        // into a mail sent to an admin or to an arbitrary address.
+        $htmlBody = $this->substitute($template->html_body, array_map(fn (mixed $value): string => nl2br(e((string) $value), false), $variables));
+
+        $textBody = filled($template->text_body)
+            ? $this->substitute($template->text_body, $variables)
+            : BrandedEmailLayout::htmlToText($htmlBody);
+
         return new TemplatedNotificationMail(
-            $this->substitute($template->subject, $variables),
-            // Values are escaped for the HTML body: several are visitor-typed
-            // (e.g. a Contact message), and must never inject markup/links
-            // into a mail sent to an admin or to an arbitrary address.
-            $this->substitute($template->html_body, array_map(fn (mixed $value): string => nl2br(e((string) $value), false), $variables)),
-            filled($template->text_body) ? $this->substitute($template->text_body, $variables) : null,
+            $subject,
+            $this->layout->html($subject, $heading, $htmlBody),
+            $this->layout->text($heading, $textBody),
             $this->settings->get('email', 'reply_to_email'),
             $this->settings->get('email', 'reply_to_name'),
         );
+    }
+
+    /**
+     * The layout's heading line for a key — config-owned copy
+     * (config/email_templates.php 'heading': a string, or an array keyed by
+     * recipient type) rather than a new stored column, so the template rows
+     * and their admin editing stay exactly as they were. Substituted with
+     * raw values; the layout escapes it on output. Null = no heading.
+     *
+     * @param  array<string, string>  $variables
+     */
+    public static function heading(string $notificationKey, EmailRecipientType $recipientType, array $variables): ?string
+    {
+        $heading = config("email_templates.{$notificationKey}.heading");
+
+        if (is_array($heading)) {
+            $heading = $heading[$recipientType->value] ?? null;
+        }
+
+        return filled($heading) ? self::substitute($heading, $variables) : null;
     }
 
     /**

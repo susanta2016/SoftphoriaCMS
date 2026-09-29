@@ -15,16 +15,30 @@
 |
 | 'recipients' lists which EmailRecipientType variants this key has.
 |
+| 'heading' is the title line the shared Softphoria email layout
+| (App\Shared\Mail\BrandedEmailLayout) shows above the template body —
+| a string, or an array keyed by recipient type. {{variables}} allowed.
+|
 */
 
 return [
 
     'email_verification' => [
         'label' => 'Verify Email',
+        'heading' => 'Verify your email address',
         'recipients' => ['user'],
         'variables' => ['user_name', 'verification_url', 'site_name'],
         'default_subject' => '{{site_name}} — Verify Your Email Address',
         'default_html_body' => <<<'HTML'
+            <p>Hi {{user_name}},</p>
+            <p>Thanks for joining {{site_name}}. Please verify your email address to activate your account.</p>
+            <p style="margin:28px 0;text-align:center;"><a href="{{verification_url}}" class="button" style="display:inline-block;background-color:#2563eb;border:solid #2563eb;border-width:13px 28px;border-radius:8px;color:#ffffff;font-weight:600;line-height:20px;text-decoration:none;">Verify My Email</a></p>
+            <p>This link will expire in 24 hours. If you didn't create this account, you can safely ignore this email.</p>
+            <p style="font-size:14px;line-height:22px;color:#64748b;">If the button doesn't work, copy and paste this link into your browser:<br><a href="{{verification_url}}" style="color:#2563eb;word-break:break-all;">{{verification_url}}</a></p>
+            HTML,
+        // The body shipped before EMAIL-001's button. A row still holding
+        // exactly this (never edited) is upgraded by EmailTemplateSeeder.
+        'previous_default_html_body' => <<<'HTML'
             <p>Hi {{user_name}},</p>
             <p>Thanks for joining {{site_name}}. Please verify your email address to activate your account.</p>
             <p><a href="{{verification_url}}">Verify My Email</a></p>
@@ -43,16 +57,25 @@ return [
 
     'user_registered' => [
         'label' => 'New Registration / Welcome',
+        'heading' => ['user' => 'Welcome to {{site_name}}', 'admin' => 'New user registration'],
         'recipients' => ['user', 'admin'],
         'variables' => ['user_name', 'user_email', 'site_name'],
     ],
 
     'password_reset' => [
         'label' => 'Password Reset / Generate New Password',
+        'heading' => 'Reset your password',
         'recipients' => ['user'],
         'variables' => ['user_name', 'reset_url', 'site_name'],
         'default_subject' => '{{site_name}} — Reset Your Password',
         'default_html_body' => <<<'HTML'
+            <p>Hi {{user_name}},</p>
+            <p>We received a request to reset your password on {{site_name}}. Click the link below to choose a new password.</p>
+            <p style="margin:28px 0;text-align:center;"><a href="{{reset_url}}" class="button" style="display:inline-block;background-color:#2563eb;border:solid #2563eb;border-width:13px 28px;border-radius:8px;color:#ffffff;font-weight:600;line-height:20px;text-decoration:none;">Reset My Password</a></p>
+            <p>If you didn't request this, you can safely ignore this email — your password will remain unchanged.</p>
+            <p style="font-size:14px;line-height:22px;color:#64748b;">If the button doesn't work, copy and paste this link into your browser:<br><a href="{{reset_url}}" style="color:#2563eb;word-break:break-all;">{{reset_url}}</a></p>
+            HTML,
+        'previous_default_html_body' => <<<'HTML'
             <p>Hi {{user_name}},</p>
             <p>We received a request to reset your password on {{site_name}}. Click the link below to choose a new password.</p>
             <p><a href="{{reset_url}}">Reset My Password</a></p>
@@ -71,18 +94,21 @@ return [
 
     'profile_updated' => [
         'label' => 'Profile Update',
+        'heading' => 'Your profile was updated',
         'recipients' => ['user'],
         'variables' => ['user_name', 'site_name'],
     ],
 
     'newsletter_subscribed' => [
         'label' => 'Newsletter Confirmation/Registration',
+        'heading' => "You're subscribed",
         'recipients' => ['user'],
         'variables' => ['subscriber_email', 'site_name'],
     ],
 
     'contact_form_submitted' => [
         'label' => 'Contact Form',
+        'heading' => ['user' => 'We received your message', 'admin' => 'New contact message'],
         'recipients' => ['user', 'admin'],
         'variables' => ['name', 'email', 'phone', 'subject', 'message', 'site_name', 'page_url', 'page_title', 'lead_source', 'cta_label', 'referrer'],
         // Admin copy only: the admin notification must carry the actual
