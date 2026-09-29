@@ -56,12 +56,6 @@
                             {{ $hero['secondary_cta_label'] }}
                         </a>
                     @endif
-
-                    {{-- Admin-editable (Hero section's "Gather Live button" fields), e.g. a Zoom link; off-site links open in a new tab. --}}
-                    @php $liveIsExternal = preg_match('#^https?://#i', $hero['live_cta_url']) === 1 &&parse_url($hero['live_cta_url'], PHP_URL_HOST) !== request()->getHost(); @endphp
-                    <a href="{{ $hero['live_cta_url'] }}" @if ($liveIsExternal) target="_blank" rel="noopener noreferrer" @endif class="inline-flex items-center rounded-md border border-brand-navy/40 px-6 py-3.5 text-sm font-semibold tracking-wide text-brand-navy uppercase transition hover:border-brand-navy hover:bg-white/40">
-                        {{ $hero['live_cta_label'] }}
-                    </a>
                 </div>
 
                 @if ($hero['tertiary_label'])

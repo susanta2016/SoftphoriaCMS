@@ -114,27 +114,15 @@ class HomeAdminEditableContentTest extends TestCase
         $response->assertDontSee('Join Our Community');
     }
 
-    public function test_the_gather_live_button_defaults_to_registration(): void
+    public function test_the_hero_no_longer_shows_a_gather_live_button(): void
     {
-        $this->publishedHomePageWithHeroSection([]);
+        $this->publishedHomePageWithHeroSection(['live_cta_label' => 'Join the Live Gathering', 'live_cta_url' => '/register']);
 
         $response = $this->get(route('home'));
 
         $response->assertOk();
-        $response->assertSee('Register to receive the Gather Live link');
-        $response->assertSee('href="'.route('register.show').'"', false);
-    }
-
-    public function test_an_admin_set_gather_live_link_is_used_and_opens_off_site_links_in_a_new_tab(): void
-    {
-        $zoom = 'https://us06web.zoom.us/j/123456789?pwd=abc.1';
-        $this->publishedHomePageWithHeroSection(['live_cta_label' => 'Join the Live Gathering', 'live_cta_url' => $zoom]);
-
-        $response = $this->get(route('home'));
-
-        $response->assertOk();
-        $response->assertSee('Join the Live Gathering');
-        $response->assertSee('href="'.$zoom.'"  target="_blank" rel="noopener noreferrer"', false);
+        $response->assertDontSee('Register to receive the Gather Live link');
+        $response->assertDontSee('Join the Live Gathering');
     }
 
     public function test_a_members_only_join_now_url_sends_guests_to_registration(): void

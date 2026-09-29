@@ -53,8 +53,6 @@ class HomePageSeeder extends Seeder
                         'cta_url' => '#',
                         'secondary_cta_label' => 'Read Writing',
                         'secondary_cta_url' => '#',
-                        'live_cta_label' => 'Register to receive the Gather Live link',
-                        'live_cta_url' => '/register',
                         'tertiary_label' => 'Watch Introduction',
                         'tertiary_url' => '#',
                     ],
