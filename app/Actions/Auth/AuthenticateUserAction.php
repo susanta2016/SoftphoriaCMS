@@ -26,6 +26,8 @@ class AuthenticateUserAction
         UserStatus::Deleted->value,
     ];
 
+    public function __construct(private readonly RecordLastLoginAction $recordLastLogin) {}
+
     /**
      * @throws ValidationException
      */
@@ -60,6 +62,8 @@ class AuthenticateUserAction
                 'email' => 'Admin accounts must sign in at /admin/login.',
             ]);
         }
+
+        $this->recordLastLogin->handle($user);
 
         return $user;
     }
