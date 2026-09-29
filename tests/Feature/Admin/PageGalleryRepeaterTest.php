@@ -128,13 +128,15 @@ class PageGalleryRepeaterTest extends TestCase
         $instance = Livewire::actingAs($admin)
             ->test(EditPage::class, ['record' => $page->getRouteKey()]);
 
-        // The outer "sections" Repeater (and the nested "gallery_items"
-        // Repeater it hydrates into) re-key their items by UUID once
-        // mounted, so the item can't be addressed by a fixed numeric index
-        // — read the actual (only) section/item back out instead.
-        $sections = $instance->get('data.sections');
-        $section = collect($sections)->sole();
-        $galleryItem = collect($section['content_json']['gallery_items'])->sole();
+        // CMS-001: the hydration happens when the section's Edit modal
+        // opens (not on page load), into that modal's own form state. The
+        // "sections" Repeater and the nested "gallery_items" Repeater both
+        // key their items by UUID, so read the actual (only) item back out.
+        $sectionKey = collect($instance->get('data.sections'))->keys()->sole();
+        $instance->mountFormComponentAction('sections', 'editSection', ['item' => $sectionKey]);
+
+        $modalState = $instance->get('mountedActions.0.data');
+        $galleryItem = collect($modalState['content_json']['gallery_items'])->sole();
 
         $this->assertSame($media->id, $galleryItem['media_id']);
     }

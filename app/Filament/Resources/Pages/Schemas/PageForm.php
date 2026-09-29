@@ -16,6 +16,8 @@ use App\Models\PageRevision;
 use App\Models\Service;
 use App\Models\User;
 use App\Shared\Support\Pages\GalleryItemIcons;
+use App\Shared\Support\Pages\PageSectionSummary;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -32,6 +34,9 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 
@@ -40,7 +45,8 @@ use Illuminate\Support\Str;
  * so CreatePageAction/UpdatePageAction — not Filament's automatic
  * relationship save — own reconciling page_sections, writing the revision
  * snapshot, and detecting a slug change. Same reasoning as MenuForm's
- * items Repeater.
+ * items Repeater. CMS-001: that Repeater is a compact list whose section
+ * fields open in a modal — see sectionManager().
  */
 class PageForm
 {
@@ -52,7 +58,7 @@ class PageForm
                 Grid::make(['default' => 1, 'lg' => 12])
                     ->schema([
                         Group::make([
-                            Section::make('Details')
+                            Section::make('Page')
                                 ->columns(2)
                                 ->schema([
                                     TextInput::make('title')
@@ -78,35 +84,15 @@ class PageForm
                                         ->options(PageTemplate::options())
                                         ->default(PageTemplate::Standard->value)
                                         ->required(),
-                                    Textarea::make('summary')
-                                        ->rows(2)
-                                        ->maxLength(65535)
-                                        ->columnSpanFull(),
-                                    MediaPicker::make('featured_image_id', 'Featured Image')
-                                        ->columnSpanFull(),
-                                    Select::make('author_id')
-                                        ->label('Author')
-                                        ->options(fn (): array => User::query()->orderBy('name')->pluck('name', 'id')->all())
-                                        ->searchable()
-                                        ->preload(),
                                 ]),
 
-                            Section::make('Sections')
-                                ->description('Structured content blocks — not a freeform drag-and-drop builder. Choose from the approved block types below.')
+                            Section::make('Content')
+                                ->description('Structured content blocks, in page order — drag to reorder, Edit to change one. Changes are kept when you save the page.')
                                 ->schema([
-                                    Repeater::make('sections')
-                                        ->hiddenLabel()
-                                        ->reorderable()
-                                        ->collapsible()
-                                        ->defaultItems(0)
-                                        ->itemLabel(fn (array $state): ?string => $state['title']
-                                            ?: (isset($state['section_type']) ? PageSectionType::from($state['section_type'])->getLabel() : null))
-                                        ->addActionLabel('Add section')
-                                        ->schema(self::sectionSchema())
-                                        ->columns(2),
+                                    self::sectionManager(),
                                 ]),
 
-                            Section::make('SEO')
+                            Section::make('SEO & Social')
                                 ->description('Independent per-page metadata (title, description, canonical, Open Graph, Twitter card, structured data).')
                                 ->collapsed()
                                 ->schema([
@@ -127,6 +113,23 @@ class PageForm
                                     Textarea::make('seo.twitter_description')->label('Twitter description')->rows(2)->maxLength(500)->columnSpanFull(),
                                 ])
                                 ->columns(2),
+
+                            Section::make('Page Settings')
+                                ->collapsed()
+                                ->columns(2)
+                                ->schema([
+                                    Textarea::make('summary')
+                                        ->rows(2)
+                                        ->maxLength(65535)
+                                        ->columnSpanFull(),
+                                    MediaPicker::make('featured_image_id', 'Featured Image')
+                                        ->columnSpanFull(),
+                                    Select::make('author_id')
+                                        ->label('Author')
+                                        ->options(fn (): array => User::query()->orderBy('name')->pluck('name', 'id')->all())
+                                        ->searchable()
+                                        ->preload(),
+                                ]),
                         ])->columnSpan(['default' => 12, 'lg' => 7]),
 
                         Group::make([
@@ -186,6 +189,148 @@ class PageForm
     }
 
     /**
+     * CMS-001 — the compact section list. Still the same plain `sections`
+     * array Repeater (so drag-to-reorder, the item `id` round-trip and
+     * SyncsPageSections' sort_order-follows-submission-order are unchanged),
+     * but each item now renders only a label + one-line summary
+     * (PageSectionSummary). The full, type-specific fields live in
+     * sectionSchema() and open in a modal via the Edit / Add section
+     * actions, which write straight back into that item's raw state.
+     *
+     * Because the item schema holds no fields, saving the page passes every
+     * section's stored keys through untouched (including legacy ones like a
+     * pre-WEB-101 Gallery's content_json.media_ids) — only the section
+     * actually edited in the modal changes.
+     */
+    private static function sectionManager(): Repeater
+    {
+        return Repeater::make('sections')
+            ->hiddenLabel()
+            ->reorderable()
+            ->defaultItems(0)
+            ->itemLabel(fn (Repeater $component, string $key, ?int $index): string => PageSectionSummary::label(self::rawSection($component, $key), $index))
+            ->schema([
+                Placeholder::make('summary')
+                    ->hiddenLabel()
+                    ->content(fn (Get $get): string => PageSectionSummary::summary([
+                        'section_type' => $get('section_type'),
+                        'title' => $get('title'),
+                        'content_json' => $get('content_json'),
+                    ])),
+            ])
+            ->extraItemActions([
+                Action::make('editSection')
+                    ->label('Edit')
+                    ->icon(Heroicon::PencilSquare)
+                    ->button()
+                    ->modalHeading(fn (array $arguments, Repeater $component): string => 'Edit section: '.PageSectionSummary::label(self::rawSection($component, $arguments['item'] ?? '')))
+                    ->modalWidth(Width::FourExtraLarge)
+                    ->modalSubmitActionLabel('Apply')
+                    ->fillForm(fn (array $arguments, Repeater $component): array => self::withGalleryItemsHydrated(self::rawSection($component, $arguments['item'] ?? '')))
+                    ->schema([Grid::make(2)->schema(self::sectionSchema())])
+                    ->action(function (array $data, array $arguments, Repeater $component): void {
+                        $items = $component->getRawState() ?? [];
+                        $key = $arguments['item'] ?? null;
+
+                        if ($key === null || ! array_key_exists($key, $items)) {
+                            return;
+                        }
+
+                        $items[$key] = self::applySectionEdit($items[$key], $data);
+                        $component->rawState($items);
+                        $component->callAfterStateUpdated();
+                    }),
+            ])
+            ->addActionLabel('Add section')
+            ->addActionAlignment(Alignment::Center)
+            ->addAction(fn (Action $action): Action => $action
+                ->icon(Heroicon::Plus)
+                ->modalHeading('Add section')
+                ->modalDescription('Choose the section type — its fields appear below.')
+                ->modalWidth(Width::FourExtraLarge)
+                ->modalSubmitActionLabel('Add section')
+                ->schema([Grid::make(2)->schema(self::sectionSchema())])
+                ->action(function (array $data, Repeater $component): void {
+                    $items = $component->getRawState() ?? [];
+                    $items[$component->generateUuid() ?? count($items)] = self::applySectionEdit([], $data);
+                    $component->rawState($items);
+                    $component->callAfterStateUpdated();
+                }))
+            ->deleteAction(fn (Action $action): Action => $action
+                ->requiresConfirmation()
+                ->modalHeading('Delete this section?')
+                ->modalDescription('The section is removed from the page when you save it. Leaving without saving keeps it.'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function rawSection(Repeater $component, string $key): array
+    {
+        $section = ($component->getRawState() ?? [])[$key] ?? [];
+
+        return is_array($section) ? $section : [];
+    }
+
+    /**
+     * WEB-101 item E — a Gallery section saved before the Gallery repeater
+     * existed only has the old flat content_json.media_ids array. Hydrate
+     * it into the content_json.gallery_items shape when that section's Edit
+     * modal opens, so its existing images show in the repeater instead of
+     * an empty list. Only a section actually edited and applied is
+     * converted; the public page still renders the old shape unchanged
+     * (CMS-001 moved this from page load, where every page save used to
+     * rewrite untouched legacy galleries).
+     *
+     * @param  array<string, mixed>  $section
+     * @return array<string, mixed>
+     */
+    private static function withGalleryItemsHydrated(array $section): array
+    {
+        $content = $section['content_json'] ?? null;
+
+        if (($section['section_type'] ?? null) !== PageSectionType::Gallery->value
+            || ! is_array($content)
+            || ! empty($content['gallery_items'] ?? null)
+            || empty($content['media_ids'] ?? null)) {
+            return $section;
+        }
+
+        $section['content_json']['gallery_items'] = collect($content['media_ids'])
+            ->map(fn ($id) => ['media_id' => $id, 'title' => null, 'description' => null, 'url' => null])
+            ->all();
+
+        return $section;
+    }
+
+    /**
+     * Merges the Edit/Add modal's submitted fields into one section's raw
+     * state. The modal only returns the fields visible for the chosen type,
+     * so content_json is merged over the stored one — keys the form doesn't
+     * know about (legacy data) survive an edit. Switching the section's
+     * type starts content_json fresh instead, so a former type's leftovers
+     * aren't carried along.
+     *
+     * @param  array<string, mixed>  $section
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private static function applySectionEdit(array $section, array $data): array
+    {
+        $storedContent = is_array($section['content_json'] ?? null) ? $section['content_json'] : [];
+        $submittedContent = is_array($data['content_json'] ?? null) ? $data['content_json'] : [];
+        $typeChanged = isset($section['section_type']) && $section['section_type'] !== $data['section_type'];
+
+        return [
+            ...$section,
+            'section_type' => $data['section_type'],
+            'title' => $data['title'] ?? null,
+            'is_enabled' => (bool) ($data['is_enabled'] ?? true),
+            'content_json' => $typeChanged ? $submittedContent : array_replace($storedContent, $submittedContent),
+        ];
+    }
+
+    /**
      * @return array<int, Component>
      */
     private static function sectionSchema(): array
@@ -195,7 +340,16 @@ class PageForm
                 ->label('Type')
                 ->options(PageSectionType::options())
                 ->required()
-                ->live(),
+                ->live()
+                // Style's options differ per type (Services has no 'simple'),
+                // so keep its value valid for the newly chosen type.
+                ->afterStateUpdated(function (?string $state, Get $get, Set $set): void {
+                    $styles = self::styleOptions($state);
+
+                    if (! array_key_exists((string) $get('content_json.style'), $styles)) {
+                        $set('content_json.style', array_key_first($styles));
+                    }
+                }),
             TextInput::make('title')
                 ->label('Admin label')
                 ->maxLength(255)
@@ -261,29 +415,9 @@ class PageForm
 
             // WEB-103: Cta's two looks — the original centered block, or the
             // redesigned homepage's full-width dark closing banner.
-            // Look options per section type — see resources/views/components/site/sections.blade.php.
             Select::make('content_json.style')
                 ->label('Style')
-                ->options(fn (Get $get): array => match ($get('section_type')) {
-                    PageSectionType::Hero->value => [
-                        'simple' => 'Simple (centered, light)',
-                        'band' => 'Page header band (full-width, dark — for inner pages like About)',
-                    ],
-                    PageSectionType::Services->value => [
-                        'grid' => 'Card grid',
-                        'spotlight' => 'Spotlight (dark band, large highlight cards)',
-                    ],
-                    PageSectionType::ImageText->value => [
-                        'simple' => 'Simple',
-                        'split' => 'Split — image left, text right (full-width band)',
-                        'split-reverse' => 'Split — text left, image right (full-width band)',
-                        'profile' => 'Profile card (e.g. founder or team member)',
-                    ],
-                    default => [
-                        'simple' => 'Simple (centered, light)',
-                        'banner' => 'Banner (full-width, dark)',
-                    ],
-                })
+                ->options(fn (Get $get): array => self::styleOptions($get('section_type')))
                 ->default('simple')
                 ->live()
                 ->visible(fn (Get $get): bool => self::typeIn($get, [PageSectionType::Cta, PageSectionType::Hero, PageSectionType::ImageText, PageSectionType::Services])),
@@ -480,6 +614,35 @@ class PageForm
                 ->content('No configuration needed — renders the same Contact form as the dedicated Contact Us page. The "Admin label" field above is shown as an optional heading above the form.')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::ContactForm->value),
         ];
+    }
+
+    /**
+     * Look options per section type — see resources/views/components/site/sections.blade.php.
+     *
+     * @return array<string, string>
+     */
+    private static function styleOptions(?string $sectionType): array
+    {
+        return match ($sectionType) {
+            PageSectionType::Hero->value => [
+                'simple' => 'Simple (centered, light)',
+                'band' => 'Page header band (full-width, dark — for inner pages like About)',
+            ],
+            PageSectionType::Services->value => [
+                'grid' => 'Card grid',
+                'spotlight' => 'Spotlight (dark band, large highlight cards)',
+            ],
+            PageSectionType::ImageText->value => [
+                'simple' => 'Simple',
+                'split' => 'Split — image left, text right (full-width band)',
+                'split-reverse' => 'Split — text left, image right (full-width band)',
+                'profile' => 'Profile card (e.g. founder or team member)',
+            ],
+            default => [
+                'simple' => 'Simple (centered, light)',
+                'banner' => 'Banner (full-width, dark)',
+            ],
+        };
     }
 
     /**
