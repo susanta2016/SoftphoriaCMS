@@ -152,11 +152,12 @@ class EditEmailTemplate extends EditRecord
                                 ->label('HTML Body')
                                 ->required()
                                 ->rows(10)
+                                ->helperText('Content only — the site logo header and footer (links, copyright) are added automatically by the shared email layout.')
                                 ->live(onBlur: false),
                             Textarea::make("{$prefix}text_body")
                                 ->label('Plain-Text Fallback')
                                 ->rows(6)
-                                ->helperText('Optional. Sent as the plain-text alternative alongside the HTML body.'),
+                                ->helperText('Optional. Sent as the plain-text alternative alongside the HTML body — if left empty, one is generated from the HTML body.'),
                         ]),
                     Section::make('Preview')
                         ->description('Sample values in place of {{variables}} — for layout review only, not the exact recipient content.')

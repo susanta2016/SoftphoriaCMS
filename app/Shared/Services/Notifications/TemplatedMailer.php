@@ -4,6 +4,7 @@ namespace App\Shared\Services\Notifications;
 
 use App\Enums\EmailRecipientType;
 use App\Models\EmailTemplate;
+use App\Shared\Mail\BrandedEmailLayout;
 use App\Shared\Mail\TemplatedNotificationMail;
 use App\Shared\Services\Settings\MailSettingsApplier;
 use App\Shared\Services\Settings\SettingsRepository;
@@ -23,6 +24,7 @@ class TemplatedMailer
     public function __construct(
         private readonly MailSettingsApplier $mailSettings,
         private readonly SettingsRepository $settings,
+        private readonly BrandedEmailLayout $layout,
     ) {}
 
     /**
@@ -68,10 +70,19 @@ class TemplatedMailer
 
         $this->mailSettings->apply();
 
+        $htmlBody = $this->substitute($template->html_body, $variables);
+
+        // A plain-text part is always attached: the template's own
+        // Plain-Text Fallback when filled, otherwise one derived from the
+        // formatted HTML body — either way followed by the text footer.
+        $textBody = filled($template->text_body)
+            ? $this->substitute($template->text_body, $variables)
+            : BrandedEmailLayout::htmlToText(self::formatHtmlBody($htmlBody));
+
         return new TemplatedNotificationMail(
             $this->substitute($template->subject, $variables),
-            self::renderEmailHtml($this->substitute($template->html_body, $variables)),
-            filled($template->text_body) ? $this->substitute($template->text_body, $variables) : null,
+            self::renderEmailHtml($htmlBody),
+            $this->layout->text($textBody),
             $this->settings->get('email', 'reply_to_email'),
             $this->settings->get('email', 'reply_to_name'),
         );
@@ -175,6 +186,9 @@ class TemplatedMailer
     {
         return view('emails.layout', [
             'content' => self::formatHtmlBody($rawHtmlBody),
+            // Logo header + footer (site links, copyright) — shared, never
+            // stored in the individual templates.
+            ...app(BrandedEmailLayout::class)->brand(),
         ])->render();
     }
 }

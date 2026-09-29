@@ -324,7 +324,9 @@ class EmailTemplateResourceTest extends TestCase
         $mailable = app(TemplatedMailer::class)->renderAsMailable('email_verification', EmailRecipientType::User, ['user_name' => 'Jane']);
         $mailable->build();
 
-        $this->assertSame("Paragraph one.\n\nParagraph two.", (string) $mailable->textView);
+        // The shared text footer follows the admin's own text, untouched.
+        $this->assertStringStartsWith("Paragraph one.\n\nParagraph two.\n\n--\n", (string) $mailable->textView);
+        $this->assertStringNotContainsString('<', (string) $mailable->textView);
     }
 
     /**
