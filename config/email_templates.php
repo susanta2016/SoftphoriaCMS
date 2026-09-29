@@ -15,17 +15,12 @@
 |
 | 'recipients' lists which EmailRecipientType variants this key has.
 |
-| 'heading' is the title line the shared Softphoria email layout
-| (App\Shared\Mail\BrandedEmailLayout) shows above the template body —
-| a string, or an array keyed by recipient type. {{variables}} allowed.
-|
 */
 
 return [
 
     'email_verification' => [
         'label' => 'Verify Email',
-        'heading' => 'Verify your email address',
         'recipients' => ['user'],
         'variables' => ['user_name', 'verification_url', 'site_name'],
         'default_subject' => '{{site_name}} — Verify Your Email Address',
@@ -57,14 +52,12 @@ return [
 
     'user_registered' => [
         'label' => 'New Registration / Welcome',
-        'heading' => ['user' => 'Welcome to {{site_name}}', 'admin' => 'New user registration'],
         'recipients' => ['user', 'admin'],
         'variables' => ['user_name', 'user_email', 'site_name'],
     ],
 
     'password_reset' => [
         'label' => 'Password Reset / Generate New Password',
-        'heading' => 'Reset your password',
         'recipients' => ['user'],
         'variables' => ['user_name', 'reset_url', 'site_name'],
         'default_subject' => '{{site_name}} — Reset Your Password',
@@ -94,21 +87,18 @@ return [
 
     'profile_updated' => [
         'label' => 'Profile Update',
-        'heading' => 'Your profile was updated',
         'recipients' => ['user'],
         'variables' => ['user_name', 'site_name'],
     ],
 
     'newsletter_subscribed' => [
         'label' => 'Newsletter Confirmation/Registration',
-        'heading' => "You're subscribed",
         'recipients' => ['user'],
         'variables' => ['subscriber_email', 'site_name'],
     ],
 
     'contact_form_submitted' => [
         'label' => 'Contact Form',
-        'heading' => ['user' => 'We received your message', 'admin' => 'New contact message'],
         'recipients' => ['user', 'admin'],
         'variables' => ['name', 'email', 'phone', 'subject', 'message', 'site_name', 'page_url', 'page_title', 'lead_source', 'cta_label', 'referrer'],
         // Admin copy only: the admin notification must carry the actual

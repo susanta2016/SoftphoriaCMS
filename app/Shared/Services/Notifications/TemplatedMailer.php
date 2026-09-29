@@ -77,7 +77,6 @@ class TemplatedMailer
         $this->mailSettings->apply();
 
         $subject = $this->substitute($template->subject, $variables);
-        $heading = self::heading($notificationKey, $recipientType, $variables);
 
         // Values are escaped for the HTML body: several are visitor-typed
         // (e.g. a Contact message), and must never inject markup/links
@@ -90,31 +89,11 @@ class TemplatedMailer
 
         return new TemplatedNotificationMail(
             $subject,
-            $this->layout->html($subject, $heading, $htmlBody),
-            $this->layout->text($heading, $textBody),
+            $this->layout->html($subject, $htmlBody),
+            $this->layout->text($textBody),
             $this->settings->get('email', 'reply_to_email'),
             $this->settings->get('email', 'reply_to_name'),
         );
-    }
-
-    /**
-     * The layout's heading line for a key — config-owned copy
-     * (config/email_templates.php 'heading': a string, or an array keyed by
-     * recipient type) rather than a new stored column, so the template rows
-     * and their admin editing stay exactly as they were. Substituted with
-     * raw values; the layout escapes it on output. Null = no heading.
-     *
-     * @param  array<string, string>  $variables
-     */
-    public static function heading(string $notificationKey, EmailRecipientType $recipientType, array $variables): ?string
-    {
-        $heading = config("email_templates.{$notificationKey}.heading");
-
-        if (is_array($heading)) {
-            $heading = $heading[$recipientType->value] ?? null;
-        }
-
-        return filled($heading) ? self::substitute($heading, $variables) : null;
     }
 
     /**

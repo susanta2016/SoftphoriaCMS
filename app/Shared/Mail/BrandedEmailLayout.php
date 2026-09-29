@@ -25,17 +25,16 @@ class BrandedEmailLayout
 {
     public function __construct(private readonly SettingsRepository $settings) {}
 
-    public function html(string $subject, ?string $heading, string $bodyHtml): string
+    public function html(string $subject, string $bodyHtml): string
     {
         return view('mail.branded', [
             'subject' => $subject,
-            'heading' => $heading,
             'body' => new HtmlString($bodyHtml),
             ...$this->brand(),
         ])->render();
     }
 
-    public function text(?string $heading, string $bodyText): string
+    public function text(string $bodyText): string
     {
         $brand = $this->brand();
 
@@ -48,8 +47,7 @@ class BrandedEmailLayout
             "© {$brand['year']} {$brand['siteName']}. All rights reserved.",
         ]);
 
-        return trim(implode("\n\n", array_filter([$heading, trim($bodyText)])))
-            ."\n\n".implode("\n", $footer)."\n";
+        return trim($bodyText)."\n\n".implode("\n", $footer)."\n";
     }
 
     /**

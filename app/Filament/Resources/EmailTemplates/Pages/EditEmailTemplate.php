@@ -153,7 +153,7 @@ class EditEmailTemplate extends EditRecord
                                 ->label('HTML Body')
                                 ->required()
                                 ->rows(10)
-                                ->helperText('Content only — the Softphoria header, heading and footer are added automatically by the shared email layout.')
+                                ->helperText('Content only — the Softphoria header and footer are added automatically by the shared email layout. Add your own heading here if you want one (e.g. <h1>…</h1>).')
                                 ->live(onBlur: false),
                             Textarea::make("{$prefix}text_body")
                                 ->label('Plain-Text Fallback')
@@ -185,14 +185,12 @@ class EditEmailTemplate extends EditRecord
     private function renderPreviewBody(Get $get, string $prefix): HtmlString
     {
         $variables = $this->sampleVariables();
-        $recipientType = $prefix === 'admin.' ? EmailRecipientType::Admin : EmailRecipientType::User;
 
         // Shown inside the shared BrandedEmailLayout exactly as real sends
         // are — in a sandboxed iframe (srcdoc), so the layout's own
         // document/<style> can't leak into the admin panel and vice versa.
         $document = app(BrandedEmailLayout::class)->html(
             $this->renderPreviewSubject($get, $prefix),
-            TemplatedMailer::heading($this->record->notification_key, $recipientType, $variables),
             TemplatedMailer::substitute((string) ($get("{$prefix}html_body") ?? ''), $variables),
         );
 

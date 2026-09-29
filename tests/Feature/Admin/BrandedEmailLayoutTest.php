@@ -40,7 +40,7 @@ class BrandedEmailLayoutTest extends TestCase
         $mail = $this->render('email_verification', ['user_name' => 'Jane', 'verification_url' => 'https://softphoria.example/verify/abc']);
         $html = $mail->render();
 
-        $this->assertStringContainsString('Verify your email address', $html);
+        $this->assertStringNotContainsString('<h1', $html);
         $this->assertStringContainsString('Hi Jane,', $html);
         $this->assertStringContainsString('href="https://softphoria.example/verify/abc"', $html);
         $this->assertStringContainsString('Be your tech partner', $html);
@@ -61,7 +61,7 @@ class BrandedEmailLayoutTest extends TestCase
     {
         $text = $this->textOf($this->render('password_reset', ['user_name' => 'Jane', 'reset_url' => 'https://softphoria.example/reset/xyz']));
 
-        $this->assertStringContainsString('Reset your password', $text);
+        $this->assertStringStartsWith('Hi Jane,', $text);
         $this->assertStringContainsString('Reset my password: https://softphoria.example/reset/xyz', $text);
         $this->assertStringContainsString('All rights reserved.', $text);
         $this->assertStringNotContainsString('<p>', $text);
@@ -120,7 +120,7 @@ class BrandedEmailLayoutTest extends TestCase
         app(TemplatedMailer::class)->send('newsletter_subscribed', EmailRecipientType::User, 'sub@example.com', ['subscriber_email' => 'sub@example.com']);
 
         Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo('sub@example.com')
-            && str_contains($mail->render(), 'You&#039;re subscribed'));
+            && str_contains($mail->render(), 'All rights reserved.'));
     }
 
     /**

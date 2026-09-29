@@ -22,12 +22,15 @@
         .sp-content a { color: #2563eb; }
         .sp-content a.button { color: #ffffff !important; text-decoration: none !important; }
         .sp-content strong { color: #07162f; }
+        .sp-content h1, .sp-content h2 { margin: 0 0 16px; color: #07162f; font-weight: 700; }
+        .sp-content h1 { font-size: 22px; line-height: 30px; }
+        .sp-content h2 { font-size: 18px; line-height: 26px; }
         .sp-footer a { color: #93c5fd; }
         @media only screen and (max-width: 620px) {
             .sp-container { width: 100% !important; }
             .sp-outer { padding: 16px 8px !important; }
             .sp-pad { padding-left: 24px !important; padding-right: 24px !important; }
-            .sp-heading { font-size: 20px !important; }
+            .sp-content h1 { font-size: 20px !important; line-height: 28px !important; }
         }
     </style>
 </head>
@@ -56,12 +59,9 @@
                         </td>
                     </tr>
 
-                    {{-- Template-specific heading and content --}}
+                    {{-- Template-specific content (fully admin-edited, including any heading) --}}
                     <tr>
                         <td class="sp-pad sp-content" style="padding:36px 40px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:26px;color:#334155;">
-                            @if (filled($heading))
-                                <h1 class="sp-heading" style="margin:0 0 20px;font-size:22px;line-height:30px;font-weight:700;color:#07162f;">{{ $heading }}</h1>
-                            @endif
                             {!! $body !!}
                         </td>
                     </tr>
