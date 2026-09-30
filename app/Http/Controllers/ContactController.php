@@ -57,8 +57,8 @@ class ContactController extends Controller
         $contactWhatsapp = $settings->get('contact', 'whatsapp');
 
         $seo = SeoTagBuilder::build(null, [
-            'title' => "Contact Us — {$siteName}",
-            'description' => "Get in touch with {$siteName}.",
+            'title' => $settings->get('contact', 'meta_title') ?: "Contact Us — {$siteName}",
+            'description' => $settings->get('contact', 'meta_description') ?: "Get in touch with {$siteName}.",
             'canonical' => route('contact.index'),
             'type' => 'website',
         ], $general);

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Page\Concerns;
 
+use App\Filament\Support\Seo\SeoFields;
 use App\Models\Page;
 
 /**
@@ -20,7 +21,16 @@ trait SavesPageSeo
      */
     protected function saveSeo(Page $page, array $seo): void
     {
-        if (array_filter($seo, fn (mixed $value): bool => $value !== null && $value !== '' && $value !== []) === []) {
+        // An automatic canonical URL is stored as NULL (same rule as
+        // SavesSeoMetadata), so it keeps following config('app.url') and the
+        // slug instead of freezing whichever host the page was saved on —
+        // e.g. http://localhost:8080 from a dev database.
+        if (array_key_exists('canonical_url', $seo) && SeoFields::isCanonicalUrlAuto($seo['canonical_url'], (string) $page->slug)) {
+            $seo['canonical_url'] = null;
+        }
+
+        if (array_filter($seo, fn (mixed $value): bool => $value !== null && $value !== '' && $value !== []) === []
+            && ! $page->seo()->exists()) {
             return;
         }
 

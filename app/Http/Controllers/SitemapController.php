@@ -7,6 +7,7 @@ use App\Models\BlogPost;
 use App\Models\Page;
 use App\Models\PortfolioItem;
 use App\Models\Service;
+use App\Models\Setting;
 use App\Models\Tool;
 use App\Shared\Support\Features\Features;
 use Illuminate\Http\Response;
@@ -43,6 +44,11 @@ class SitemapController extends Controller
                         'lastmod' => $page->updated_at,
                     ]),
             );
+
+        // The Contact page is always public and indexable (not feature-gated);
+        // its details and SEO come from the "contact" settings group.
+        $contactUpdatedAt = Setting::query()->forGroup('contact')->max('updated_at');
+        $urls = $urls->push(['loc' => route('contact.index'), 'lastmod' => $contactUpdatedAt ? Carbon::parse($contactUpdatedAt) : null]);
 
         $urls = $urls->merge($this->serviceUrls())->merge($this->portfolioUrls())->merge($this->toolUrls())->merge($this->blogUrls());
 

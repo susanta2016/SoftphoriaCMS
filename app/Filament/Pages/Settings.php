@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Enums\MediaCategory;
 use App\Filament\Support\Media\MediaPicker;
+use App\Filament\Support\Seo\SeoFields;
 use App\Models\Page as PageModel;
 use App\Models\Setting;
 use App\Shared\Services\AuditLogService;
@@ -20,6 +21,7 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\EmbeddedSchema;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
@@ -167,6 +169,19 @@ class Settings extends Page
                 ->label('Facebook App ID')
                 ->maxLength(255)
                 ->helperText('Optional — only needed if this site is linked to a Facebook app.'),
+            // Search-result title/description for the two public pages that
+            // aren't CMS Pages and have no settings screen of their own
+            // (Services, Blog and Tools keep theirs on their own settings pages).
+            Section::make('Portfolio page (/portfolio)')
+                ->schema([
+                    SeoFields::metaTitle('portfolio.meta_title')->helperText('Optional. Defaults to "Portfolio — Site name".'),
+                    SeoFields::metaDescription('portfolio.meta_description')->helperText('Optional. Defaults to a generic description of the project list.'),
+                ]),
+            Section::make('Contact page (/contact)')
+                ->schema([
+                    SeoFields::metaTitle('contact.meta_title')->helperText('Optional. Defaults to "Contact Us — Site name".'),
+                    SeoFields::metaDescription('contact.meta_description')->helperText('Optional. Defaults to "Get in touch with Site name."'),
+                ]),
         ];
     }
 
@@ -370,6 +385,10 @@ class Settings extends Page
         $settings->set('general', 'default_share_image_media_id', $general['default_share_image_media_id'], 'integer');
         $settings->set('general', 'twitter_handle', $general['twitter_handle']);
         $settings->set('general', 'fb_app_id', $general['fb_app_id']);
+
+        $portfolio = $state['portfolio'];
+        $settings->set('portfolio', 'meta_title', $portfolio['meta_title']);
+        $settings->set('portfolio', 'meta_description', $portfolio['meta_description']);
         $settings->set('general', 'header_cta_label', $general['header_cta_label']);
         $settings->set('general', 'header_cta_url', $general['header_cta_url']);
 
@@ -395,6 +414,8 @@ class Settings extends Page
         $settings->set('contact', 'address', $contact['address']);
         $settings->set('contact', 'phone', $contact['phone']);
         $settings->set('contact', 'whatsapp', $contact['whatsapp']);
+        $settings->set('contact', 'meta_title', $contact['meta_title']);
+        $settings->set('contact', 'meta_description', $contact['meta_description']);
 
         $email = $state['email'];
         $settings->set('email', 'enabled', (bool) $email['enabled'], 'boolean');
@@ -419,6 +440,7 @@ class Settings extends Page
 
         $this->recordAudit('general', array_keys($general));
         $this->recordAudit('footer', array_keys($footer));
+        $this->recordAudit('portfolio', array_keys($portfolio));
         $this->recordAudit('contact', array_keys($contact));
         // Never log the password value itself, even in metadata.
         $this->recordAudit('email', array_keys(array_diff_key($email, ['smtp_password' => true])));
@@ -480,6 +502,12 @@ class Settings extends Page
                 'address' => $settings->get('contact', 'address'),
                 'phone' => $settings->get('contact', 'phone'),
                 'whatsapp' => $settings->get('contact', 'whatsapp'),
+                'meta_title' => $settings->get('contact', 'meta_title'),
+                'meta_description' => $settings->get('contact', 'meta_description'),
+            ],
+            'portfolio' => [
+                'meta_title' => $settings->get('portfolio', 'meta_title'),
+                'meta_description' => $settings->get('portfolio', 'meta_description'),
             ],
             'email' => [
                 'enabled' => $settings->get('email', 'enabled', false),

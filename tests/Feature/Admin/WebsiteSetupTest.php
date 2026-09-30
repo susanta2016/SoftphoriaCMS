@@ -119,6 +119,45 @@ class WebsiteSetupTest extends TestCase
     }
 
     /**
+     * SEO-001 — search title/description for /portfolio and /contact,
+     * which have no settings screen of their own.
+     */
+    public function test_admin_can_save_portfolio_and_contact_page_seo_and_the_pages_use_it(): void
+    {
+        Livewire::actingAs($this->admin())
+            ->test(Settings::class)
+            ->fillForm([
+                'general' => [
+                    'site_name' => 'Softphoria',
+                    'site_url' => 'https://softphoria.test',
+                ],
+                'portfolio' => [
+                    'meta_title' => 'Our Work | Softphoria',
+                    'meta_description' => 'Projects we have delivered.',
+                ],
+                'contact' => [
+                    'meta_title' => 'Talk to Us | Softphoria',
+                    'meta_description' => 'Tell us about your project.',
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $settings = app(SettingsRepository::class);
+        $this->assertSame('Our Work | Softphoria', $settings->get('portfolio', 'meta_title'));
+        $this->assertSame('Tell us about your project.', $settings->get('contact', 'meta_description'));
+
+        Livewire::actingAs($this->admin())
+            ->test(Settings::class)
+            ->assertSet('data.portfolio.meta_description', 'Projects we have delivered.')
+            ->assertSet('data.contact.meta_title', 'Talk to Us | Softphoria');
+
+        $this->get('/contact')
+            ->assertSee('<title>Talk to Us | Softphoria</title>', false)
+            ->assertSee('<meta name="description" content="Tell us about your project.">', false);
+    }
+
+    /**
      * WEB-101 item F — contact.phone/contact.whatsapp added alongside the
      * existing contact.email/contact.address, same settings architecture.
      */

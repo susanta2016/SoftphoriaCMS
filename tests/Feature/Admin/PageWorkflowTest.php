@@ -113,6 +113,38 @@ class PageWorkflowTest extends TestCase
         $this->assertSame('Learn more.', $page->seo->meta_description);
     }
 
+    /**
+     * SEO-001 — the form always submits the automatic canonical as an
+     * absolute URL; it must be stored as NULL so it keeps following
+     * APP_URL, while a genuine override is kept as typed.
+     */
+    public function test_an_automatic_canonical_url_is_stored_as_null_and_an_override_is_kept(): void
+    {
+        $admin = $this->admin();
+        $page = app(CreatePageAction::class)->handle([
+            'title' => 'About', 'slug' => 'about', 'template' => PageTemplate::About->value,
+            'seo' => ['meta_title' => 'About Us', 'canonical_url' => rtrim(config('app.url'), '/').'/about'],
+        ], $admin);
+
+        $this->assertNull($page->fresh()->seo->canonical_url);
+
+        app(UpdatePageAction::class)->handle($page, [
+            'title' => 'About',
+            'slug' => 'about',
+            'seo' => ['meta_title' => 'About Us', 'canonical_url' => 'https://custom.example.com/about'],
+        ], $admin);
+
+        $this->assertSame('https://custom.example.com/about', $page->fresh()->seo->canonical_url);
+
+        app(UpdatePageAction::class)->handle($page, [
+            'title' => 'About',
+            'slug' => 'about',
+            'seo' => ['meta_title' => null, 'canonical_url' => rtrim(config('app.url'), '/').'/about'],
+        ], $admin);
+
+        $this->assertNull($page->fresh()->seo->canonical_url, 'An all-empty save still clears a stale stored canonical.');
+    }
+
     public function test_publish_unpublish_archive_and_schedule_transitions(): void
     {
         $admin = $this->admin();

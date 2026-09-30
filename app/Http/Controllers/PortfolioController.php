@@ -46,8 +46,13 @@ class PortfolioController extends Controller
             'categories' => $categories,
             'active' => $active,
             'seo' => SeoTagBuilder::build(null, [
-                'title' => ($active !== '' ? "{$active} projects" : 'Portfolio')." — {$siteName}",
-                'description' => "Selected projects by {$siteName} — websites, platforms and technology solutions delivered across different industries.",
+                // Website Setup → SEO holds the list's own title/description;
+                // a category-filtered view keeps its generated title.
+                'title' => $active !== ''
+                    ? "{$active} projects — {$siteName}"
+                    : ($settings->get('portfolio', 'meta_title') ?: "Portfolio — {$siteName}"),
+                'description' => $settings->get('portfolio', 'meta_description')
+                    ?: "Selected projects by {$siteName} — websites, platforms and technology solutions delivered across different industries.",
                 // Filtered views are the same projects again: canonicalise to the full list.
                 'canonical' => route('portfolio.index'),
                 'type' => 'website',
