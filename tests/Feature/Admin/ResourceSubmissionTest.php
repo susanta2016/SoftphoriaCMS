@@ -73,7 +73,7 @@ class ResourceSubmissionTest extends TestCase
             ->assertActionVisible('create');
     }
 
-    public function test_admin_can_add_an_approved_resource_without_sending_emails(): void
+    public function test_admin_can_add_an_approved_resource_without_sending_acknowledgement_emails(): void
     {
         config(['features.inspirational_resources_admin_create_enabled' => true]);
         Mail::fake();
@@ -101,7 +101,12 @@ class ResourceSubmissionTest extends TestCase
         $this->assertSame($admin->id, $submission->user_id);
         $this->assertSame('Cory Gold', $submission->name);
         $this->assertSame('submit-1', $submission->slug);
-        Mail::assertNothingSent();
+        // No submitter acknowledgement or admin alert — the only email is
+        // the all-member "new resource" alert (the admin is an Active
+        // member), covered in NewContentMemberAlertsTest.
+        Mail::assertSentCount(1);
+        Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo($admin->email)
+            && str_contains($mail->subjectLine, 'New Inspirational Resource'));
         Mail::assertNothingQueued();
 
         $this->get(route('inspirational-resources.show', $submission))->assertOk()->assertSee('A few words of light.');

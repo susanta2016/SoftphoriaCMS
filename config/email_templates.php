@@ -602,4 +602,86 @@ return [
             TEXT,
     ],
 
+    // New-content alerts: sent once to every Active member (never to a
+    // single submitter) by App\Jobs\Notifications\SendNewContentAlertJob,
+    // the first time the item becomes member-visible — see
+    // App\Shared\Services\Notifications\NewContentAlerter. Distinct from
+    // inspirational_resource_published above, which only tells the
+    // submitter their own resource was approved.
+    'new_music_published' => [
+        'label' => 'New Music Published',
+        'recipients' => ['user'],
+        // release_type is "album" or "single".
+        'variables' => ['user_name', 'release_title', 'release_type', 'release_url', 'site_name'],
+        'default_subject' => '{{site_name}} — New Music: {{release_title}}',
+        'default_html_body' => <<<'HTML'
+            Hi {{user_name}},
+
+            New music has just been released on {{site_name}}: "{{release_title}}" ({{release_type}}).
+
+            <a href="{{release_url}}">Listen now</a>
+
+            Thank you for being part of our community.
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{user_name}},
+
+            New music has just been released on {{site_name}}: "{{release_title}}" ({{release_type}}).
+
+            Listen now: {{release_url}}
+
+            Thank you for being part of our community.
+            TEXT,
+    ],
+
+    'new_podcast_episode_published' => [
+        'label' => 'New Podcast Published',
+        'recipients' => ['user'],
+        'variables' => ['user_name', 'episode_title', 'podcast_title', 'episode_url', 'site_name'],
+        'default_subject' => '{{site_name}} — New Podcast Episode: {{episode_title}}',
+        'default_html_body' => <<<'HTML'
+            Hi {{user_name}},
+
+            A new episode of {{podcast_title}} is now available on {{site_name}}: "{{episode_title}}".
+
+            <a href="{{episode_url}}">Listen to the episode</a>
+
+            Thank you for being part of our community.
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{user_name}},
+
+            A new episode of {{podcast_title}} is now available on {{site_name}}: "{{episode_title}}".
+
+            Listen to the episode: {{episode_url}}
+
+            Thank you for being part of our community.
+            TEXT,
+    ],
+
+    'new_inspirational_resource_published' => [
+        'label' => 'New Inspirational Resource Published',
+        'recipients' => ['user'],
+        'variables' => ['user_name', 'resource_title', 'resource_category', 'resource_url', 'site_name'],
+        'default_subject' => '{{site_name}} — New Inspirational Resource: {{resource_title}}',
+        'default_html_body' => <<<'HTML'
+            Hi {{user_name}},
+
+            A new inspirational resource has been added to {{site_name}}: "{{resource_title}}".
+
+            <a href="{{resource_url}}">View the resource</a>
+
+            Thank you for being part of our community.
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{user_name}},
+
+            A new inspirational resource has been added to {{site_name}}: "{{resource_title}}".
+
+            View the resource: {{resource_url}}
+
+            Thank you for being part of our community.
+            TEXT,
+    ],
+
 ];

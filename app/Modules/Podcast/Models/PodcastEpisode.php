@@ -13,6 +13,8 @@ use App\Models\User;
 use App\Modules\Music\Models\Track;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
 use App\Modules\Podcast\Enums\PodcastStatus;
+use App\Shared\Support\Notifications\AlertsMembersWhenPublished;
+use App\Shared\Support\Notifications\AnnouncesNewContent;
 use App\Shared\Support\Reviews\Reviewable;
 use App\Shared\Support\Search\SearchResultRepresentable;
 use App\Shared\Support\Seo\Sitemapable;
@@ -42,9 +44,9 @@ use Laravel\Scout\Searchable;
     'publish_date', 'season', 'episode_number', 'embed_url', 'audio_media_id', 'video_media_id',
     'duration_seconds', 'status', 'publish_at',
 ])]
-class PodcastEpisode extends Model implements Reviewable, SearchResultRepresentable, Sitemapable
+class PodcastEpisode extends Model implements AnnouncesNewContent, Reviewable, SearchResultRepresentable, Sitemapable
 {
-    use HasPublicId, Searchable, SoftDeletes;
+    use AlertsMembersWhenPublished, HasPublicId, Searchable, SoftDeletes;
 
     protected function casts(): array
     {
@@ -59,6 +61,30 @@ class PodcastEpisode extends Model implements Reviewable, SearchResultRepresenta
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('status', PodcastEpisodeStatus::Published);
+    }
+
+    /**
+     * Same double check as PodcastController::showEpisode(): the episode
+     * and its parent show must both be Published.
+     */
+    public function isMemberVisible(): bool
+    {
+        return $this->status === PodcastEpisodeStatus::Published
+            && $this->podcast?->status === PodcastStatus::Published;
+    }
+
+    public function newContentAlertKey(): string
+    {
+        return 'new_podcast_episode_published';
+    }
+
+    public function newContentAlertVariables(): array
+    {
+        return [
+            'episode_title' => $this->title,
+            'podcast_title' => (string) $this->podcast?->title,
+            'episode_url' => route('podcast.episodes.show', $this),
+        ];
     }
 
     public function podcast(): BelongsTo

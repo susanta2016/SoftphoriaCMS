@@ -5,6 +5,8 @@ namespace App\Modules\InspirationalResources\Models;
 use App\Models\SeoMetadata;
 use App\Models\User;
 use App\Modules\InspirationalResources\Enums\ResourceSubmissionStatus;
+use App\Shared\Support\Notifications\AlertsMembersWhenPublished;
+use App\Shared\Support\Notifications\AnnouncesNewContent;
 use App\Shared\Support\Search\SearchResultRepresentable;
 use App\Shared\Support\Seo\Sitemapable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -40,9 +42,9 @@ use Laravel\Scout\Searchable;
     'user_id', 'name', 'email', 'subject', 'category', 'theme', 'message',
     'reference_url', 'status', 'slug',
 ])]
-class ResourceSubmission extends Model implements SearchResultRepresentable, Sitemapable
+class ResourceSubmission extends Model implements AnnouncesNewContent, SearchResultRepresentable, Sitemapable
 {
-    use Searchable;
+    use AlertsMembersWhenPublished, Searchable;
 
     /**
      * The public submit form's category dropdown (2026-09-24). `category`
@@ -83,6 +85,35 @@ class ResourceSubmission extends Model implements SearchResultRepresentable, Sit
     public function scopeApproved(Builder $query): Builder
     {
         return $query->where('status', ResourceSubmissionStatus::Approved);
+    }
+
+    /**
+     * Approved is the only publicly visible status — Submitted/InReview
+     * never alert members, whether reached by approval or admin "Add
+     * Resource" created as Approved.
+     */
+    public function isMemberVisible(): bool
+    {
+        return $this->status === ResourceSubmissionStatus::Approved;
+    }
+
+    public function newContentAlertKey(): string
+    {
+        return 'new_inspirational_resource_published';
+    }
+
+    /**
+     * Title/category come from the public submit form and are sent to
+     * every member, so tags are stripped — template tokens are inserted
+     * into the HTML body unescaped.
+     */
+    public function newContentAlertVariables(): array
+    {
+        return [
+            'resource_title' => strip_tags($this->publicTitle()),
+            'resource_category' => strip_tags((string) $this->category),
+            'resource_url' => route('inspirational-resources.show', $this),
+        ];
     }
 
     /**

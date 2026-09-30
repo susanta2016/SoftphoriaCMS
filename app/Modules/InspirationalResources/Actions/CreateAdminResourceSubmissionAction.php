@@ -15,7 +15,9 @@ use App\Shared\Services\AuditLogService;
  * no outside submitter to acknowledge, and no admin to alert about their own
  * entry. Picking Approved here publishes it immediately without going
  * through ApproveResourceSubmissionAction, for the same reason — its
- * "published" email is only meant for a public-form submitter. The admin is
+ * "published" email is only meant for a public-form submitter. (Created as
+ * Approved, it does still trigger the all-member "new resource" alert —
+ * ResourceSubmission's AlertsMembersWhenPublished hook, not this Action.) The admin is
  * recorded as `user_id` (so the public avatar resolves to theirs) and the
  * creation is written to the audit log like every other status change.
  */

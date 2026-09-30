@@ -8,6 +8,8 @@ use App\Models\SeoMetadata;
 use App\Models\User;
 use App\Modules\Music\Enums\ReleaseStatus;
 use App\Modules\Podcast\Models\PodcastEpisode;
+use App\Shared\Support\Notifications\AlertsMembersWhenPublished;
+use App\Shared\Support\Notifications\AnnouncesNewContent;
 use App\Shared\Support\Search\SearchResultRepresentable;
 use App\Shared\Support\Seo\Sitemapable;
 use App\Shared\Support\Text\PlainText;
@@ -33,9 +35,9 @@ use Laravel\Scout\Searchable;
     'title', 'slug', 'release_date', 'description', 'cover_media_id', 'embed_video_url',
     'status', 'publish_at', 'is_featured',
 ])]
-class Album extends Model implements SearchResultRepresentable, Sitemapable
+class Album extends Model implements AnnouncesNewContent, SearchResultRepresentable, Sitemapable
 {
-    use HasPublicId, Searchable, SoftDeletes;
+    use AlertsMembersWhenPublished, HasPublicId, Searchable, SoftDeletes;
 
     protected function casts(): array
     {
@@ -50,6 +52,29 @@ class Album extends Model implements SearchResultRepresentable, Sitemapable
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('status', ReleaseStatus::Published);
+    }
+
+    /**
+     * A release (not an individual Track) is the unit of "new music" for
+     * the all-member alert — a Track is only public once its release is.
+     */
+    public function isMemberVisible(): bool
+    {
+        return $this->status === ReleaseStatus::Published;
+    }
+
+    public function newContentAlertKey(): string
+    {
+        return 'new_music_published';
+    }
+
+    public function newContentAlertVariables(): array
+    {
+        return [
+            'release_title' => $this->title,
+            'release_type' => 'album',
+            'release_url' => route('music.albums.show', $this),
+        ];
     }
 
     public function cover(): BelongsTo
