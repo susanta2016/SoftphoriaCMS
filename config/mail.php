@@ -115,4 +115,22 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | New Content Alerts: Test Recipients
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated email addresses. When set, SendNewContentAlertJob
+    | emails only the Active users with these addresses instead of every
+    | Active member, so publishing can be tested safely on a live site.
+    | Leave empty for normal operation. An item published while this is
+    | set never alerts the other members later.
+    |
+    */
+
+    'new_content_alerts_only_to' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('NEW_CONTENT_ALERTS_ONLY_TO', '')),
+    ))),
+
 ];

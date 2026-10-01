@@ -46,8 +46,12 @@ class SendNewContentAlertJob implements ShouldQueue
             return;
         }
 
+        // Test mode (mail.new_content_alerts_only_to): only those addresses.
+        $onlyTo = config('mail.new_content_alerts_only_to', []);
+
         User::query()
             ->where('status', UserStatus::Active)
+            ->when($onlyTo !== [], fn ($query) => $query->whereIn('email', $onlyTo))
             ->chunkById(200, function ($users) use ($mailer): void {
                 foreach ($users as $user) {
                     try {

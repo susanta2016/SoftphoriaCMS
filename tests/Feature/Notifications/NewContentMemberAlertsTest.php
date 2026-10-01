@@ -88,6 +88,23 @@ class NewContentMemberAlertsTest extends TestCase
         $this->assertAlertRecipients(self::MUSIC_SUBJECT);
     }
 
+    public function test_test_mode_alerts_only_the_listed_active_addresses(): void
+    {
+        config(['mail.new_content_alerts_only_to' => ['member-one@example.com', 'pending@example.com']]);
+
+        app(CreateSingleAction::class)->handle([
+            'title' => 'Test Mode',
+            'slug' => 'test-mode',
+            'status' => ReleaseStatus::Published->value,
+        ], $this->admin);
+
+        $recipients = $this->alerts(self::MUSIC_SUBJECT)
+            ->flatMap(fn (TemplatedNotificationMail $mail): array => array_column($mail->to, 'address'))
+            ->all();
+
+        $this->assertSame(['member-one@example.com'], $recipients);
+    }
+
     public function test_creating_a_single_directly_as_published_alerts_every_active_member(): void
     {
         app(CreateSingleAction::class)->handle([
