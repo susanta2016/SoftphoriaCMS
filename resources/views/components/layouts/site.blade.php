@@ -17,6 +17,7 @@
 
     <title>{{ $seo['title'] }}</title>
     <x-seo.head-tags :seo="$seo"/>
+    <x-site.analytics/>
 
     @if ($favicon)
         <link rel="icon" href="{{ $favicon }}">

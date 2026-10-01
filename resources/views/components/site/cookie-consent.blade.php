@@ -6,6 +6,10 @@
 @if ($enabled)
     @php
         $cookies = array_merge(config('cookies_policy'), $settings->all('cookies'));
+
+        // Analytics tools switched on in Website Setup → Analytics & Tracking,
+        // by consent category — listed under each optional category below.
+        $toolsByCategory = app(\App\Shared\Support\Analytics\AnalyticsIntegrations::class)->byCategory();
         $paragraphs = fn (?string $text): array => array_filter(array_map('trim', preg_split('/\n\s*\n/', (string) $text)));
 
         $siteName = ($settings->get('general', 'site_name') ?? null) ?: 'All The Things Light';
@@ -91,6 +95,17 @@
                                         <span class="text-sm text-brand-navy/70">Always active</span>
                                     </label>
                                 @elseif ($category['toggle'] === 'optional')
+                                    @php $tools = $toolsByCategory[$category['key']] ?? []; @endphp
+                                    @if ($tools !== [])
+                                        <div class="rounded-lg border border-brand-navy/10 bg-white px-4 py-3 text-sm">
+                                            <p class="font-semibold text-brand-navy">Tools in use</p>
+                                            <ul class="mt-1 space-y-1 text-brand-navy/75">
+                                                @foreach ($tools as $tool)
+                                                    <li><span class="font-medium text-brand-navy">{{ $tool['label'] }}</span> ({{ $tool['provider'] }}) — {{ $tool['purpose'] }}</li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @endif
                                     <label class="mt-2 inline-flex cursor-pointer items-center gap-3">
                                         <span class="relative inline-flex h-6 w-11 shrink-0 items-center">
                                             <input type="checkbox" data-cookie-toggle="{{ $category['key'] }}" class="peer sr-only">
