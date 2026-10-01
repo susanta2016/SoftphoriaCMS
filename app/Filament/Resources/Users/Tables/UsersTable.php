@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Users\Tables;
 use App\Enums\UserStatus;
 use App\Filament\Resources\Users\UserResource;
 use App\Models\User;
+use App\Shared\Support\Marketing\UtmParameters;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -57,6 +58,12 @@ class UsersTable
                     ->separator(',')
                     ->placeholder('—')
                     ->toggleable(),
+                TextColumn::make('utm_source')
+                    ->label('Source')
+                    ->formatStateUsing(fn (?string $state): ?string => UtmParameters::sourceLabel($state))
+                    ->description(fn (User $record): ?string => $record->utm_campaign)
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('created_at')
                     ->label('Registered')
                     ->dateTime()
@@ -72,6 +79,9 @@ class UsersTable
                         true: fn ($query) => $query->whereNotNull('email_verified_at'),
                         false: fn ($query) => $query->whereNull('email_verified_at'),
                     ),
+                self::attributionFilter('utm_source', 'Source'),
+                self::attributionFilter('utm_medium', 'Medium'),
+                self::attributionFilter('utm_campaign', 'Campaign'),
             ])
             ->recordActions([
                 ActionGroup::make([
@@ -107,6 +117,26 @@ class UsersTable
         }
 
         return $name.' '.view('filament.tables.columns.pro-badge')->render();
+    }
+
+    /**
+     * Filter on a UTM attribution column, offering only values that
+     * registered users actually have (sources shown by their channel label).
+     */
+    private static function attributionFilter(string $column, string $label): SelectFilter
+    {
+        return SelectFilter::make($column)
+            ->label($label)
+            ->searchable()
+            ->options(fn (): array => User::query()
+                ->whereNotNull($column)
+                ->distinct()
+                ->orderBy($column)
+                ->pluck($column)
+                ->mapWithKeys(fn (string $value): array => [
+                    $value => $column === 'utm_source' ? (string) UtmParameters::sourceLabel($value) : $value,
+                ])
+                ->all());
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Models\Media;
 use App\Models\User;
 use App\Modules\Commerce\Services\Pricing\GlobalPricingResolver;
 use App\Shared\Services\Settings\SettingsRepository;
+use App\Shared\Support\Marketing\UtmAttribution;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use App\Shared\Support\Users\UsernameRules;
 use Illuminate\Contracts\View\View;
@@ -36,6 +37,10 @@ use Stripe\Exception\ExceptionInterface;
  * (`hp_website`, hidden from real visitors via CSS — see
  * resources/views/register/show.blade.php). Project-wide rule: every new
  * public-facing submission form gets this same honeypot.
+ *
+ * UTM attribution: the session's first-touch attribution (UtmAttribution,
+ * captured by CaptureUtmAttribution) is handed to the Action, stored on a
+ * newly created account only, then forgotten.
  */
 class RegistrationController extends Controller
 {
@@ -64,7 +69,7 @@ class RegistrationController extends Controller
         ]);
     }
 
-    public function registerFree(Request $request, RegisterFreeUserAction $action): RedirectResponse
+    public function registerFree(Request $request, RegisterFreeUserAction $action, UtmAttribution $utm): RedirectResponse
     {
         // A real visitor never sees or fills in this field. A bot that
         // blindly fills every input trips it, and the request is discarded
@@ -87,7 +92,8 @@ class RegistrationController extends Controller
             return redirect()->route('register.show')->withErrors($validator)->withInput();
         }
 
-        $action->handle($validator->validated());
+        $action->handle($validator->validated(), $utm->forUser($request->session()));
+        $utm->forget($request->session());
 
         return redirect()->route('register.free.thank-you');
     }
@@ -115,7 +121,7 @@ class RegistrationController extends Controller
         ]);
     }
 
-    public function registerPro(Request $request): View|RedirectResponse
+    public function registerPro(Request $request, UtmAttribution $utm): View|RedirectResponse
     {
         // Same honeypot as registerFree() above — discarded before any
         // validation or Stripe call, with the same fake-success redirect a
@@ -143,7 +149,7 @@ class RegistrationController extends Controller
             // own StripeClient dependency) before this method body runs,
             // which would let a Stripe SDK exception (e.g. a missing/empty
             // API key) escape uncaught.
-            $outcome = app(RegisterProUserAction::class)->handle($validator->validated());
+            $outcome = app(RegisterProUserAction::class)->handle($validator->validated(), $utm->forUser($request->session()));
         } catch (ValidationException $exception) {
             return redirect()->route('register.show')->withErrors($exception->errors())->withInput();
         } catch (ExceptionInterface $exception) {
@@ -153,6 +159,8 @@ class RegistrationController extends Controller
                 ->withErrors(['email' => 'Payment setup is temporarily unavailable. Please try again shortly.'])
                 ->withInput();
         }
+
+        $utm->forget($request->session());
 
         if ($outcome->alreadyPaidAwaitingVerification) {
             return redirect()->route('register.show')

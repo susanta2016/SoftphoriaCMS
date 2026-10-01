@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Schemas;
 
 use App\Enums\UserStatus;
+use App\Shared\Support\Marketing\UtmParameters;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -61,6 +62,42 @@ class UserInfolist
                             ->placeholder('—'),
                         TextEntry::make('profile.zip_code')
                             ->label('Zip code')
+                            ->placeholder('—'),
+                    ]),
+
+                // First-touch UTM attribution captured at registration
+                // (UtmAttribution). Empty for accounts registered without a
+                // UTM link, admin-created accounts and pre-existing users.
+                Section::make('Acquisition')
+                    ->columns(2)
+                    ->collapsible()
+                    ->schema([
+                        TextEntry::make('utm_source')
+                            ->label('Source')
+                            ->formatStateUsing(fn (?string $state): ?string => UtmParameters::sourceLabel($state))
+                            ->placeholder('No UTM attribution'),
+                        TextEntry::make('utm_medium')
+                            ->label('Medium')
+                            ->placeholder('—'),
+                        TextEntry::make('utm_campaign')
+                            ->label('Campaign')
+                            ->placeholder('—'),
+                        TextEntry::make('utm_content')
+                            ->label('Content')
+                            ->placeholder('—'),
+                        TextEntry::make('utm_term')
+                            ->label('Term')
+                            ->placeholder('—'),
+                        TextEntry::make('created_at')
+                            ->label('Registered at')
+                            ->dateTime(),
+                        TextEntry::make('utm_landing_url')
+                            ->label('Landing page')
+                            ->columnSpanFull()
+                            ->placeholder('—'),
+                        TextEntry::make('utm_captured_at')
+                            ->label('First visit')
+                            ->dateTime()
                             ->placeholder('—'),
                     ]),
 

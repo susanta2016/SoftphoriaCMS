@@ -4,12 +4,14 @@ use App\Console\Commands\DeleteExpiredGratitudeJournalEntriesCommand;
 use App\Console\Commands\PublishDuePagesCommand;
 use App\Console\Commands\SendGratitudeJournalRemindersCommand;
 use App\Http\Middleware\BetaAccessGate;
+use App\Http\Middleware\CaptureUtmAttribution;
 use App\Http\Middleware\CheckMaintenanceMode;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -27,10 +29,18 @@ return Application::configure(basePath: dirname(__DIR__))
         //
         // Website Setup's Maintenance Mode (docs/ARCHITECTURE.md §16.3) —
         // excludes /admin/*, /livewire/*, and /up internally.
+        //
+        // First-touch UTM capture runs before both, so a UTM link that lands
+        // on the beta password or maintenance page still counts.
         $middleware->web(append: [
+            CaptureUtmAttribution::class,
             BetaAccessGate::class,
             CheckMaintenanceMode::class,
         ]);
+
+        // ...and before route-model binding, so a UTM link to a since-renamed
+        // track or episode (a 404) still records where the visitor came from.
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: CaptureUtmAttribution::class);
 
         // ADMIN-008: Stripe cannot supply a CSRF token — the webhook's own
         // signature verification (StripeWebhookController) is its actual

@@ -32,8 +32,9 @@ class RegisterFreeUserAction
 
     /**
      * @param  array{name: string, username: string, email: string, password: string, phone_number?: ?string, address?: ?string, zip_code?: ?string, light_post_action?: ?string, light_message?: ?string}  $data
+     * @param  array<string, mixed>  $attribution  first-touch UTM columns from UtmAttribution::forUser(); [] when none
      */
-    public function handle(array $data): User
+    public function handle(array $data, array $attribution = []): User
     {
         $user = new User;
         $user->name = $data['name'];
@@ -41,6 +42,7 @@ class RegisterFreeUserAction
         $user->email = $data['email'];
         $user->password = Hash::make($data['password']);
         $user->status = UserStatus::PendingVerification->value;
+        $user->forceFill($attribution);
         $user->save();
 
         $this->saveOptionalProfile($user, $data);
