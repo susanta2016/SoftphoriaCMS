@@ -34,6 +34,8 @@ class UtmLinksTable
                     ->limit(60)
                     ->tooltip(fn (UtmLink $record): string => $record->url())
                     ->copyable()
+                    // limit() shortens the display only; always copy the full link.
+                    ->copyableState(fn (UtmLink $record): string => $record->url())
                     ->copyMessage('Link copied')
                     ->icon(Heroicon::OutlinedClipboardDocument)
                     ->iconPosition('after'),

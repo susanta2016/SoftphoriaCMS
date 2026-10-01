@@ -305,6 +305,21 @@ class UtmLinkTest extends TestCase
             ->assertCanNotSeeTableRecords([$instagram]);
     }
 
+    public function test_the_copy_button_copies_the_full_link_not_the_shortened_display(): void
+    {
+        $link = $this->link(['utm_campaign' => 'a_long_campaign_name_for_october', 'utm_content' => 'instagram_story']);
+        $this->assertGreaterThan(60, strlen($link->url()));
+
+        $column = Livewire::actingAs($this->admin())
+            ->test(ListUtmLinks::class)
+            ->instance()
+            ->getTable()
+            ->getColumn('generated_url')
+            ->record($link);
+
+        $this->assertSame($link->url(), $column->getCopyableState($column->getState()));
+    }
+
     public function test_non_admins_cannot_reach_utm_links(): void
     {
         $member = User::factory()->create(['status' => 'active']);
