@@ -13,13 +13,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * copy/enabled-state fields below are admin-editable; new rows are added
  * exclusively by extending EmailTemplateSeeder, never through the admin UI.
  */
-#[Fillable(['is_enabled', 'subject', 'html_body', 'text_body'])]
+#[Fillable(['is_enabled', 'forward_enabled', 'subject', 'html_body', 'text_body'])]
 class EmailTemplate extends Model
 {
     protected function casts(): array
     {
         return [
             'is_enabled' => 'boolean',
+            'forward_enabled' => 'boolean',
             'recipient_type' => EmailRecipientType::class,
             'available_variables' => 'array',
         ];

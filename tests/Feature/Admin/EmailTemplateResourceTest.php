@@ -10,6 +10,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Shared\Mail\TemplatedNotificationMail;
 use App\Shared\Services\Notifications\TemplatedMailer;
+use App\Shared\Services\Settings\SettingsRepository;
 use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -248,6 +249,53 @@ class EmailTemplateResourceTest extends TestCase
         $this->assertInstanceOf(MailMessage::class, $mail);
 
         $this->assertTrue(true);
+    }
+
+    public function test_admin_can_toggle_forward_email_from_the_list(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+        $template = EmailTemplate::query()->where('notification_key', 'email_verification')->where('recipient_type', 'user')->firstOrFail();
+
+        Livewire::actingAs($this->admin())
+            ->test(ListEmailTemplates::class)
+            ->call('updateTableColumnState', 'forward_enabled', (string) $template->getKey(), true);
+
+        $this->assertTrue($template->fresh()->forward_enabled);
+    }
+
+    public function test_forward_enabled_user_notification_is_bccd_to_the_forward_email(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+        app(SettingsRepository::class)->set('email', 'forward_email', 'inbox@softphoria.test');
+        EmailTemplate::query()->where('notification_key', 'email_verification')->update(['forward_enabled' => true]);
+
+        app(TemplatedMailer::class)->send('email_verification', EmailRecipientType::User, 'someone@example.com', ['user_name' => 'Jane']);
+
+        Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo('someone@example.com')
+            && $mail->hasBcc('inbox@softphoria.test'));
+    }
+
+    public function test_user_notification_is_not_forwarded_when_its_switch_is_off(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+        app(SettingsRepository::class)->set('email', 'forward_email', 'inbox@softphoria.test');
+
+        $mailable = app(TemplatedMailer::class)->renderAsMailable('email_verification', EmailRecipientType::User);
+
+        $this->assertFalse($mailable->hasBcc('inbox@softphoria.test'));
+    }
+
+    public function test_admin_notifications_are_never_forwarded(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+        app(SettingsRepository::class)->set('email', 'forward_email', 'inbox@softphoria.test');
+        $admin = EmailTemplate::query()->where('recipient_type', 'admin')->firstOrFail();
+        EmailTemplate::query()->where('notification_key', $admin->notification_key)->update(['forward_enabled' => true]);
+
+        $mailable = app(TemplatedMailer::class)->renderAsMailable($admin->notification_key, EmailRecipientType::Admin);
+
+        $this->assertFalse($mailable->hasBcc('inbox@softphoria.test'));
     }
 
     private function admin(): User

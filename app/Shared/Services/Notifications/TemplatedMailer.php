@@ -87,13 +87,24 @@ class TemplatedMailer
             ? $this->substitute($template->text_body, $variables)
             : BrandedEmailLayout::htmlToText($htmlBody);
 
-        return new TemplatedNotificationMail(
+        $mailable = new TemplatedNotificationMail(
             $subject,
             $this->layout->html($subject, $htmlBody),
             $this->layout->text($textBody),
             $this->settings->get('email', 'reply_to_email'),
             $this->settings->get('email', 'reply_to_name'),
         );
+
+        // "Forward Email": a BCC copy rather than a second send, so the
+        // ResetPassword integration (which only receives this Mailable)
+        // is forwarded too. User notifications only — never admin ones.
+        $forwardTo = $this->settings->get('email', 'forward_email');
+
+        if ($recipientType === EmailRecipientType::User && $template->forward_enabled && filled($forwardTo)) {
+            $mailable->bcc($forwardTo);
+        }
+
+        return $mailable;
     }
 
     /**

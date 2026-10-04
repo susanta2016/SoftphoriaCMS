@@ -6,6 +6,7 @@ use App\Models\EmailTemplate;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -35,6 +36,11 @@ class EmailTemplatesTable
                 IconColumn::make('is_enabled')
                     ->label('User Email Enabled')
                     ->boolean(),
+                // Lives on the `user` row on purpose: only user-facing
+                // notifications are ever forwarded, never admin ones.
+                ToggleColumn::make('forward_enabled')
+                    ->label('Forward Email')
+                    ->tooltip('BCC a copy of this user email to the Forward Email address in Settings → Email.'),
                 TextColumn::make('updated_at')
                     ->label('Last Updated')
                     ->dateTime()

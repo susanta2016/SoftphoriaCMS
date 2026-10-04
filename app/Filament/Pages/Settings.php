@@ -300,6 +300,11 @@ class Settings extends Page
                 ->label('Reply-To Email')
                 ->email()
                 ->maxLength(255),
+            TextInput::make('email.forward_email')
+                ->label('Forward Email')
+                ->email()
+                ->maxLength(255)
+                ->helperText('Receives a BCC copy of every user notification whose "Forward Email" switch is on in Email Templates. Admin notifications are never forwarded.'),
             TextInput::make('email.test_recipient_email')
                 ->label('Test Recipient Email')
                 ->email()
@@ -436,6 +441,7 @@ class Settings extends Page
         $settings->set('email', 'from_email', $email['from_email']);
         $settings->set('email', 'reply_to_name', $email['reply_to_name']);
         $settings->set('email', 'reply_to_email', $email['reply_to_email']);
+        $settings->set('email', 'forward_email', $email['forward_email']);
         $settings->set('email', 'test_recipient_email', $email['test_recipient_email']);
 
         $this->recordAudit('general', array_keys($general));
@@ -521,6 +527,7 @@ class Settings extends Page
                 'from_email' => $settings->get('email', 'from_email'),
                 'reply_to_name' => $settings->get('email', 'reply_to_name'),
                 'reply_to_email' => $settings->get('email', 'reply_to_email'),
+                'forward_email' => $settings->get('email', 'forward_email'),
                 'test_recipient_email' => $settings->get('email', 'test_recipient_email'),
             ],
         ];
