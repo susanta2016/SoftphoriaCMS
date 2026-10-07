@@ -2,7 +2,17 @@
 
 Browser-only checker that overlays the measured Instagram Reels and YouTube Shorts UI zones (TikTok provisional) on a vertical video or image, flags key elements hidden under them, scores each platform and exports the result. Spec: the approved P1 implementation specification (Claude Doc, 2026-10-07).
 
-**Status: P1a, standalone.** It is deliberately *not* a Softphoria Tool yet: there is no `app/Tools/Functionalities` class, no Blade view, no database change, and no `resources/js/tools/social-video-safe-zone.js` entry file. Vite only builds files directly in `resources/js/tools/`, so nothing in this folder reaches the CMS build. Registering it (P1b) needs separate approval.
+**Status: P1b, integrated as a Softphoria Tool (not yet published).** This folder stays the one checker implementation. The Tool wiring around it:
+
+| Path | Role |
+| --- | --- |
+| `app/Tools/Functionalities/SocialVideoSafeZone.php` | Functionality `social-video-safe-zone` (auto-discovered by `ToolRegistry`) |
+| `resources/views/tools/functionalities/social-video-safe-zone.blade.php` | Mount point (`data-svsz-root`, `data-theme="light"` to match the site) |
+| `resources/js/tools/social-video-safe-zone.js` | Vite entry: imports `src/styles.css` and `mount()`, maps events to `shared/track.js` |
+| `database/seeders/SocialVideoSafeZoneToolSeeder.php` | Landing-page content, SEO and FAQ as a **Draft** (never publishes, never overwrites) |
+| `tests/Feature/SocialVideoSafeZoneToolTest.php` | Registry, draft seeder, preview, public page/SEO, no upload routes |
+
+The demo page below still works for standalone checks. Publishing is done in Admin → Tools after review.
 
 ## Run it
 
@@ -54,4 +64,4 @@ Runs the detector on the 9 P0 calibration reference frames (decoded with the P0 
 
 ## Analytics
 
-The checker never sends anything itself. `mount()` takes an optional `onEvent(name, params)` callback; P1b will connect it to `resources/js/tools/shared/track.js`. Events: `tool_started`, `safezone_file_loaded` (kind, aspect, duration bucket), `tool_completed` (platforms, verdicts, score buckets), `safezone_export` (type), `safezone_error` (code). No file names or image data.
+The checker never sends anything itself. `mount()` takes an optional `onEvent(name, params)` callback; the Tool entry (`resources/js/tools/social-video-safe-zone.js`) passes it to `resources/js/tools/shared/track.js` (consent-gated, suppressed in preview): `tool_started`/`tool_completed` once per page, `safezone_export` → `tool_download` (or `tool_copy` for Copy summary), `safezone_error` → `tool_error`; `safezone_file_loaded` is not sent. Events: `tool_started`, `safezone_file_loaded` (kind, aspect, duration bucket), `tool_completed` (platforms, verdicts, score buckets), `safezone_export` (type), `safezone_error` (code). No file names or image data.
