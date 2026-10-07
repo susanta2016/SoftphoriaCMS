@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- connect-src 'none': the browser itself blocks any fetch/XHR/WebSocket, so no file data can leave the page. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="robots" content="noindex, nofollow">
+<title>Safe Zone Checker (P1a demo)</title>
+<link rel="stylesheet" href="../src/styles.css">
+<link rel="stylesheet" href="demo.css">
+</head>
+<body>
+<main class="demo">
+  <h1>Social Video Safe Zone Checker</h1>
+  <p class="demo-note">P1a standalone build. Not registered as a Softphoria Tool. Analytics events are only logged below, never sent.</p>
+  <div data-svsz-root></div>
+  <details class="demo-log">
+    <summary>Event log (what P1b would send to analytics)</summary>
+    <ol data-log></ol>
+  </details>
+</main>
+<script type="module" src="demo.js"></script>
+</body>
+</html>

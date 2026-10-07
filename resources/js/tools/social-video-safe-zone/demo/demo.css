@@ -1,0 +1,7 @@
+body { margin: 0; background: #ffffff; color: #15171a; font: 16px/1.5 system-ui, sans-serif; }
+@media (prefers-color-scheme: dark) { body { background: #111317; color: #eceef2; } }
+.demo { max-width: 1280px; margin: 0 auto; padding: 16px; }
+.demo h1 { font-size: 1.6rem; margin: 8px 0 4px; }
+.demo-note { margin: 0 0 16px; opacity: 0.75; font-size: 0.92rem; }
+.demo-log { margin-top: 24px; font-size: 0.85rem; }
+.demo-log ol { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
