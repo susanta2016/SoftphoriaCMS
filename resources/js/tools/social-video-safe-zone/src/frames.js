@@ -1,7 +1,7 @@
 // Browser-only: decodes the user's file locally, samples frames, runs the
 // detector in a Web Worker and tracks detections into key elements (spec 5.2, 8).
 // Nothing here sends data anywhere: the file is read through an object URL.
-import { DECODE_TIMEOUT_MS, MAX_ANALYSIS_SECONDS, MAX_SAMPLES, REF_WIDTH, SAMPLE_INTERVAL_S, SCENE_CUT_DIFF } from './constants.js';
+import { DECODE_TIMEOUT_MS, FIRST_FRAME_TIMEOUT_MS, MAX_ANALYSIS_SECONDS, MAX_SAMPLES, REF_WIDTH, SAMPLE_INTERVAL_S, SCENE_CUT_DIFF } from './constants.js';
 import { detect, thumbDiff } from './detector-core.js';
 import { trackDetections } from './tracker.js';
 
@@ -39,15 +39,22 @@ export async function loadVideo(file) {
     video.playsInline = true;
     video.preload = 'auto';
     video.src = URL.createObjectURL(file);
+    video.load();
     try {
-        await once(video, 'loadeddata', 'error', DECODE_TIMEOUT_MS, 'decode', DECODE_HINT);
+        if (video.readyState < 1) await once(video, 'loadedmetadata', 'error', DECODE_TIMEOUT_MS, 'decode', DECODE_HINT);
+        if (!video.videoWidth || !video.videoHeight) throw new AnalysisError('decode', DECODE_HINT);
+        if (video.readyState < 2) {
+            // WebKit (iOS) may not load frame data for a page-created video until playback is
+            // requested: a muted play-and-pause makes it decode the first frame.
+            // play() is not awaited: for media a browser cannot decode, it may never settle.
+            const ready = once(video, 'loadeddata', 'error', FIRST_FRAME_TIMEOUT_MS, 'decode', DECODE_HINT);
+            const p = video.play();
+            if (p && p.catch) p.catch(() => {});
+            try { await ready; } finally { video.pause(); }
+        }
     } catch (e) {
         URL.revokeObjectURL(video.src);
         throw e;
-    }
-    if (!video.videoWidth || !video.videoHeight) {
-        URL.revokeObjectURL(video.src);
-        throw new AnalysisError('decode', DECODE_HINT);
     }
     return video;
 }

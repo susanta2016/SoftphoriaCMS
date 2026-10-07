@@ -7,7 +7,8 @@ export const REF_WIDTH = 1080;
 // File limits (spec 5.1). Engineering limits, not platform rules.
 export const MAX_FILE_BYTES = 1024 * 1024 * 1024;
 export const MAX_ANALYSIS_SECONDS = 180;
-export const DECODE_TIMEOUT_MS = 5000;
+export const DECODE_TIMEOUT_MS = 5000; // until the video's metadata is known
+export const FIRST_FRAME_TIMEOUT_MS = 10000; // then until a first frame is decoded (iOS loads frames lazily)
 export const ASPECT_TOLERANCE = 0.01;
 export const MIN_WIDTH = 720;
 export const MIN_HEIGHT = 1280;
