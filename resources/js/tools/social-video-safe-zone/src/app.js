@@ -27,7 +27,7 @@ const TEMPLATE = `
 <div class="svsz-grid">
   <section class="svsz-stage" aria-label="Preview">
     <div class="svsz-panel svsz-empty" data-view="empty">
-      <div class="svsz-drop" data-drop tabindex="0" role="button" aria-describedby="svsz-drop-help">
+      <div class="svsz-drop" data-drop>
         <strong>Drop a vertical video or image here</strong>
         <span id="svsz-drop-help">or choose a file: MP4, MOV, WebM, PNG, JPG or WebP</span>
         <span class="svsz-actions">
@@ -219,7 +219,6 @@ export function mount(root, { data = defaultData, onEvent = () => {} } = {}) {
         const f = e.dataTransfer.files && e.dataTransfer.files[0];
         if (f) handleFile(f);
     });
-    els.drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(false); } });
 
     function choose(images) {
         imageOnly = images;
@@ -691,7 +690,7 @@ export function mount(root, { data = defaultData, onEvent = () => {} } = {}) {
         else if (act === 'choose-image') choose(true);
         else if (act === 'sample') handleFile(await sampleFile());
         else if (act === 'cancel') { if (state.abort) state.abort.abort(); }
-        else if (act === 'reset') { cleanup(); view('empty'); els.drop.focus(); }
+        else if (act === 'reset') { cleanup(); view('empty'); root.querySelector('[data-view="empty"] [data-act="choose"]').focus(); }
         else if (act === 'play') { const v = state.src && state.src.video; if (v) v.paused ? v.play() : v.pause(); }
         else if (act === 'add') { setDrawMode(!state.drawMode); if (state.drawMode) els.canvas.focus(); }
         else if (act.startsWith('export-')) doExport(act.slice(7));
