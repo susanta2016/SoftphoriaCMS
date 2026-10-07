@@ -84,3 +84,15 @@ test('detector is deterministic and finds nothing on flat or text-free frames', 
 test('thumbDiff measures mean absolute difference', () => {
     assert.equal(thumbDiff(new Uint8Array([0, 0, 0, 0]), new Uint8Array([0, 10, 20, 30])), 15);
 });
+
+test('playback capture never records a later frame as an earlier sample time', async () => {
+    const { assignSamples, MAX_FRAME_LAG_S } = await import('../src/frames.js');
+    const times = [0, 0.5, 1, 1.5, 2, 2.5, 3];
+    // frame shown at 0.1 s: stands for t=0 only
+    assert.deepEqual(assignSamples(times, 0, 0.1), { captured: [0], missed: [], next: 1 });
+    // the browser skipped ahead to 2.6 s: 0.5-2.0 are missed (to be seeked), 2.5 is captured
+    assert.deepEqual(assignSamples(times, 1, 2.6), { captured: [2.5], missed: [0.5, 1, 1.5, 2], next: 6 });
+    // a frame slightly before the next sample time (within 20 ms) counts for it
+    assert.deepEqual(assignSamples(times, 6, 2.99), { captured: [3], missed: [], next: 7 });
+    assert.equal(MAX_FRAME_LAG_S, 0.2);
+});

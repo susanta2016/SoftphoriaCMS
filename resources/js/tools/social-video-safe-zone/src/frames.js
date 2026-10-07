@@ -86,17 +86,36 @@ function grabGray(source, sw, sh, canvas, thumbCanvas) {
 
 const PLAYBACK_RATE = 8;
 const STALL_MS = 3000;
+export const MAX_FRAME_LAG_S = 0.2; // a shown frame may stand in for a sample time at most this much earlier
+
+/**
+ * Decides which sample times the frame now shown (at mediaTime) can stand for. Times the
+ * playback has already passed by more than MAX_FRAME_LAG_S are "missed" and must be seeked:
+ * when a browser skips frames, a later frame must never be recorded as an earlier moment.
+ * Pure, so it is unit-tested.
+ * @returns {{ captured: number[], missed: number[], next: number }}
+ */
+export function assignSamples(times, i, mediaTime, maxLag = MAX_FRAME_LAG_S) {
+    const captured = [], missed = [];
+    while (i < times.length && times[i] <= mediaTime + 0.02) {
+        (mediaTime - times[i] <= maxLag ? captured : missed).push(times[i]);
+        i++;
+    }
+    return { captured, missed, next: i };
+}
 
 /**
  * Captures the frames at `times` by playing the video fast and muted, which is far
  * quicker than seeking when keyframes are far apart. Calls onFrame(t) synchronously
  * while that frame is presented. Resolves with the times it could not capture (the
- * caller seeks to those), e.g. when the tab is hidden and playback is throttled.
+ * caller seeks to those), e.g. when the tab is hidden and playback is throttled, or when
+ * the browser skipped frames so a sample time was passed without a frame close to it.
  */
 function captureByPlayback(video, times, onFrame, signal) {
     if (!('requestVideoFrameCallback' in HTMLVideoElement.prototype)) return Promise.resolve(times.slice());
     return new Promise((resolve) => {
         let i = 0, finished = false, stall;
+        const missed = [];
         const end = () => {
             if (finished) return;
             finished = true;
@@ -104,14 +123,17 @@ function captureByPlayback(video, times, onFrame, signal) {
             video.pause();
             video.removeEventListener('ended', end);
             video.playbackRate = 1;
-            resolve(times.slice(i));
+            resolve([...missed, ...times.slice(i)]);
         };
         const arm = () => { clearTimeout(stall); stall = setTimeout(end, STALL_MS); };
         const onVideoFrame = (_now, meta) => {
             if (finished) return;
             if (signal && signal.aborted) return end();
             arm();
-            while (i < times.length && times[i] <= meta.mediaTime + 0.02) onFrame(times[i++]);
+            const a = assignSamples(times, i, meta.mediaTime);
+            for (const t of a.captured) onFrame(t);
+            missed.push(...a.missed);
+            i = a.next;
             if (i >= times.length) return end();
             video.requestVideoFrameCallback(onVideoFrame);
         };
