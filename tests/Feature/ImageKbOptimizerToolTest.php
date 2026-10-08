@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\ToolStatus;
+use App\Filament\Support\Seo\SeoFields;
 use App\Models\Tool;
 use App\Models\ToolCategory;
 use App\Tools\Functionalities\ImageKbOptimizer;
@@ -75,7 +76,7 @@ class ImageKbOptimizerToolTest extends TestCase
 
         $this->assertStringContainsString('data-iko-root', $html);
         $this->assertSame(1, substr_count($html, '<title>'));
-        $this->assertStringContainsString('<title>Compress Image to Any KB Size Online — 20KB, 50KB, 100KB | Softphoria</title>', $html);
+        $this->assertStringContainsString('<title>Compress Image to Any KB Size Online — 20KB, 50KB, 100KB</title>', $html);
         $this->assertStringContainsString('<meta name="description" content="Compress JPG, PNG or WebP images to 20KB, 50KB, 100KB or any custom size online.', $html);
         $this->assertSame(1, preg_match_all('#<h1[\s>]#', $html));
         $this->assertMatchesRegularExpression('#<h1[^>]*>Compress Image to Any KB Size Online</h1>#', $html);
@@ -106,6 +107,14 @@ class ImageKbOptimizerToolTest extends TestCase
             $this->assertStringNotContainsString($claim, $text, $claim);
         }
         $this->assertStringContainsString('at or below', $text);
+    }
+
+    public function test_the_seeded_seo_fits_the_admin_limits_so_the_tool_can_be_saved(): void
+    {
+        $seo = $this->seededTool()->seo;
+
+        $this->assertLessThanOrEqual(SeoFields::META_TITLE_MAX, mb_strlen($seo->meta_title));
+        $this->assertLessThanOrEqual(SeoFields::META_DESCRIPTION_MAX, mb_strlen($seo->meta_description));
     }
 
     public function test_popular_sizes_link_to_exactly_the_eight_target_guides(): void

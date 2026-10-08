@@ -95,7 +95,7 @@ HTML,
         $tool->save();
 
         $tool->seo()->create([
-            'meta_title' => 'Compress Image to Any KB Size Online — 20KB, 50KB, 100KB | Softphoria',
+            'meta_title' => 'Compress Image to Any KB Size Online — 20KB, 50KB, 100KB',
             'meta_description' => 'Compress JPG, PNG or WebP images to 20KB, 50KB, 100KB or any custom size online. Optimize quality, verify the final size and download privately in your browser.',
         ]);
 
