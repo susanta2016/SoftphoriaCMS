@@ -74,7 +74,22 @@ class ImageKbOptimizerToolTest extends TestCase
         $html = $this->get(self::URL)->assertOk()->getContent();
 
         $this->assertStringContainsString('data-iko-root', $html);
-        $this->assertStringContainsString('<title>Compress Image to 50KB, 100KB or Any Size | Softphoria</title>', $html);
+        $this->assertSame(1, substr_count($html, '<title>'));
+        $this->assertStringContainsString('<title>Compress Image to Any KB Size Online — 20KB, 50KB, 100KB | Softphoria</title>', $html);
+        $this->assertStringContainsString('<meta name="description" content="Compress JPG, PNG or WebP images to 20KB, 50KB, 100KB or any custom size online.', $html);
+        $this->assertSame(1, preg_match_all('#<h1[\s>]#', $html));
+        $this->assertMatchesRegularExpression('#<h1[^>]*>Compress Image to Any KB Size Online</h1>#', $html);
+
+        // One heading per topic, in reading order (the template adds How it works, the FAQ and Related tools)
+        preg_match_all('#<h2[^>]*>(.*?)</h2>#s', $html, $h2);
+        $this->assertSame([
+            'How it works',
+            'Why Compress an Image to a Specific KB Size?',
+            'How the Size Target Works',
+            'Compress Image to 20KB, 50KB, 100KB and More',
+            'Compress JPG, PNG and WebP Images',
+        ], array_slice(array_map(fn (string $h): string => trim(strip_tags($h)), $h2[1]), 0, 5));
+        $this->assertStringNotContainsString('id="use-cases"', $html);
         $this->assertStringContainsString('<link rel="canonical" href="'.url(self::URL).'">', $html);
         $this->assertStringContainsString('<meta name="robots" content="index, follow">', $html);
         $this->assertStringContainsString('<meta property="og:title"', $html);

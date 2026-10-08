@@ -39,8 +39,8 @@ class ImageKbOptimizerToolSeeder extends Seeder
             'functionality' => ImageKbOptimizer::KEY,
             'icon' => 'design',
             'short_description' => 'Compress an image to under 20 KB, 50 KB, 100 KB or any size you choose, keeping the best quality possible. Runs in your browser.',
-            'heading' => 'Compress an Image to Any Size in KB',
-            'introduction' => 'Need a photo under 20 KB, 50 KB or 100 KB for an online form? Choose the maximum size, add your image and download a version that fits — at the highest quality that still passes. Your images are compressed in your browser and never uploaded.',
+            'heading' => 'Compress Image to Any KB Size Online',
+            'introduction' => 'Need a photo under 20 KB, 50 KB or 100 KB for an online form? Choose a common maximum size or enter any custom KB or MB limit, add your image and download a version that fits — at the highest quality that still passes. Your images are compressed in your browser and never uploaded.',
             'how_it_works' => <<<'HTML'
 <ol>
 <li><strong>Add your image.</strong> Choose, drag or paste one or more JPG, PNG or WebP images.</li>
@@ -50,34 +50,39 @@ class ImageKbOptimizerToolSeeder extends Seeder
 <li><strong>Download.</strong> Save one image, or all of them as a ZIP file.</li>
 </ol>
 HTML,
-            'use_cases' => <<<'HTML'
-<ul>
-<li>Reducing a photo to under 50 KB or 100 KB for an online application form.</li>
-<li>Compressing a signature or ID photo to a small size limit such as 20 KB.</li>
-<li>Making product or blog images smaller so web pages load faster.</li>
-<li>Bringing a batch of images under the same upload limit at once.</li>
-<li>Shrinking an image to fit an email or messaging attachment limit.</li>
-</ul>
-HTML,
+            // Use cases live in the "Why compress…" part of the additional content,
+            // so the page has one heading per topic.
+            'use_cases' => null,
             'additional_content' => <<<'HTML'
-<h2>How the size target works</h2>
-<p>The size you choose is a <strong>maximum</strong>. "50 KB" means the result will be at or below 50 KB — usually just under it, because that leaves the most room for quality.</p>
+<h2>Why Compress an Image to a Specific KB Size?</h2>
+<h3>Online forms and applications</h3>
+<p>Some upload forms set a maximum image file size, such as 20 KB, 50 KB or 100 KB, and reject anything larger. Choose that limit here and the result is checked against it before you download.</p>
+<h3>Photos and signatures</h3>
+<p>Small file-size limits are common when uploading a photograph or a scanned signature to an application form. The tool keeps the highest quality that still fits, so faces and handwriting stay as clear as the limit allows.</p>
+<h3>Websites, email and sharing</h3>
+<p>Smaller images are quicker to upload, send and store, and keep the images on a website light. You can compress up to 20 images to the same limit at once and download them together as a ZIP file.</p>
+<h2>How the Size Target Works</h2>
+<p>The size you choose is a <strong>maximum</strong>. "50 KB" means the result will be at or below 50 KB — usually just under it, because that leaves the most room for quality. You can pick a common size or enter any custom limit in KB or MB.</p>
 <ul>
 <li><strong>Passes either way of counting:</strong> some sites count 1 KB as 1,000 bytes, others as 1,024. We aim under the stricter 1,000-byte count, so the image passes both.</li>
 <li><strong>Quality before dimensions:</strong> the tool first lowers the JPEG or WebP quality, and only reduces the width and height when that is not enough. It never enlarges an image.</li>
 <li><strong>Honest results:</strong> if a target is too small to reach without destroying the image, you are told the smallest size that was possible instead of getting a broken file.</li>
 </ul>
-<p>PNG is a lossless format, so it can only get smaller by reducing its dimensions. If a PNG cannot reach your target, the tool offers WebP (which keeps transparency) or JPEG (which fills transparent areas with white) — it never changes the format without telling you.</p>
-<h3>Popular sizes</h3>
-<p>Guides with tips and measured results for common limits:
-<a href="/tools/compress-image-to-10kb">10 KB</a> ·
-<a href="/tools/compress-image-to-20kb">20 KB</a> ·
-<a href="/tools/compress-image-to-30kb">30 KB</a> ·
-<a href="/tools/compress-image-to-50kb">50 KB</a> ·
-<a href="/tools/compress-image-to-100kb">100 KB</a> ·
-<a href="/tools/compress-image-to-200kb">200 KB</a> ·
-<a href="/tools/compress-image-to-500kb">500 KB</a> ·
-<a href="/tools/compress-image-to-1mb">1 MB</a></p>
+<h2>Compress Image to 20KB, 50KB, 100KB and More</h2>
+<p>Choose a common maximum file size below, or use the optimizer to enter any custom KB or MB limit. Each guide explains the target size and opens the same browser-based optimizer with that limit preselected.</p>
+<ul>
+<li><a href="/tools/compress-image-to-10kb">Compress an image to 10 KB</a></li>
+<li><a href="/tools/compress-image-to-20kb">Compress an image to 20 KB</a></li>
+<li><a href="/tools/compress-image-to-30kb">Compress an image to 30 KB</a></li>
+<li><a href="/tools/compress-image-to-50kb">Compress an image to 50 KB</a></li>
+<li><a href="/tools/compress-image-to-100kb">Compress an image to 100 KB</a></li>
+<li><a href="/tools/compress-image-to-200kb">Compress an image to 200 KB</a></li>
+<li><a href="/tools/compress-image-to-500kb">Compress an image to 500 KB</a></li>
+<li><a href="/tools/compress-image-to-1mb">Compress an image to 1 MB</a></li>
+</ul>
+<h2>Compress JPG, PNG and WebP Images</h2>
+<p>Use the optimizer to reduce JPG, JPEG, PNG or WebP images to a maximum file size such as 20 KB, 50 KB, 100 KB or 200 KB. The tool measures the actual encoded output size rather than estimating it. For JPG and WebP, it searches for the highest quality that fits the selected limit, and reduces the dimensions only when the lowest quality setting is still too large.</p>
+<p>PNG images are handled as lossless images, so a PNG can only get smaller by reducing its dimensions, and a very small target is not always reachable as PNG. When a much smaller file is required, the tool offers WebP (which keeps transparency) or JPEG (which fills transparent areas with white) — it never changes the format without telling you.</p>
 HTML,
             'important_notes' => <<<'HTML'
 <p>Your images are processed in your browser and are never uploaded or stored.</p>
@@ -90,8 +95,8 @@ HTML,
         $tool->save();
 
         $tool->seo()->create([
-            'meta_title' => 'Compress Image to 50KB, 100KB or Any Size | Softphoria',
-            'meta_description' => 'Reduce an image to under 20 KB, 50 KB, 100 KB or any size you choose. Keeps the best quality, shows a before/after check and never uploads your photo.',
+            'meta_title' => 'Compress Image to Any KB Size Online — 20KB, 50KB, 100KB | Softphoria',
+            'meta_description' => 'Compress JPG, PNG or WebP images to 20KB, 50KB, 100KB or any custom size online. Optimize quality, verify the final size and download privately in your browser.',
         ]);
 
         $faqs = [

@@ -165,7 +165,7 @@ export function mount(root, { onEvent = () => {} } = {}) {
             ? (passed ? `Done: ${formatSize(done[0].result.blob.size)}, under ${targetText()}.` : `The target of ${targetText()} could not be reached.`)
             : `${passed} of ${state.files.length} images are under ${targetText()}.`);
         onEvent('tool_completed', { files: state.files.length, passed, failed: done.length - passed, target_kb: Math.round(limit() / 1000), output_format: state.format, batch: state.files.length > 1 });
-        view.querySelector('.iko-results h2')?.focus();
+        view.querySelector('#iko-h-results')?.focus();
     }
 
     function download(f) {
@@ -222,7 +222,7 @@ export function mount(root, { onEvent = () => {} } = {}) {
     function fileList() {
         const list = h('section', { class: 'iko-panel iko-files', 'aria-labelledby': 'iko-h-files' },
             h('div', { class: 'iko-row' },
-                h('h2', { id: 'iko-h-files' }, state.files.length === 1 ? 'Your image' : `Your images (${state.files.length})`),
+                h('div', { id: 'iko-h-files', class: 'iko-title' }, state.files.length === 1 ? 'Your image' : `Your images (${state.files.length})`),
                 h('div', { class: 'iko-row-actions' },
                     state.files.length < MAX_FILES ? h('button', { type: 'button', class: 'iko-btn iko-small iko-choose', onclick: () => input.click(), disabled: state.busy }, 'Add images') : null,
                     h('button', { type: 'button', class: 'iko-btn iko-small', onclick: clearAll, disabled: state.busy }, 'Clear all'),
@@ -264,7 +264,7 @@ export function mount(root, { onEvent = () => {} } = {}) {
             view.querySelector('#iko-custom')?.focus();
         };
         return h('section', { class: 'iko-panel', 'aria-labelledby': 'iko-h-target' },
-            h('h2', { id: 'iko-h-target' }, 'Maximum file size'),
+            h('div', { id: 'iko-h-target', class: 'iko-title' }, 'Maximum file size'),
             h('div', { class: 'iko-chips', role: 'group', 'aria-label': 'Target size' },
                 PRESETS.map((p) => h('button', {
                     type: 'button', class: 'iko-chip', 'aria-pressed': String(isPreset(p)), disabled: state.busy,
@@ -333,7 +333,7 @@ export function mount(root, { onEvent = () => {} } = {}) {
         if (!done.length) return null;
         const passed = done.filter((f) => f.result?.ok);
         return h('section', { class: 'iko-results', 'aria-labelledby': 'iko-h-results' },
-            h('h2', { id: 'iko-h-results', tabindex: '-1' }, done.length > 1 ? `Results: ${passed.length} of ${done.length} under ${done[0].result?.target || targetText()}` : 'Result'),
+            h('div', { id: 'iko-h-results', class: 'iko-title', tabindex: '-1' }, done.length > 1 ? `Results: ${passed.length} of ${done.length} under ${done[0].result?.target || targetText()}` : 'Result'),
             done.length > 1 ? h('div', { class: 'iko-actions' },
                 h('button', { type: 'button', class: 'iko-btn iko-btn-primary', disabled: !passed.length, onclick: downloadZip },
                     passed.length === done.length ? `Download all (.zip)` : `Download ${passed.length} passing ${passed.length === 1 ? 'image' : 'images'} (.zip)`)) : null,
@@ -343,7 +343,7 @@ export function mount(root, { onEvent = () => {} } = {}) {
 
     function resultCard(f) {
         if (f.error) {
-            return h('article', { class: 'iko-panel iko-card' }, h('h3', {}, f.name), h('p', { class: 'iko-error' }, f.error));
+            return h('article', { class: 'iko-panel iko-card', 'aria-label': f.name }, h('div', { class: 'iko-name' }, f.name), h('p', { class: 'iko-error' }, f.error));
         }
         const r = f.result;
         const saved = Math.max(0, Math.round((1 - r.blob.size / f.bytes) * 1000) / 10);
@@ -381,9 +381,9 @@ export function mount(root, { onEvent = () => {} } = {}) {
             tryLossy(),
         ) : null;
 
-        return h('article', { class: `iko-panel iko-card ${r.ok ? 'is-pass' : 'is-fail'}` },
+        return h('article', { class: `iko-panel iko-card ${r.ok ? 'is-pass' : 'is-fail'}`, 'aria-label': f.name },
             h('div', { class: 'iko-row' },
-                h('h3', {}, f.name),
+                h('div', { class: 'iko-name' }, f.name),
                 badge(r.ok, r.ok ? `Under ${r.target}` : `Could not reach ${r.target}`),
             ),
             h('div', { class: 'iko-compare-table' },
@@ -392,7 +392,7 @@ export function mount(root, { onEvent = () => {} } = {}) {
                 h('dl', { class: 'iko-saved' }, h('dt', {}, 'Saved'), h('dd', {}, h('strong', {}, `${saved}%`))),
             ),
             r.ok ? h('div', { class: 'iko-check' },
-                h('h4', {}, 'Image requirement check'),
+                h('div', { class: 'iko-subtitle' }, 'Image requirement check'),
                 h('ul', {}, checks.map(([ok, text]) => h('li', {}, badge(ok, ok ? 'Pass' : 'Fail'), ` ${text}`))),
                 h('p', { class: 'iko-overall' }, badge(all, all ? 'Image meets all requirements' : 'Some requirements are not met')),
             ) : failHelp,
