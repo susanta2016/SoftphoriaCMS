@@ -199,6 +199,101 @@
 .blog-prose th, .blog-prose td { border: 1px solid color-mix(in srgb, var(--color-brand-navy) 12%, transparent); padding: 0.6rem 0.9rem; text-align: left; }
 .blog-prose th { background: var(--color-brand-mist); color: var(--color-brand-navy); font-weight: 600; }
 
+/* Tool pages (resources/views/tools/show.blade.php): the admin's plain lists
+   shown as cards. A list item's leading <strong> becomes its card title.
+   .blog-prose.tool-* beats the .blog-prose list rules above. */
+.blog-prose.tool-steps ol,
+.blog-prose.tool-cases ul,
+.blog-prose.tool-notes ul {
+    display: grid;
+    gap: 1rem;
+    padding: 0;
+    list-style: none;
+}
+@media (min-width: 640px) {
+    .blog-prose.tool-steps ol, .blog-prose.tool-cases ul, .blog-prose.tool-notes ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+    .blog-prose.tool-steps ol, .blog-prose.tool-cases ul, .blog-prose.tool-notes ul { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.blog-prose.tool-steps li + li,
+.blog-prose.tool-cases li + li,
+.blog-prose.tool-notes li + li { margin-top: 0; }
+.blog-prose.tool-steps li > strong:first-child { display: block; margin-bottom: 0.3rem; font-size: 1.05rem; line-height: 1.4; }
+
+/* How it works: numbered step cards */
+.blog-prose.tool-steps ol { counter-reset: tool-step; }
+.blog-prose.tool-steps li {
+    position: relative;
+    counter-increment: tool-step;
+    padding: 1.25rem 1.25rem 1.25rem 4.25rem;
+    border: 1px solid color-mix(in srgb, var(--color-brand-navy) 10%, transparent);
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--color-brand-navy) 6%, transparent);
+    font-size: 0.98rem;
+    line-height: 1.65;
+}
+.blog-prose.tool-steps li::before {
+    content: counter(tool-step);
+    position: absolute;
+    top: 1.15rem;
+    left: 1.25rem;
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    background: var(--color-brand-accent);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+/* Use cases: ticked cards */
+.blog-prose.tool-cases ul { gap: 0.75rem; }
+.blog-prose.tool-cases li {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+    padding: 1rem 1.25rem;
+    border: 1px solid color-mix(in srgb, var(--color-brand-accent) 15%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--color-brand-sky) 55%, #fff);
+    color: var(--color-brand-navy);
+    font-size: 0.98rem;
+    line-height: 1.55;
+}
+.blog-prose.tool-cases li::before {
+    content: "";
+    flex: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-top: 0.05rem;
+    border-radius: 999px;
+    background: var(--color-brand-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 0.95rem no-repeat;
+}
+
+/* Additional content: a highlighted panel; its list items become cards */
+.tool-notes-panel {
+    padding: 1.5rem;
+    border: 1px solid color-mix(in srgb, var(--color-brand-navy) 8%, transparent);
+    border-radius: 1.5rem;
+    background: var(--color-brand-mist);
+}
+@media (min-width: 640px) { .tool-notes-panel { padding: 2.5rem; } }
+.blog-prose.tool-notes > h2:first-child { margin-top: 0; }
+
+.blog-prose.tool-notes li {
+    padding: 1.15rem 1.25rem;
+    border-left: 4px solid var(--color-brand-accent);
+    border-radius: 0.75rem;
+    background: #fff;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--color-brand-navy) 6%, transparent);
+    font-size: 0.97rem;
+    line-height: 1.6;
+}
+
 /* WEB-103.1 — on phones the Contact Us widget is a round button in the
    bottom-right corner (x-site.contact-widget), where the back-to-top button
    also lives; lift back-to-top above it whenever the widget is on the page. */

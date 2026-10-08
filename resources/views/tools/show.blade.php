@@ -72,22 +72,23 @@
             </aside>
         @endif
 
-        {{-- Supporting content + related service. Without a service card the
-             sidebar would be an empty third of the page, so the sections flow
-             into two balanced columns at full width instead. --}}
+        {{-- Supporting content + related service. The admin's plain lists are
+             presented as cards (resources/css/app.css, .tool-steps /
+             .tool-cases / .tool-notes): How it works as numbered steps, Use
+             cases as ticked cards, additional content as a highlighted panel.
+             Without a service card the sections use the full width. --}}
+        @php
+            $sectionStyles = ['how-it-works' => 'tool-steps', 'use-cases' => 'tool-cases', 'more' => 'tool-notes'];
+        @endphp
         @if ($sections->isNotEmpty() || $service)
             <div class="mx-auto mt-16 grid max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-12">
-                <div @class([
-                    'min-w-0',
-                    'space-y-12 lg:col-span-8' => $service || $sections->count() <= 1,
-                    'lg:col-span-12 lg:columns-2 lg:gap-12 [&>section]:mb-12 [&>section]:break-inside-avoid [&>section:last-child]:mb-0' => ! $service && $sections->count() > 1,
-                ])>
+                <div @class(['min-w-0 space-y-16', 'lg:col-span-8' => $service, 'lg:col-span-12' => ! $service])>
                     @foreach ($sections as $id => [$heading, $html])
-                        <section id="{{ $id }}" @if ($heading) aria-labelledby="{{ $id }}-heading" @endif>
+                        <section id="{{ $id }}" @class(['tool-notes-panel' => $id === 'more']) @if ($heading) aria-labelledby="{{ $id }}-heading" @endif>
                             @if ($heading)
                                 <h2 id="{{ $id }}-heading" class="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl">{{ $heading }}</h2>
                             @endif
-                            <div @class(['blog-prose', 'mt-4' => $heading])>{!! $html !!}</div>
+                            <div @class(['blog-prose', $sectionStyles[$id] ?? null, 'mt-6' => $heading])>{!! $html !!}</div>
                         </section>
                     @endforeach
                 </div>
