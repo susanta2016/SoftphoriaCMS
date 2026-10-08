@@ -113,6 +113,42 @@ class SocialVideoSafeZoneToolTest extends TestCase
         $this->assertStringNotContainsString('data-svsz-root', $this->get('/')->getContent());
     }
 
+    public function test_the_page_names_the_platforms_and_summarises_the_measured_zones(): void
+    {
+        $tool = $this->seededTool();
+        app(ToolPublisher::class)->publish($tool, null);
+
+        $html = $this->get(self::URL)->assertOk()->getContent();
+
+        $this->assertStringContainsString('<title>Social Video Safe Zone Checker — Reels, Shorts &amp; TikTok</title>', $html);
+        $this->assertSame(1, preg_match_all('#<h1[\s>]#', $html));
+        $this->assertMatchesRegularExpression('#<h1[^>]*>Social Video Safe Zone Checker for Reels, Shorts &amp; TikTok</h1>#', $html);
+        preg_match_all('#<h2[^>]*>(.*?)</h2>#s', $html, $h2);
+        $headings = array_map(fn (string $h): string => trim(html_entity_decode(strip_tags($h))), $h2[1]);
+        $this->assertContains('Measured safe zones for 1080×1920 (9:16) video', $headings);
+        $this->assertContains('Safe-zone guides and PNG overlays', $headings);
+
+        // The table: measured rows in px, TikTok provisional with no pixel values
+        $rows = fn (string $platform): string => preg_match('#<tr>\s*<td>'.preg_quote($platform, '#').'</td>(.*?)</tr>#s', $html, $m) ? strip_tags($m[1], '<td>') : '';
+        $this->assertSame('<td>190 px</td><td>160 px</td><td>220 px</td><td>Observed on tested devices</td>', $rows('Instagram Reels'));
+        $this->assertSame('<td>180 px</td><td>170 px</td><td>190 px</td><td>Observed on tested devices</td>', $rows('YouTube Shorts'));
+        $this->assertSame('<td>190 px</td><td>170 px</td><td>220 px</td><td>Union of measured Reels + Shorts zones</td>', $rows('Combined Reels + Shorts'));
+        $this->assertStringNotContainsString('px', $rows('TikTok'));
+        $this->assertStringContainsString('Provisional', $rows('TikTok'));
+        $this->assertStringContainsString('About the TikTok estimate', $html);
+
+        // Guides, PNG overlays and the author line; every download is a real file
+        foreach (['/tools/instagram-reels-safe-zone', '/tools/youtube-shorts-safe-zone', '/tools/1080x1920-safe-zone-guide', '/blog/why-social-media-safe-zone-numbers-differ', '/about'] as $link) {
+            $this->assertStringContainsString('href="'.$link.'"', $html, $link);
+        }
+        preg_match_all('#href="(/downloads/social-video-safe-zone/[^"]+\.png)"#', $html, $png);
+        $this->assertCount(3, $png[1]);
+        foreach ($png[1] as $path) {
+            $this->assertFileExists(public_path($path));
+        }
+        $this->assertStringContainsString('Measured and maintained by Softphoria.', $html);
+    }
+
     public function test_there_is_no_server_side_upload_path_for_the_checker(): void
     {
         $writes = collect(RouteFacade::getRoutes()->getRoutes())
