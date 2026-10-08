@@ -72,10 +72,16 @@
             </aside>
         @endif
 
-        {{-- Supporting content + related service --}}
+        {{-- Supporting content + related service. Without a service card the
+             sidebar would be an empty third of the page, so the sections flow
+             into two balanced columns at full width instead. --}}
         @if ($sections->isNotEmpty() || $service)
             <div class="mx-auto mt-16 grid max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-12">
-                <div class="min-w-0 space-y-12 lg:col-span-8">
+                <div @class([
+                    'min-w-0',
+                    'space-y-12 lg:col-span-8' => $service || $sections->count() <= 1,
+                    'lg:col-span-12 lg:columns-2 lg:gap-12 [&>section]:mb-12 [&>section]:break-inside-avoid [&>section:last-child]:mb-0' => ! $service && $sections->count() > 1,
+                ])>
                     @foreach ($sections as $id => [$heading, $html])
                         <section id="{{ $id }}" @if ($heading) aria-labelledby="{{ $id }}-heading" @endif>
                             @if ($heading)
