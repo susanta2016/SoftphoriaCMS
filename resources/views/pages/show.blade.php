@@ -44,6 +44,8 @@
 
     @if ($page->template === \App\Enums\PageTemplate::Legal)
         @include('pages.partials.legal')
+    @elseif ($page->is_tool_guide)
+        @include('pages.partials.tool-guide')
     @elseif ($opensWithBand)
         <main class="flex-1">
             <x-site.sections :sections="$visibleSections"/>

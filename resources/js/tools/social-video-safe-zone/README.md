@@ -37,6 +37,17 @@ node resources/js/tools/social-video-safe-zone/scripts/generate-dataset.mjs --ch
 
 The P0 workspace (`C:/Users/susan/Documents/P0-measurements`, or `--p0 <dir>` / `P0_DIR`) is read only. Rows follow the P0 completion report rule (usable, playing, inside the picture; edges as P0 recorded them, rounded to the nearest 10 px). Every zone records its provenance and the P0 rows it came from. `tests/dataset.test.mjs` rebuilds the dataset and fails on any difference.
 
+## Downloadable overlay PNGs (SEO guides)
+
+`public/downloads/social-video-safe-zone/*.png` (Reels, Shorts and combined Reels + Shorts overlays, each with a half-size `-preview` twin shown on the guide pages) are generated from `data/safezones.v1.js` through `src/dataset.js` `resolveZones()`, never drawn by hand:
+
+```bash
+node resources/js/tools/social-video-safe-zone/scripts/generate-overlays.mjs           # regenerate
+node resources/js/tools/social-video-safe-zone/scripts/generate-overlays.mjs --check   # verify, pixel for pixel
+```
+
+`tests/overlays.test.mjs` is the mandatory drift test: it fails if a committed PNG differs from a fresh build, or if the margins the guide pages publish (Reels 190/160/220, Shorts 180/170/190, combined 190/170/220) stop matching the dataset. Any dataset change means regenerating the PNGs and re-checking the guide copy (`database/seeders/SocialVideoSafeZoneGuidesSeeder.php`, and the live pages in Admin → Pages). TikTok is never part of the combined overlay.
+
 ## Detector check on real frames
 
 ```bash
