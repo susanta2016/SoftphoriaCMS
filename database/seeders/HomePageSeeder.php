@@ -230,7 +230,7 @@ class HomePageSeeder extends Seeder
             ],
             'seo' => [
                 'meta_title' => 'Softphoria — Technology that moves your business forward',
-                'meta_description' => 'We design, build and support high-performance websites, custom software, cloud infrastructure and integrations — helping businesses turn ideas into real world solutions.',
+                'meta_description' => 'We design, build and support high-performance websites, custom software, cloud and integrations, turning business ideas into real-world solutions.',
             ],
         ];
 
@@ -314,7 +314,9 @@ class HomePageSeeder extends Seeder
         ];
 
         foreach ($items as $index => $item) {
-            PortfolioItem::query()->create([...$item, 'sort_order' => $index, 'is_featured' => true, 'is_published' => true]);
+            // Slug set here, not left to the model's creating hook: DatabaseSeeder
+            // runs WithoutModelEvents, which switches that hook off.
+            PortfolioItem::query()->create([...$item, 'slug' => PortfolioItem::uniqueSlug($item['title']), 'sort_order' => $index, 'is_featured' => true, 'is_published' => true]);
         }
     }
 

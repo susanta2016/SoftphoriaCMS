@@ -206,7 +206,7 @@ HTML;
             'compress-image-to-20kb' => $tiny + [
                 'h1' => 'Compress an Image to 20 KB',
                 'summary' => 'Bring a photo, scanned signature or small graphic under 20 KB for an upload limit, at the best quality that fits.',
-                'meta_title' => 'Compress Image to 20KB Online — Free Image Size Reducer | Softphoria',
+                'meta_title' => 'Compress Image to 20KB — Free Size Reducer | Softphoria',
                 'meta_description' => 'Reduce an image to under 20 KB for a form or upload limit. Finds the best quality that fits, shows the new size and dimensions, and never uploads your image.',
                 'answer' => 'A 20 KB limit is common for small uploads such as signatures and thumbnails. Add your image, keep 20 KB selected and download a JPEG that fits.',
                 'fit_heading' => 'What fits in 20 KB',
@@ -222,7 +222,7 @@ HTML;
             'compress-image-to-30kb' => $tiny + [
                 'h1' => 'Compress an Image to 30 KB',
                 'summary' => 'Fit a photo or graphic under a 30 KB upload limit while keeping it as large and clear as possible.',
-                'meta_title' => 'Compress Image to 30KB Online — Free, Keeps Quality | Softphoria',
+                'meta_title' => 'Compress Image to 30KB — Free, Keeps Quality | Softphoria',
                 'meta_description' => 'Get an image under 30 KB without guesswork: the tool measures every attempt, keeps the best quality that fits and shows the result before you download.',
                 'answer' => 'At 30 KB a photo can stay around 700 px wide. Select 30 KB, add the image and download the result once the check shows it passes.',
                 'fit_heading' => 'What fits in 30 KB',
@@ -238,7 +238,7 @@ HTML;
             'compress-image-to-50kb' => $form + [
                 'h1' => 'Compress an Image to 50 KB',
                 'summary' => 'Reduce a photo to under 50 KB — a common limit for online forms — while keeping it as sharp as possible.',
-                'meta_title' => 'Compress Image to 50KB Online — Free Photo Compressor | Softphoria',
+                'meta_title' => 'Compress Image to 50KB — Free Photo Compressor | Softphoria',
                 'meta_description' => 'Reduce a photo to under 50 KB for an online form or upload. Keeps the highest quality that fits, checks the result and never uploads your photo.',
                 'answer' => '50 KB is a common upload limit for profile and application photos. Select 50 KB, add the photo, and the optimizer keeps the highest quality that fits — about 1000 px wide for a detailed photo.',
                 'fit_heading' => 'What fits in 50 KB',
@@ -254,7 +254,7 @@ HTML;
             'compress-image-to-100kb' => $form + [
                 'h1' => 'Compress an Image to 100 KB',
                 'summary' => 'Make a photo smaller than 100 KB for a form, profile or website, with the best quality that fits.',
-                'meta_title' => 'Compress Image to 100KB Online — Free, No Upload | Softphoria',
+                'meta_title' => 'Compress Image to 100KB — Free, No Upload | Softphoria',
                 'meta_description' => 'Shrink a JPG, PNG or WebP image to under 100 KB. Quality first, dimensions only when needed, with a before/after check. Your image never leaves your device.',
                 'answer' => 'At 100 KB a detailed photo can stay around 1500 px wide, and most simple images keep their full size. Select 100 KB, add the image and download it.',
                 'fit_heading' => 'What fits in 100 KB',
@@ -270,7 +270,7 @@ HTML;
             'compress-image-to-200kb' => $web + [
                 'h1' => 'Compress an Image to 200 KB',
                 'summary' => 'Bring photos under 200 KB for websites, listings and uploads, keeping the quality as high as possible.',
-                'meta_title' => 'Compress Image to 200KB Online — Free Image Optimizer | Softphoria',
+                'meta_title' => 'Compress Image to 200KB — Free Image Optimizer | Softphoria',
                 'meta_description' => 'Reduce images to under 200 KB for websites, listings or uploads. Keeps large dimensions and high quality, compresses in your browser, batch and ZIP included.',
                 'answer' => '200 KB leaves plenty of room: a detailed photo stays around 2000 px wide. Select 200 KB, add one or more images and download the results.',
                 'fit_heading' => 'What fits in 200 KB',
@@ -286,7 +286,7 @@ HTML;
             'compress-image-to-500kb' => $web + [
                 'h1' => 'Compress an Image to 500 KB',
                 'summary' => 'Reduce large photos to under 500 KB while keeping them big and sharp — for websites, email and upload limits.',
-                'meta_title' => 'Compress Image to 500KB Online — Free, Keeps Detail | Softphoria',
+                'meta_title' => 'Compress Image to 500KB — Free, Keeps Detail | Softphoria',
                 'meta_description' => 'Get large photos under 500 KB while keeping them big and sharp. Measures every attempt, never exceeds your limit and never uploads your images.',
                 'answer' => 'At 500 KB even a detailed 12-megapixel photo stays about 3000 px wide, so it still looks sharp on large screens. Select 500 KB, add the image and download it.',
                 'fit_heading' => 'What fits in 500 KB',
@@ -302,7 +302,7 @@ HTML;
             'compress-image-to-1mb' => $large + [
                 'h1' => 'Compress an Image to 1 MB',
                 'summary' => 'Get photos and screenshots under 1 MB for email, forms and upload limits, usually at their full size.',
-                'meta_title' => 'Compress Image to 1MB Online — Free, Full Size Kept | Softphoria',
+                'meta_title' => 'Compress Image to 1MB — Free, Full Size Kept | Softphoria',
                 'meta_description' => 'Reduce a photo or screenshot to under 1 MB, usually at full size. Works in your browser, handles batches and never uploads your images.',
                 'answer' => 'Most photos fit under 1 MB at full or almost full size. Select 1 MB, add the image and download a version that passes the limit.',
                 'fit_heading' => 'What fits in 1 MB',

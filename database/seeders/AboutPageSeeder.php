@@ -64,7 +64,7 @@ class AboutPageSeeder extends Seeder
             'publish_at' => now(),
             'sections' => $this->sections($founderPhoto, $storyImage),
             'seo' => [
-                'meta_title' => 'About Softphoria — 20+ Years Building Powerful Web Experiences',
+                'meta_title' => 'About Softphoria — 20+ Years of Powerful Web Experiences',
                 'meta_description' => 'Meet Softphoria: a founder-led web development studio from Kolkata, India, building custom websites, software and integrations for clients worldwide.',
             ],
         ];

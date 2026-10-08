@@ -104,8 +104,8 @@ class SocialVideoSafeZoneGuidesSeeder extends Seeder
                 'summary' => 'Measured on real phones: where the Instagram Reels interface covers a 1080 × 1920 video, and how much of each edge to keep clear.',
                 'sections' => [$this->richText($this->reelsBody()), $this->cta('Check your Reel against these zones')],
                 'seo' => [
-                    'meta_title' => 'Instagram Reels Safe Zone (1080×1920): Measured Margins | Softphoria',
-                    'meta_description' => 'Observed on real phones in October 2026: keep the top 190 px, right 160 px and bottom 220 px of a 1080×1920 Reel clear. See the caption-open and auto-caption areas too.',
+                    'meta_title' => 'Instagram Reels Safe Zone (1080×1920): Measured Margins',
+                    'meta_description' => 'Observed on real phones in October 2026: keep the top 190 px, right 160 px and bottom 220 px of a 1080×1920 Reel clear, plus the caption and auto-caption areas.',
                 ],
             ],
             [
@@ -116,8 +116,8 @@ class SocialVideoSafeZoneGuidesSeeder extends Seeder
                 'summary' => 'Measured on real phones: where the YouTube Shorts interface covers a 1080 × 1920 video, and how much of each edge to keep clear.',
                 'sections' => [$this->richText($this->shortsBody()), $this->cta('Check your Short against these zones')],
                 'seo' => [
-                    'meta_title' => 'YouTube Shorts Safe Zone (1080×1920): Measured Margins | Softphoria',
-                    'meta_description' => 'Observed on real phones in October 2026: keep the top 180 px, right 170 px and bottom 190 px of a 1080×1920 Short clear, plus the auto-caption band near the top.',
+                    'meta_title' => 'YouTube Shorts Safe Zone (1080×1920): Measured Margins',
+                    'meta_description' => 'Observed on real phones in October 2026: keep the top 180 px, right 170 px and bottom 190 px of a 1080×1920 Short clear, plus the auto-caption band at the top.',
                 ],
             ],
             [

@@ -34,8 +34,8 @@ class SeoFields
             ->label('Meta Title')
             ->maxLength(self::META_TITLE_MAX)
             ->live(onBlur: false)
-            ->hint(fn (?string $state): string => strlen($state ?? '').'/'.self::META_TITLE_MAX.' characters')
-            ->hintColor(fn (?string $state): string => strlen($state ?? '') > self::META_TITLE_MAX ? 'danger' : 'gray');
+            ->hint(fn (?string $state): string => mb_strlen($state ?? '').'/'.self::META_TITLE_MAX.' characters')
+            ->hintColor(fn (?string $state): string => mb_strlen($state ?? '') > self::META_TITLE_MAX ? 'danger' : 'gray');
     }
 
     public static function metaDescription(string $name = 'seo.meta_description'): Textarea
@@ -45,8 +45,8 @@ class SeoFields
             ->rows(2)
             ->maxLength(self::META_DESCRIPTION_MAX)
             ->live(onBlur: false)
-            ->hint(fn (?string $state): string => strlen($state ?? '').'/'.self::META_DESCRIPTION_MAX.' characters')
-            ->hintColor(fn (?string $state): string => strlen($state ?? '') > self::META_DESCRIPTION_MAX ? 'danger' : 'gray');
+            ->hint(fn (?string $state): string => mb_strlen($state ?? '').'/'.self::META_DESCRIPTION_MAX.' characters')
+            ->hintColor(fn (?string $state): string => mb_strlen($state ?? '') > self::META_DESCRIPTION_MAX ? 'danger' : 'gray');
     }
 
     /**

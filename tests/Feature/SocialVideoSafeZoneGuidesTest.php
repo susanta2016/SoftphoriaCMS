@@ -26,13 +26,13 @@ class SocialVideoSafeZoneGuidesTest extends TestCase
     private const GUIDES = [
         'instagram-reels-safe-zone' => [
             'h1' => 'Instagram Reels Safe Zone: Where the App Covers Your Video',
-            'title' => 'Instagram Reels Safe Zone (1080×1920): Measured Margins | Softphoria',
+            'title' => 'Instagram Reels Safe Zone (1080×1920): Measured Margins',
             'values' => ['190 px', '160 px', '220 px', '750 px', 'y 1590 to y 1700'],
             'devices' => ['iPhone 14 Plus', 'Nokia 6.1 Plus'],
         ],
         'youtube-shorts-safe-zone' => [
             'h1' => 'YouTube Shorts Safe Zone: Where the App Covers Your Video',
-            'title' => 'YouTube Shorts Safe Zone (1080×1920): Measured Margins | Softphoria',
+            'title' => 'YouTube Shorts Safe Zone (1080×1920): Measured Margins',
             'values' => ['180 px', '170 px', '190 px', 'y 260 to y 380'],
             'devices' => ['iPhone 14 Plus', 'Samsung Galaxy A20s'],
         ],

@@ -89,7 +89,7 @@ HTML,
 
         $tool->seo()->create([
             'meta_title' => 'Social Video Safe Zone Checker — Reels & Shorts | Softphoria',
-            'meta_description' => 'See where Instagram Reels and YouTube Shorts buttons, captions and top bars cover your vertical video, with suggested fixes. Runs in your browser; nothing is uploaded.',
+            'meta_description' => 'See where Instagram Reels and YouTube Shorts buttons, captions and top bars cover your vertical video, with fixes. Runs in your browser; nothing is uploaded.',
         ]);
 
         $faqs = [

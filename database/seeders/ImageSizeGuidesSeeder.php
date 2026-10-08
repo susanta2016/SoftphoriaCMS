@@ -250,7 +250,7 @@ HTML;
             'One reference for the image sizes that matter on Instagram, Facebook, LinkedIn, X, YouTube and Pinterest — and which values are real platform limits.',
             $body, [
                 'meta_title' => 'Social Media Image Sizes & Requirements 2026 | Softphoria',
-                'meta_description' => 'Every key image size for Instagram, Facebook, LinkedIn, X, YouTube and Pinterest in one table, with which values are platform limits and which are recommendations.',
+                'meta_description' => 'Every key image size for Instagram, Facebook, LinkedIn, X, YouTube and Pinterest in one table, showing which values are limits and which are recommendations.',
             ], 'Check your image against every platform at once');
     }
 
@@ -390,7 +390,7 @@ HTML;
         return $this->page('youtube', 'YouTube Thumbnail Size & Image Requirements for 2026',
             'Thumbnail, channel banner and profile picture sizes for YouTube, with the difference between recommended sizes, hard minimums and the banner safe area.',
             $body, [
-                'meta_title' => 'YouTube Thumbnail Size & Image Requirements 2026 | Softphoria',
+                'meta_title' => 'YouTube Thumbnail Size & Requirements 2026 | Softphoria',
                 'meta_description' => '1280 × 720 thumbnails, the 640 px minimum and 2 MB vs 50 MB limits, plus channel banner sizes and the 1235 × 338 safe area, from YouTube\'s help pages.',
             ], 'Check your thumbnail or banner against YouTube\'s limits');
     }
