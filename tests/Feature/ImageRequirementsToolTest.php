@@ -2,13 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PageStatus;
 use App\Enums\ToolStatus;
+use App\Models\Page;
 use App\Models\Tool;
 use App\Models\ToolCategory;
 use App\Tools\Functionalities\ImageRequirements;
 use App\Tools\ToolPublisher;
 use App\Tools\ToolRegistry;
 use Database\Seeders\ImageRequirementsToolSeeder;
+use Database\Seeders\ImageSizeGuidesSeeder;
 use Database\Seeders\SocialVideoSafeZoneToolSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Route;
@@ -47,7 +50,7 @@ class ImageRequirementsToolTest extends TestCase
 
         $this->assertSame(ToolStatus::Draft, $tool->status);
         $this->assertNull($tool->published_at);
-        $this->assertSame(6, $tool->faqs()->where('is_visible', true)->count());
+        $this->assertSame(11, $tool->faqs()->where('is_visible', true)->count());
         $this->assertSame([], app(ToolPublisher::class)->missingRequirements($tool), 'ready to publish from the admin');
         $this->get(self::URL)->assertNotFound();
 
@@ -99,6 +102,40 @@ class ImageRequirementsToolTest extends TestCase
         $this->assertStringNotContainsString('multipart/form-data', $html);
         $this->assertStringNotContainsString('data-svsz-root', $html, 'the video checker is not loaded here');
         $this->assertStringNotContainsString('data-irc-root', $this->get('/')->getContent());
+    }
+
+    public function test_the_page_explains_what_it_checks_and_links_each_guide_once(): void
+    {
+        $tool = $this->seededTool();
+        app(ToolPublisher::class)->publish($tool, null);
+        $this->admin();
+        $this->seed(ImageSizeGuidesSeeder::class);
+        Page::query()->where('is_tool_guide', true)->update(['status' => PageStatus::Published->value, 'publish_at' => now()->subMinute()]);
+
+        $html = $this->get(self::URL)->assertOk()->getContent();
+
+        $this->assertSame(1, preg_match_all('#<h1[\s>]#', $html));
+        $this->assertMatchesRegularExpression('#<h1[^>]*>Image Requirements Checker: Size, Format &amp; Crop</h1>#', $html);
+        $this->assertSame(1, substr_count($html, '<link rel="canonical"'));
+
+        // Server-rendered content sections, in reading order, between the template's own headings
+        preg_match_all('#<h2[^>]*>(.*?)</h2>#s', $html, $h2);
+        $headings = array_values(array_intersect(array_map(fn (string $h): string => trim(html_entity_decode(strip_tags($h))), $h2[1]), [
+            'How it works', 'Use cases', 'What this image checker checks', 'Supported image requirements',
+            'Why check your image before uploading?', 'Where the requirements come from', 'Image size guides', 'Common questions',
+        ]));
+        $this->assertSame(['How it works', 'Use cases', 'What this image checker checks', 'Supported image requirements',
+            'Why check your image before uploading?', 'Where the requirements come from', 'Image size guides', 'Common questions'], $headings);
+
+        // Every guide is linked exactly once, and resolves
+        foreach (['social-media-image-sizes', 'instagram-image-sizes', 'youtube-thumbnail-size', 'facebook-image-sizes', 'linkedin-image-sizes', 'x-twitter-image-sizes', 'pinterest-image-sizes', 'open-graph-image-size'] as $slug) {
+            $this->assertSame(1, substr_count($html, 'href="/tools/'.$slug.'"'), $slug);
+            $this->get('/tools/'.$slug)->assertOk();
+        }
+
+        // One structured-data block; the FAQ schema carries every visible question
+        $this->assertSame(1, substr_count($html, 'application/ld+json'));
+        $this->assertSame(11, substr_count($html, '"@type":"Question"'));
     }
 
     public function test_there_is_no_server_side_upload_path_or_image_storage(): void

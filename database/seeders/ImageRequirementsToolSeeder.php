@@ -44,8 +44,8 @@ class ImageRequirementsToolSeeder extends Seeder
             'functionality' => ImageRequirements::KEY,
             'icon' => 'design',
             'short_description' => 'Check image dimensions, aspect ratio, file format, file size, crop compatibility and platform requirements before you publish.',
-            'heading' => 'Image Requirements Checker',
-            'introduction' => 'Upload an image and see straight away where it works: Instagram, Facebook, LinkedIn, X, YouTube, Pinterest and your website. The checker explains every problem in plain words, previews how each placement will crop it, and runs entirely in your browser — your image is never uploaded.',
+            'heading' => 'Image Requirements Checker: Size, Format & Crop',
+            'introduction' => 'Check an image\'s dimensions, aspect ratio, file size and format against the requirements of Instagram, Facebook, LinkedIn, X, YouTube, Pinterest and websites, or against your own. See which placements it fits, how each one will crop it and what to change, in plain words. Everything runs in your browser: your image is never uploaded.',
             'how_it_works' => <<<'HTML'
 <ol>
 <li><strong>Add your image.</strong> Choose, drag or paste a JPG, PNG or WebP file. It stays on your device.</li>
@@ -66,6 +66,39 @@ HTML,
 </ul>
 HTML,
             'additional_content' => <<<'HTML'
+<h2>What this image checker checks</h2>
+<ul>
+<li><strong>Dimensions:</strong> width and height in pixels, against each placement's minimum and recommended size.</li>
+<li><strong>Aspect ratio:</strong> whether the shape matches the placement, and how much will be cropped if it does not.</li>
+<li><strong>File format:</strong> JPG, PNG or WebP, read from the file's content rather than its name.</li>
+<li><strong>File size:</strong> against each platform's upload limit.</li>
+<li><strong>Resolution:</strong> whether the image is large enough to look sharp, or will be enlarged.</li>
+<li><strong>Crop and safe zones:</strong> a preview of what each placement shows, including edges a platform covers or trims.</li>
+<li><strong>Transparency:</strong> whether transparent areas may be filled with a solid colour.</li>
+<li><strong>Animation:</strong> animated PNG or WebP files, which many placements show as a single frame.</li>
+<li><strong>Metadata:</strong> GPS location, EXIF rotation and CMYK colours, when the file includes them.</li>
+</ul>
+<h2>Supported image requirements</h2>
+<p>A platform rarely has one image size: a profile photo, a cover and a post each have their own rules. The checker covers 19 placements:</p>
+<ul>
+<li><strong>Instagram:</strong> portrait, square and landscape feed posts, Stories and Reel covers</li>
+<li><strong>Facebook:</strong> feed posts, cover photo and profile picture</li>
+<li><strong>LinkedIn:</strong> post images, profile photo and Company Page cover</li>
+<li><strong>X (Twitter):</strong> post images and header</li>
+<li><strong>YouTube:</strong> video thumbnails and channel banner</li>
+<li><strong>Pinterest:</strong> standard Pins</li>
+<li><strong>Websites:</strong> Open Graph link previews, full-width hero images and content images</li>
+</ul>
+<p>You can also enter your own requirements, such as a form's or publisher's size, shape, file size and format rules. Each platform's sizes are explained in the image size guides below.</p>
+<h2>Why check your image before uploading?</h2>
+<ul>
+<li><strong>No surprise crops:</strong> see what each placement cuts off before anyone else does.</li>
+<li><strong>Size problems caught early:</strong> find out whether an image is too small and will look soft, or too large to upload.</li>
+<li><strong>Format and file-size issues:</strong> spot a format a platform does not accept, or a file over its limit.</li>
+<li><strong>Every platform at once:</strong> check all placements in one go instead of looking up each size.</li>
+<li><strong>Safe zones:</strong> see which edges a platform covers or trims on some screens.</li>
+<li><strong>Location data:</strong> find GPS location in a photo's metadata before it is published.</li>
+</ul>
 <h2>Where the requirements come from</h2>
 <p><strong>Last reviewed:</strong> October 2026</p>
 <p>Each placement's values come from the platform's own help pages where one exists. The checker treats them in three ways, so a recommendation never shows as a failure:</p>
@@ -75,6 +108,17 @@ HTML,
 <li><strong>Guidance:</strong> useful context, such as Meta's Stories ad safe zone. It never changes the result.</li>
 </ul>
 <p>Where we could not confirm a value on an official page, it is only ever a recommendation, and each placement lists its sources. Platforms change their requirements without notice, so treat the results as careful guidance and check important images in the app itself.</p>
+<h2>Image size guides</h2>
+<ul>
+<li><a href="/tools/social-media-image-sizes">Social media image sizes</a>: every platform in one table</li>
+<li><a href="/tools/instagram-image-sizes">Instagram image sizes</a>: feed, Stories, Reel covers and the 4:5 vs 3:4 question</li>
+<li><a href="/tools/youtube-thumbnail-size">YouTube thumbnail size</a>: thumbnails, channel banner and safe area</li>
+<li><a href="/tools/facebook-image-sizes">Facebook image sizes</a>: feed, profile and cover photos</li>
+<li><a href="/tools/linkedin-image-sizes">LinkedIn image sizes</a>: posts, profiles and Company Pages</li>
+<li><a href="/tools/x-twitter-image-sizes">X (Twitter) image sizes</a>: posts, profile photo and header</li>
+<li><a href="/tools/pinterest-image-sizes">Pinterest image sizes</a>: the 2:3 Pin</li>
+<li><a href="/tools/open-graph-image-size">Open Graph image size</a>: 1200 × 630 explained</li>
+</ul>
 HTML,
             'important_notes' => <<<'HTML'
 <p>Your image is analysed in your browser and is never uploaded or stored.</p>
@@ -98,6 +142,11 @@ HTML,
             ['Does the checker crop or resize my image?', 'No. It previews what each placement will show and explains what to change. It never edits your image.'],
             ['Why does it mention location data?', 'Photos from phones can contain GPS location in their metadata. Many platforms remove it on upload, but websites and email usually keep it, so the checker tells you when it is there.'],
             ['How accurate are the platform requirements?', 'They come from the platforms\' own help pages where available and were last reviewed in October 2026. Platforms change their layouts and limits, so use the results as careful guidance and check important images in the app itself.'],
+            ['What is an image size checker?', 'A tool that reads an image\'s width, height and file size and compares them with what a platform or website expects. This one also checks the shape, format and crop for each placement.'],
+            ['How do I check an image\'s dimensions?', 'Add the image to the checker: its width and height in pixels appear in the summary straight away, with its file size and format.'],
+            ['What is the difference between image size and aspect ratio?', 'Image size usually means the dimensions in pixels, such as 1080 × 1350, or the file size in KB or MB. Aspect ratio is the shape: width compared with height, such as 4:5 or 16:9. Two images can share an aspect ratio but have very different sizes.'],
+            ['Can I check one image for several platforms?', 'Yes. Every image is checked against all 19 placements at once and grouped into ready to use, works with changes and not suitable.'],
+            ['Why does my image fail a platform requirement?', 'A Fail means it misses a documented platform limit, usually a minimum size or a maximum file size. Select the placement to see the expected value, your image\'s value and what to change. Missing a recommendation only gives a Warning.'],
         ];
 
         foreach ($faqs as $order => [$question, $answer]) {
