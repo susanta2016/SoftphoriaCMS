@@ -109,7 +109,7 @@ export const PROFILES = [
         minWidth: { value: 600, level: 'recommended' },
         maxBytes: [{ value: 30 * MB, level: 'recommended', label: "Meta's limit for Feed image ads" }],
         formats: { allowed: ['jpeg', 'png'], level: 'recommended' },
-        notes: ['Shapes between landscape 1.91:1 and portrait 4:5 show in full in the feed; Meta recommends 4:5 for ads.'],
+        notes: ['Facebook supports a range of image shapes in the feed, but how much is shown or cropped can vary by placement and device. Meta recommends 4:5 for Feed image ads.'],
         sources: [SRC.metaFeed],
     },
     {
