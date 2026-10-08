@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PageStatus;
 use App\Http\Controllers\Concerns\ResolvesSiteChrome;
+use App\Models\Page;
+use App\Models\PageRedirect;
 use App\Models\Service;
 use App\Models\Tool;
 use App\Models\ToolCategory;
@@ -10,6 +13,7 @@ use App\Models\ToolRedirect;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Blog\BlogContent;
 use App\Shared\Support\Features\Features;
+use App\Shared\Support\Pages\PageContentRenderer;
 use App\Shared\Support\Seo\SchemaOrg;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use App\Tools\ToolSettings;
@@ -29,6 +33,7 @@ use Illuminate\Support\Facades\Auth;
  * Only live tools (Published + functionality present) are ever public:
  * anywhere else a tool would appear — hub, related tools, sitemap — uses
  * Tool::live() too. An old slug of a once-public tool 301s to its new URL.
+ * A slug no live Tool claims can serve a published tool-guide CMS Page.
  */
 class ToolController extends Controller
 {
@@ -67,19 +72,36 @@ class ToolController extends Controller
         ]);
     }
 
-    public function show(string $tool): View|RedirectResponse
+    /**
+     * A live Tool always wins; then an old tool slug's 301; then a published
+     * CMS Page flagged as a tool guide (and an old guide slug's redirect);
+     * anything else 404s as before.
+     */
+    public function show(string $tool, PageContentRenderer $pages): View|RedirectResponse
     {
         $record = Tool::query()->live()->where('slug', $tool)->first();
 
-        if ($record === null) {
-            $redirect = ToolRedirect::query()->with('tool')->where('old_slug', $tool)->first();
+        if ($record !== null) {
+            return $this->render($record, false);
+        }
 
-            abort_unless($redirect?->tool?->isLive(), 404);
+        $redirect = ToolRedirect::query()->with('tool')->where('old_slug', $tool)->first();
 
+        if ($redirect?->tool?->isLive()) {
             return redirect()->to($redirect->tool->url(), 301);
         }
 
-        return $this->render($record, false);
+        $guide = Page::query()->published()->where('is_tool_guide', true)->where('slug', $tool)->first();
+
+        if ($guide !== null) {
+            return $pages->render($guide);
+        }
+
+        $guideRedirect = PageRedirect::query()->with('page')->where('old_path', $tool)->where('is_active', true)->first();
+
+        abort_unless($guideRedirect?->page?->is_tool_guide && $guideRedirect->page->status === PageStatus::Published, 404);
+
+        return redirect()->to($guideRedirect->page->url(), 301);
     }
 
     public function preview(Tool $tool): Response

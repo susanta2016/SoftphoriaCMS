@@ -48,7 +48,7 @@ class PageContentRenderer
         $seo = SeoTagBuilder::build($page->seo, [
             'title' => $page->title,
             'description' => $page->summary,
-            'canonical' => SeoFields::autoCanonicalUrl($page->slug),
+            'canonical' => SeoFields::autoCanonicalUrl($page->publicPath()),
             'image' => $page->featuredImage,
             'type' => 'article',
             'published_at' => $page->publish_at ?? $page->created_at,

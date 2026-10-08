@@ -61,7 +61,7 @@ class MenuItem extends Model
         return match ($this->destination_type) {
             MenuItemDestinationType::Url => $this->url,
             MenuItemDestinationType::Page => ($this->page && Route::has('pages.show'))
-                ? route('pages.show', $this->page->slug)
+                ? $this->page->url()
                 : null,
             MenuItemDestinationType::Module => $this->route_key
                 ? app(ModuleNavigationResolver::class)->resolve(ModuleKey::from($this->route_key))

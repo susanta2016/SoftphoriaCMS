@@ -30,7 +30,9 @@ class SitemapController extends Controller
 {
     public function __invoke(): Response
     {
-        $pages = Page::query()->published()->with('seo')->orderBy('slug')->get(['id', 'slug', 'updated_at']);
+        $pages = Page::query()->published()->with('seo')->orderBy('slug')->get(['id', 'slug', 'is_tool_guide', 'updated_at'])
+            // Tool guides are only reachable while Tools is switched on.
+            ->reject(fn (Page $page): bool => $page->is_tool_guide && app(Features::class)->disabled('tools'));
         $isNoindex = fn (Page $page): bool => str_contains(strtolower($page->seo?->robots ?? ''), 'noindex');
 
         $home = $pages->firstWhere('slug', 'home');
@@ -40,7 +42,7 @@ class SitemapController extends Controller
             ->merge(
                 $pages->reject(fn (Page $page) => $page->slug === 'home' || $isNoindex($page))
                     ->map(fn (Page $page): array => [
-                        'loc' => route('pages.show', $page),
+                        'loc' => $page->url(),
                         'lastmod' => $page->updated_at,
                     ]),
             );

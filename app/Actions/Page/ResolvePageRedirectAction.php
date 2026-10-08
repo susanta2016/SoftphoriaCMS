@@ -40,7 +40,7 @@ class ResolvePageRedirectAction
         $status = (int) $redirect->redirect_type;
         $status = in_array($status, [301, 302, 307, 308], true) ? $status : 301;
 
-        $url = $page->slug === 'home' ? route('home') : route('pages.show', $page->slug);
+        $url = $page->slug === 'home' ? route('home') : $page->url();
 
         return redirect($url, $status);
     }

@@ -55,7 +55,7 @@ class EditPage extends EditRecord
 
         $seo = $this->record->seo;
         $storedCanonicalUrl = $seo->canonical_url ?? null;
-        $slug = (string) ($this->record->slug ?? '');
+        $slug = $this->record->publicPath();
 
         $data['seo'] = [
             'meta_title' => $seo->meta_title ?? null,

@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['title', 'slug', 'template', 'status', 'summary', 'publish_at', 'featured_image_id'])]
+#[Fillable(['title', 'slug', 'template', 'is_tool_guide', 'status', 'summary', 'publish_at', 'featured_image_id'])]
 class Page extends Model
 {
     use HasPublicId, SoftDeletes;
@@ -23,8 +23,24 @@ class Page extends Model
         return [
             'status' => PageStatus::class,
             'template' => PageTemplate::class,
+            'is_tool_guide' => 'boolean',
             'publish_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The public path without a leading slash: tool guides live under
+     * /tools (served by ToolController::show() when no live Tool has the
+     * slug), every other page at the site root.
+     */
+    public function publicPath(): string
+    {
+        return ($this->is_tool_guide ? 'tools/' : '').$this->slug;
+    }
+
+    public function url(): string
+    {
+        return $this->is_tool_guide ? route('tools.show', $this->slug) : route('pages.show', $this->slug);
     }
 
     /**

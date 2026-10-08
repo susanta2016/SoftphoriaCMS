@@ -14,6 +14,7 @@ use App\Filament\Support\Seo\SeoFields;
 use App\Models\Page;
 use App\Models\PageRevision;
 use App\Models\Service;
+use App\Models\Tool;
 use App\Models\User;
 use App\Shared\Support\Pages\GalleryItemIcons;
 use App\Shared\Support\Pages\PageSectionSummary;
@@ -69,7 +70,7 @@ class PageForm
                                             if ($operation === 'create') {
                                                 $slug = Str::slug($state ?? '');
                                                 $set('slug', $slug);
-                                                SeoFields::syncCanonicalUrlIfAuto($set, $get, 'seo.canonical_url', 'seo.canonical_url_is_auto', $slug);
+                                                SeoFields::syncCanonicalUrlIfAuto($set, $get, 'seo.canonical_url', 'seo.canonical_url_is_auto', self::publicPath($get, $slug));
                                             }
                                         })
                                         ->columnSpanFull(),
@@ -77,13 +78,24 @@ class PageForm
                                         ->required()
                                         ->maxLength(255)
                                         ->unique(table: Page::class, column: 'slug', ignoreRecord: true)
+                                        ->rule(fn (Get $get): \Closure => function (string $attribute, mixed $value, \Closure $fail) use ($get): void {
+                                            if ($get('is_tool_guide') && Tool::query()->where('slug', $value)->exists()) {
+                                                $fail('A tool already uses this slug, and a tool always takes priority at /tools/{slug}.');
+                                            }
+                                        })
                                         ->live(onBlur: true)
-                                        ->afterStateUpdated(fn (?string $state, Set $set, Get $get) => SeoFields::syncCanonicalUrlIfAuto($set, $get, 'seo.canonical_url', 'seo.canonical_url_is_auto', $state ?? ''))
+                                        ->afterStateUpdated(fn (?string $state, Set $set, Get $get) => SeoFields::syncCanonicalUrlIfAuto($set, $get, 'seo.canonical_url', 'seo.canonical_url_is_auto', self::publicPath($get, $state)))
                                         ->helperText('Auto-filled from the title — override it if needed. Changing it on an existing page creates a redirect from the old slug.'),
                                     Select::make('template')
                                         ->options(PageTemplate::options())
                                         ->default(PageTemplate::Standard->value)
                                         ->required(),
+                                    Toggle::make('is_tool_guide')
+                                        ->label('Tool guide')
+                                        ->helperText('Serve this page at /tools/{slug} instead of /{slug}, for guides that support a tool. A tool with the same slug always takes priority.')
+                                        ->live()
+                                        ->afterStateUpdated(fn (Set $set, Get $get) => SeoFields::syncCanonicalUrlIfAuto($set, $get, 'seo.canonical_url', 'seo.canonical_url_is_auto', self::publicPath($get)))
+                                        ->columnSpanFull(),
                                 ]),
 
                             Section::make('Content')
@@ -100,7 +112,7 @@ class PageForm
                                     ...SeoFields::canonicalUrlFields(
                                         'seo.canonical_url',
                                         'seo.canonical_url_is_auto',
-                                        fn (Get $get): string => (string) ($get('slug') ?? ''),
+                                        fn (Get $get): string => self::publicPath($get),
                                     ),
                                     SeoFields::metaDescription()->columnSpanFull(),
                                     SeoFields::metaKeywords(),
@@ -643,6 +655,15 @@ class PageForm
                 'banner' => 'Banner (full-width, dark)',
             ],
         };
+    }
+
+    /**
+     * The page's public path (see Page::publicPath()) from the form state,
+     * for the automatic canonical URL.
+     */
+    private static function publicPath(Get $get, ?string $slug = null): string
+    {
+        return ($get('is_tool_guide') ? 'tools/' : '').($slug ?? (string) ($get('slug') ?? ''));
     }
 
     /**

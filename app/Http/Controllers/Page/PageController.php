@@ -20,7 +20,8 @@ class PageController extends Controller
 {
     public function __invoke(Page $page, PageContentRenderer $renderer): View|RedirectResponse
     {
-        abort_unless($page->status === PageStatus::Published, 404);
+        // A tool guide lives only at /tools/{slug} (ToolController::show()).
+        abort_unless($page->status === PageStatus::Published && ! $page->is_tool_guide, 404);
 
         // The "home" Page's real, canonical URL is "/" (HomeController) —
         // permanently redirect its slug URL there instead of also rendering

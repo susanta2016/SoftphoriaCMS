@@ -25,7 +25,7 @@ trait SavesPageSeo
         // SavesSeoMetadata), so it keeps following config('app.url') and the
         // slug instead of freezing whichever host the page was saved on —
         // e.g. http://localhost:8080 from a dev database.
-        if (array_key_exists('canonical_url', $seo) && SeoFields::isCanonicalUrlAuto($seo['canonical_url'], (string) $page->slug)) {
+        if (array_key_exists('canonical_url', $seo) && SeoFields::isCanonicalUrlAuto($seo['canonical_url'], $page->publicPath())) {
             $seo['canonical_url'] = null;
         }
 
