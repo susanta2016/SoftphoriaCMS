@@ -66,12 +66,15 @@ HTML,
 HTML,
             'additional_content' => <<<'HTML'
 <h2>Where the zones come from</h2>
+<p><strong>Last verified:</strong> October 2026</p>
+<p>Safe-zone measurements are based on observed platform interfaces on the test devices listed below, using the app versions current when they were measured. They are intended as practical guidance rather than official platform specifications. Platform interfaces can change between devices, app versions, account configurations and platform experiments.</p>
 <p>The Instagram Reels and YouTube Shorts zones were measured in October 2026 from screenshots of calibration videos played in the official apps, on a 1080 × 1920 frame:</p>
 <ul>
 <li><strong>Instagram Reels</strong>, measured on an iPhone 14 Plus and a Nokia 6.1 Plus: keep the top 190 px, the right 160 px and the bottom 220 px clear (short caption).</li>
 <li><strong>YouTube Shorts</strong>, measured on an iPhone 14 Plus and a Samsung Galaxy A20s: keep the top 180 px, the right 170 px and the bottom 190 px clear.</li>
 <li><strong>TikTok</strong> could not be measured. Its zones are a provisional estimate, clearly labelled, and a TikTok check never shows a Pass.</li>
 </ul>
+<p>The measurements combine observations from iOS and Android test devices. Different devices or future app updates may display interface elements differently.</p>
 <p>Longer captions, auto-captions and taller phone screens cover more of the frame; choose those settings in the checker to include them.</p>
 HTML,
             'important_notes' => <<<'HTML'

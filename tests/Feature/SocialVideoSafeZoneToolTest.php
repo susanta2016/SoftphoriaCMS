@@ -74,6 +74,10 @@ class SocialVideoSafeZoneToolTest extends TestCase
         }
         $this->assertStringContainsString('provisional', $text);
         $this->assertStringContainsString('never uploaded', $text);
+
+        foreach (['last verified', 'iphone 14 plus', 'nokia 6.1 plus', 'samsung galaxy a20s', 'rather than official platform specifications'] as $methodology) {
+            $this->assertStringContainsString($methodology, $text, $methodology);
+        }
     }
 
     public function test_admins_preview_the_checker_noindexed(): void
