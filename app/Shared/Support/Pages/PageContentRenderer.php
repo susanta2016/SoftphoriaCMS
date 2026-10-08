@@ -7,6 +7,7 @@ use App\Filament\Support\Seo\SeoFields;
 use App\Models\Media;
 use App\Models\Page;
 use App\Shared\Services\Settings\SettingsRepository;
+use App\Shared\Support\Seo\SchemaOrg;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use Illuminate\Contracts\View\View;
 
@@ -55,6 +56,18 @@ class PageContentRenderer
             'modified_at' => $page->updated_at,
             'author_name' => $page->author?->name,
         ], $general);
+
+        // A tool guide (served at /tools/{slug}) also gets its trail,
+        // Home → Tools → page, beside the default Article — unless the page
+        // has hand-set structured data, which always wins as-is.
+        if ($page->is_tool_guide && blank($page->seo?->structured_data)) {
+            $article = $seo['structured_data'];
+            unset($article['@context']);
+            $seo['structured_data'] = [
+                '@context' => 'https://schema.org',
+                '@graph' => [$article, SchemaOrg::breadcrumbs([['Tools', route('tools.index')], [$page->title, $seo['canonical']]])],
+            ];
+        }
 
         // An unpublished page (admin preview) is never indexable, whatever
         // its own saved SEO robots value says — same rule the preview

@@ -80,7 +80,7 @@ class SocialVideoSafeZoneGuidesTest extends TestCase
             }
 
             $this->assertStringContainsString('href="'.SocialVideoSafeZoneGuidesSeeder::HUB.'"', $html, "{$slug} links to the checker");
-            $this->assertStringNotContainsString('BreadcrumbList', $html, 'breadcrumbs are Phase 1B');
+            $this->assertStringContainsString('BreadcrumbList', $html, 'Phase 1B breadcrumbs (see ToolGuideBreadcrumbTest)');
             $this->assertStringNotContainsString('aggregateRating', $html);
             $this->assertStringNotContainsString('"author"', $html, 'organisation authorship, no person');
 
