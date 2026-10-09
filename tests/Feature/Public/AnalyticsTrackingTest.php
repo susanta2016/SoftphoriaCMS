@@ -282,8 +282,38 @@ class AnalyticsTrackingTest extends TestCase
         $this->assertStringContainsString($wording['privacy-policy'][2][0], $this->body('privacy-policy'));
     }
 
+    public function test_hosting_migration_names_namecheap_instead_of_aws_and_keeps_edited_text(): void
+    {
+        $this->seed(LegalPagesSeeder::class);
+        [[$old, $new]] = (require database_path('seeders/data/legal-hosting-wording.php'))['privacy-policy'];
+        $migration = require database_path('migrations/2026_10_09_210000_name_the_actual_host_in_privacy_policy.php');
+
+        $this->assertStringContainsString($new, $this->body('privacy-policy'), 'fresh installs get the new text');
+        $this->assertStringNotContainsString('Amazon Web Services', $this->body('privacy-policy'));
+
+        $this->rewriteBody('privacy-policy', fn (string $body): string => str_replace($new, $old, $body));
+        $migration->up();
+        $migration->up(); // idempotent
+        $this->assertSame(1, substr_count($this->body('privacy-policy'), $new));
+        $this->assertStringNotContainsString('Amazon Web Services', $this->body('privacy-policy'));
+
+        $migration->down();
+        $this->assertStringContainsString($old, $this->body('privacy-policy'));
+
+        $this->rewriteBody('privacy-policy', fn (string $body): string => str_replace($old, '<li>Hosting edited by the owner.</li>', $body));
+        $migration->up();
+        $this->assertStringContainsString('<li>Hosting edited by the owner.</li>', $this->body('privacy-policy'));
+    }
+
     private function revertCdnWording(): void
     {
+        // The hosting wording (2026_10_09_210000) came after the CDN wording.
+        foreach (require database_path('seeders/data/legal-hosting-wording.php') as $slug => $pairs) {
+            $this->rewriteBody($slug, fn (string $body): string => str_replace(
+                array_column($pairs, 1), array_column($pairs, 0), $body,
+            ));
+        }
+
         foreach (require database_path('seeders/data/legal-cdn-wording.php') as $slug => $pairs) {
             $this->rewriteBody($slug, fn (string $body): string => str_replace(
                 array_column($pairs, 1), array_column($pairs, 0), $body,
