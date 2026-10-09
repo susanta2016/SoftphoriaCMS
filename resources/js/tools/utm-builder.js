@@ -1,5 +1,6 @@
 import { copyText } from './shared/copy.js';
 import { trackToolEvent, trackToolEventOnce } from './shared/track.js';
+import { tagUrl } from './utm-builder/src/tag-url.js';
 
 // UTM Builder — see resources/views/tools/functionalities/utm-builder.blade.php.
 // Errors are shown once a field has been left (blur) or on Copy, never
@@ -72,13 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return null;
         }
 
-        fields.forEach((input) => {
-            const value = clean(input.value);
-            if (value) parsed.searchParams.set(input.dataset.utmField, value);
-            else parsed.searchParams.delete(input.dataset.utmField);
-        });
-
-        const built = parsed.toString();
+        // Existing parameters are kept as they are; see tag-url.js.
+        const built = tagUrl(parsed, Object.fromEntries(fields.map((input) => [input.dataset.utmField, clean(input.value)])));
         result.textContent = built;
         copy.disabled = false;
         trackToolEventOnce('tool_completed');
