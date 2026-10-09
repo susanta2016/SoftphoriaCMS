@@ -40,7 +40,7 @@ class ToolsModuleTest extends TestCase
         $this->assertTrue($registry->has('px-to-rem'));
         $this->assertTrue($registry->has('utm-builder'));
         $this->assertFalse($registry->has('does-not-exist'));
-        $this->assertSame('PX to REM Converter (v1.1.0)', $registry->options()['px-to-rem']);
+        $this->assertSame('PX to REM Converter (v1.2.0)', $registry->options()['px-to-rem']);
         $this->assertSame(['resources/js/tools/px-to-rem.js'], $registry->find('px-to-rem')->assets());
     }
 

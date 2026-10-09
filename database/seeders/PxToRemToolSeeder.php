@@ -53,7 +53,7 @@ class PxToRemToolSeeder extends Seeder
 <li><strong>Set the root font size.</strong> Leave it at 16px unless your CSS sets a different html font size.</li>
 <li><strong>Enter px or rem.</strong> Type in either field and the other one updates as you type.</li>
 <li><strong>Choose decimal places.</strong> Results are rounded to 2–5 places; the table follows the same setting.</li>
-<li><strong>Convert a list.</strong> Paste values separated by new lines or commas, and pick PX → REM or REM → PX.</li>
+<li><strong>Convert a list.</strong> Paste values separated by new lines, commas or spaces, and pick PX → REM or REM → PX.</li>
 <li><strong>Copy the result.</strong> Copy one value, or every converted value at once.</li>
 </ol>
 HTML,
@@ -140,7 +140,7 @@ HTML;
             ['How do I convert px to rem using a 10px root size?', 'Divide by 10: 24px ÷ 10 = 2.4rem and 14px ÷ 10 = 1.4rem. A 10px root usually comes from html { font-size: 62.5%; }, which is 62.5% of 16px. Enter 10 as the root font size in the converter.'],
             ['What is the difference between rem and em?', 'rem is relative to the root element\'s font size, so 1.5rem is the same size everywhere on the page. em is relative to the current element\'s font size (for font-size, its parent\'s), so em values multiply when elements are nested.'],
             ['Why use rem instead of px?', 'Sizes in rem follow the visitor\'s default font size setting in the browser, so text can grow for people who need larger text. Sizes in px ignore that setting. Browser zoom scales both.'],
-            ['Can I convert multiple CSS values at once?', 'Yes. Paste the values into the list converter, separated by new lines or commas, and choose PX → REM or REM → PX. Values may include their unit, such as 24px. Copy each result, or copy them all at once.'],
+            ['Can I convert multiple CSS values at once?', 'Yes. Paste the values into the list converter, separated by new lines, commas or spaces, and choose PX → REM or REM → PX. Values may include their unit, such as 24px, so a shorthand like 8px 16px works too. Copy each result, copy them all one per line, or copy them as a space-separated CSS value such as 0.5rem 1rem.'],
         ];
     }
 

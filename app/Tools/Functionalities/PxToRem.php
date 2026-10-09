@@ -15,7 +15,7 @@ class PxToRem extends ToolFunctionality
 
     public const NAME = 'PX to REM Converter';
 
-    public const VERSION = '1.1.0';
+    public const VERSION = '1.2.0';
 
     public const DESCRIPTION = 'Converts px to rem and rem to px for any root font size, one value or a whole list, with a copyable reference table.';
 

@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const results = tool.querySelector('[data-px-rem-results]');
     const summary = tool.querySelector('[data-px-rem-summary]');
     const copyAll = tool.querySelector('[data-px-rem-copy-all]');
+    const copyCss = tool.querySelector('[data-px-rem-copy-css]');
     let interacted = false;
     let lastDirection = 'px';
     let bulkOutputs = [];
@@ -117,11 +118,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (list.value.trim() === '') {
             summary.textContent = 'Results appear here as you type.';
             copyAll.disabled = true;
+            copyCss.disabled = true;
             return;
         }
         if (size === null) {
             summary.textContent = 'Fix the root font size to convert the list.';
             copyAll.disabled = true;
+            copyCss.disabled = true;
             return;
         }
 
@@ -160,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             truncated ? `only the first ${items.length} are shown` : null,
         ].filter(Boolean).join(', ') + '.';
         copyAll.disabled = bulkOutputs.length === 0;
+        copyCss.disabled = copyAll.disabled;
 
         if (interacted && bulkOutputs.length) trackToolEventOnce('tool_completed');
         clearTimeout(announceTimer);
@@ -203,6 +207,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     copyAll.addEventListener('click', (event) => {
         if (bulkOutputs.length) copyText(bulkOutputs.join('\n'), event.currentTarget, 'bulk_all', announce);
+    });
+
+    copyCss.addEventListener('click', (event) => {
+        if (bulkOutputs.length) copyText(bulkOutputs.join(' '), event.currentTarget, 'bulk_css', announce);
     });
 
     tool.querySelector('[data-px-rem-form]').addEventListener('submit', (event) => event.preventDefault());

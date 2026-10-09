@@ -109,7 +109,7 @@
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <p class="text-lg font-bold text-brand-navy">Convert a list of values</p>
-                <p class="mt-1 text-sm text-brand-navy/60">Paste values separated by new lines or commas. Uses the root font size and decimal places above.</p>
+                <p class="mt-1 text-sm text-brand-navy/60">Paste values separated by new lines, commas or spaces, such as a CSS shorthand like 8px 16px. Uses the root font size and decimal places above.</p>
             </div>
             <fieldset class="flex shrink-0 gap-2">
                 <legend class="sr-only">Conversion direction</legend>
@@ -125,19 +125,25 @@
         <div class="grid gap-4 lg:grid-cols-2">
             <div>
                 <label for="pxrem-list" class="block text-sm font-semibold text-brand-navy">Values</label>
-                <textarea id="pxrem-list" rows="6" spellcheck="false" autocomplete="off" placeholder="12px, 16px, 24px&#10;32&#10;48"
+                <textarea id="pxrem-list" rows="6" spellcheck="false" autocomplete="off" placeholder="8px 16px&#10;12px, 24px&#10;32"
                           aria-describedby="pxrem-list-summary"
                           class="mt-2 w-full rounded-xl border border-brand-navy/15 bg-white px-4 py-3 font-mono text-sm text-brand-navy placeholder:text-brand-navy/35 focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/30 focus:outline-none" data-px-rem-list></textarea>
             </div>
             <div>
-                <div class="flex items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
                     <p id="pxrem-results-label" class="text-sm font-semibold text-brand-navy">Results</p>
-                    <button type="button" disabled class="inline-flex items-center justify-center rounded-xl bg-brand-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-accent-dark focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50" data-px-rem-copy-all>
-                        Copy all
-                    </button>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" disabled class="inline-flex items-center justify-center rounded-xl bg-brand-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-accent-dark focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50" data-px-rem-copy-all>
+                            Copy all
+                        </button>
+                        <button type="button" disabled aria-describedby="pxrem-css-help" class="inline-flex items-center justify-center rounded-xl border border-brand-navy/15 bg-white px-4 py-2 text-sm font-semibold text-brand-navy transition hover:border-brand-accent hover:text-brand-accent focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50" data-px-rem-copy-css>
+                            Copy as CSS value
+                        </button>
+                    </div>
                 </div>
                 <ol aria-labelledby="pxrem-results-label" class="mt-2 max-h-64 space-y-1.5 overflow-y-auto rounded-xl bg-brand-mist/60 p-2 empty:hidden" data-px-rem-results></ol>
                 <p id="pxrem-list-summary" class="mt-2 text-sm text-brand-navy/60" data-px-rem-summary>Results appear here as you type.</p>
+                <p id="pxrem-css-help" class="mt-1 text-sm text-brand-navy/60">Copy all puts one value per line. Copy as CSS value joins them with spaces, ready for a property such as <code>padding</code>.</p>
             </div>
         </div>
     </div>

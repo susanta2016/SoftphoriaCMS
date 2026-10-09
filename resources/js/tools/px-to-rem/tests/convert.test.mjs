@@ -59,6 +59,16 @@ test('a list splits on new lines and commas, with optional units', () => {
     assert.deepEqual(items.map((i) => [i.input, i.output]), [['12', '0.75rem'], ['16px', '1rem'], ['24', '1.5rem'], ['1.5', '0.0938rem'], ['32 px', '2rem']]);
 });
 
+test('a list also splits on spaces, so CSS shorthand values convert', () => {
+    const out = (text, dir = 'px-rem') => convertList(text, dir, 16).items.map((i) => i.output ?? `ERR ${i.input}`);
+    assert.deepEqual(out('12px 16px 24px'), ['0.75rem', '1rem', '1.5rem']);
+    assert.deepEqual(out('12 16, 24\n32\t40'), ['0.75rem', '1rem', '1.5rem', '2rem', '2.5rem']);
+    assert.deepEqual(out('8 px  16px'), ['0.5rem', '1rem'], 'a unit after a space stays with its number');
+    assert.deepEqual(out('1rem 1.5rem', 'rem-px'), ['16px', '24px']);
+    assert.deepEqual(out('padding: 8px 16px;'), ['ERR padding:', '0.5rem', '1rem'], 'a pasted declaration: values convert, the property name is reported');
+    assert.deepEqual(out('px 8'), ['ERR px', '0.5rem'], 'a unit with no number before it is reported');
+});
+
 test('rem to px lists, custom root and precision', () => {
     const { items } = convertList('1rem\n1.5\n0.875rem', 'rem-px', 10, 2);
     assert.deepEqual(items.map((i) => i.output), ['10px', '15px', '8.75px']);

@@ -36,15 +36,34 @@ export const pxToRem = (px, root) => px / root;
 export const remToPx = (rem, root) => rem * root;
 
 /**
- * Splits a list of values on new lines and commas and converts each one.
- * `direction` is 'px-rem' or 'rem-px'. A value may carry the unit it is
- * converted from (24px, 1.5rem); the other unit is reported, not guessed.
+ * Splits a list of values on new lines, commas, spaces and semicolons. A unit
+ * written after a space ("32 px") stays with its number.
+ */
+export function splitList(text) {
+    return String(text ?? '')
+        .split(/[\s,;]+/)
+        .filter(Boolean)
+        .reduce((parts, token) => {
+            const previous = parts.at(-1);
+            if (/^(px|rem)$/i.test(token) && previous !== undefined && parseNumber(previous) !== null) {
+                parts[parts.length - 1] = `${previous} ${token}`;
+            } else {
+                parts.push(token);
+            }
+            return parts;
+        }, []);
+}
+
+/**
+ * Converts each value of a list (see splitList). `direction` is 'px-rem' or
+ * 'rem-px'. A value may carry the unit it is converted from (24px, 1.5rem);
+ * the other unit is reported, not guessed.
  *
  * @returns {{items: Array<{input: string, ok: boolean, value?: number, output?: string, error?: string}>, truncated: boolean}}
  */
 export function convertList(text, direction, root, places = DEFAULT_PRECISION) {
     const [from, to] = direction === 'rem-px' ? ['rem', 'px'] : ['px', 'rem'];
-    const parts = String(text ?? '').split(/[\n,]+/).map((part) => part.trim()).filter(Boolean);
+    const parts = splitList(text);
 
     const items = parts.slice(0, BULK_LIMIT).map((input) => {
         const match = input.match(/^(.*?)\s*(px|rem)?$/i);

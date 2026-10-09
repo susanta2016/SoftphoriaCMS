@@ -52,7 +52,7 @@ class PxToRemToolTest extends TestCase
         $this->assertStringContainsString('<meta name="robots" content="index, follow">', $html);
         $this->assertSame(1, preg_match_all('#<h1[\s>]#', $html));
         $this->assertMatchesRegularExpression('#<h1[^>]*>PX to REM Converter</h1>#', $html);
-        $this->assertStringContainsString('"softwareVersion":"1.1.0"', $html);
+        $this->assertStringContainsString('"softwareVersion":"1.2.0"', $html);
         $this->assertStringContainsString('"@type":"FAQPage"', $html);
         $this->assertSame(8, substr_count($html, '"@type":"Question"'));
         $this->assertStringContainsString('"@type":"BreadcrumbList"', $html);
@@ -111,6 +111,10 @@ class PxToRemToolTest extends TestCase
         $this->assertMatchesRegularExpression('#<div[^>]*hidden data-px-rem-bulk>#', $html);
         $this->assertStringContainsString('<label for="pxrem-precision"', $html);
         $this->assertStringContainsString('<label for="pxrem-list"', $html);
+        // Copy all (one per line) and a space-separated CSS value, both explained
+        $this->assertStringContainsString('data-px-rem-copy-all', $html);
+        $this->assertMatchesRegularExpression('#<button[^>]*aria-describedby="pxrem-css-help"[^>]*data-px-rem-copy-css>#', $html);
+        $this->assertStringContainsString('separated by new lines, commas or spaces', $html);
     }
 
     public function test_internal_links_resolve(): void
