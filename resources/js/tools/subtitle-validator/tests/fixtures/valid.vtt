@@ -1,0 +1,24 @@
+WEBVTT - Sample captions
+Kind: captions
+Language: en
+
+STYLE
+::cue { color: yellow }
+
+NOTE This file is synthetic test data
+
+intro
+00:01.000 --> 00:03.500 align:start position:10%
+<v Narrator>Welcome to the channel.</v>
+
+00:00:04.000 --> 00:00:07.000 line:85% size:80%
+Today we check <i>subtitle</i> files
+before they go online.
+
+NOTE
+A second, multi-line note
+with more text
+
+3
+00:00:07.500 --> 00:00:10.000
+Let's get started &amp; enjoy.

@@ -1,0 +1,23 @@
+1
+00:00:01,000 --> 00:00:02,000
+First cue.
+2
+00:00:03,000 --> 00:00:04,000
+Missing blank line above.
+
+00:00:05,000 --> 00:00:06,000
+Missing number.
+
+3
+00:00:07,000 --> 00:00:08,000
+Third.
+
+Stray text after a blank line inside a cue.
+
+3
+00:00:09,000 --> 00:00:10,000
+Duplicate number.
+ 
+7
+00:00:11,000 --> 00:00:12,000
+Skipped numbers, after a whitespace-only line.

@@ -1,0 +1,23 @@
+1
+00:00:05,000 --> 00:00:04,000
+Ends before it starts.
+
+2
+00:00:06,000 --> 00:00:06,000
+Zero duration.
+
+3
+00:00:03,000 --> 00:00:05,000
+Out of order.
+
+4
+00:00:05,500 --> 00:00:09,000
+Overlaps the next one.
+
+5
+00:00:08,000 --> 00:00:08,300
+Too short and overlapped.
+
+6
+00:00:09,000 --> 00:00:20,000
+On screen for far too long.
