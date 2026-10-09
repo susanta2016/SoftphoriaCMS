@@ -9,3 +9,6 @@
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
+
+# Subtitle test fixtures are exact bytes (one fixture tests CRLF line endings).
+/resources/js/tools/subtitle-validator/tests/fixtures/** -text
