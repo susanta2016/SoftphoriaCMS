@@ -16,6 +16,8 @@ namespace App\Shared\Services\Settings;
  */
 class MailSettingsApplier
 {
+    public const TIMEOUT = 10;
+
     public function __construct(private readonly SettingsRepository $settings) {}
 
     public function apply(): void
@@ -41,6 +43,10 @@ class MailSettingsApplier
             'mail.mailers.smtp.port' => $email['smtp_port'] ?? config('mail.mailers.smtp.port'),
             'mail.mailers.smtp.username' => $email['smtp_username'] ?? config('mail.mailers.smtp.username'),
             'mail.mailers.smtp.password' => $email['smtp_password'] ?? config('mail.mailers.smtp.password'),
+            // Seconds to connect and per server reply (config/mail.php's
+            // MAIL_TIMEOUT, else 10): an unreachable mail server then delays
+            // a contact submission by seconds, not minutes.
+            'mail.mailers.smtp.timeout' => config('mail.mailers.smtp.timeout') ?: self::TIMEOUT,
             'mail.from.address' => $email['from_email'] ?? config('mail.from.address'),
             'mail.from.name' => $email['from_name'] ?? config('mail.from.name'),
         ]);

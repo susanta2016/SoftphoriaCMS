@@ -107,6 +107,14 @@ class AnalyticsTracking extends Page
                     $idField('linkedin', 'LinkedIn Campaign Manager → Insight Tag → Partner ID.'),
                 ]),
 
+            Section::make('Added by your CDN')
+                ->description('Measurement your hosting or CDN adds to every page by itself. This site does not load it, so the cookie banner cannot control it — switch it on here only so your policies disclose it.')
+                ->schema([
+                    Toggle::make('cloudflare_web_analytics')
+                        ->label(AnalyticsIntegrations::cookielessDefinitions()['cloudflare_web_analytics']['label'])
+                        ->helperText('Turn on while Cloudflare → Analytics & Logs → Web Analytics is enabled for this site. It sets no cookies. Listed on the Cookie and Privacy Policy pages even when the master switch above is off.'),
+                ]),
+
             Section::make('Search engine verification')
                 ->description('Proves you own the site to Google Search Console and Bing Webmaster Tools. Sets no cookies, so it is always output.')
                 ->columns(2)

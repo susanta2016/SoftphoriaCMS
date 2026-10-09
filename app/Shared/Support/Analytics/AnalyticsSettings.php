@@ -29,5 +29,7 @@ class AnalyticsSettings extends DefaultedSettings
         'custom_body_code' => [null, 'string'],
         'custom_code_category' => ['tracking', 'string'],
         'custom_code_description' => [null, 'string'],
+        // Added to every page by Cloudflare, not by this site — disclosure only.
+        'cloudflare_web_analytics' => [false, 'boolean'],
     ];
 }

@@ -4,15 +4,25 @@
     the tools switched on in Website Setup → Analytics & Tracking, so the
     policies always match what the site actually loads. Rendered as plain
     HTML so it flows into the page's table of contents.
+
+    Cookieless services added by the CDN (AnalyticsIntegrations::cookieless())
+    are listed separately: they run without the cookie banner, so they must
+    never be described as consent-gated.
 --}}
 @php
-    $tools = app(\App\Shared\Support\Analytics\AnalyticsIntegrations::class)->active();
+    $integrations = app(\App\Shared\Support\Analytics\AnalyticsIntegrations::class);
+    $tools = $integrations->active();
+    $cookieless = $integrations->cookieless();
     $categoryLabels = \App\Shared\Support\Analytics\AnalyticsIntegrations::CATEGORY_LABELS;
 @endphp
 
 <h2>Analytics and marketing tools</h2>
 @if ($tools === [])
-    <p>We do not currently use any analytics or marketing tools on this Website, so no analytics, tracking or advertising cookies are set. If we introduce any, they will be listed here and will only run with your consent.</p>
+    @if ($cookieless === [])
+        <p>We do not currently use any analytics or marketing tools on this Website, so no analytics, tracking or advertising cookies are set. If we introduce any, they will be listed here and will only run with your consent.</p>
+    @else
+        <p>We do not currently use any analytics or marketing tools that set cookies, so no analytics, tracking or advertising cookies are set. If we introduce any, they will be listed here and will only run with your consent. The cookieless measurement described below runs without cookies.</p>
+    @endif
 @else
     <p>The tools below help us understand how the Website is used and how our advertising performs. None of them loads until you consent to its cookie category in the cookie banner, and you can withdraw consent at any time using the cookie preferences icon in the bottom-left corner of every page. When you withdraw consent, we stop loading the tool and remove its cookies from your browser where possible.</p>
     <table>
@@ -38,4 +48,25 @@
         </tbody>
     </table>
     <p>These providers may process data outside India, including in the United States, under their own privacy policies (linked above). Advertising platforms may combine this data with information they already hold about you, for example if you are signed in to their service.</p>
+@endif
+
+@if ($cookieless !== [])
+    <h3>Cookieless measurement</h3>
+    <p>The service below is added to every page by the network that delivers this Website, not by the cookie-based tools above. Because it sets no cookies and stores nothing on your device, it runs without the cookie banner and is not affected by your cookie choices.</p>
+    <table>
+        <thead>
+            <tr><th>Service</th><th>Provider</th><th>Purpose</th><th>Data collected</th></tr>
+        </thead>
+        <tbody>
+            @foreach ($cookieless as $service)
+                <tr>
+                    <td>{{ $service['label'] }}</td>
+                    <td><a href="{{ $service['privacy_url'] }}" rel="noopener noreferrer nofollow" target="_blank">{{ $service['provider'] }}</a></td>
+                    <td>{{ $service['purpose'] }}</td>
+                    <td>{{ $service['data'] }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+    <p>The provider may process this data outside India, including in the United States, under its own privacy policy (linked above). You can block it with a browser content blocker without affecting how the Website works.</p>
 @endif

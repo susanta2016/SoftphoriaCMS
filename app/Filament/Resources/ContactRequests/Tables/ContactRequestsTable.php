@@ -53,12 +53,15 @@ class ContactRequestsTable
                 ActionGroup::make([
                     ViewAction::make()->label('View Details'),
                     ContactRequestResource::updateAction(),
+                    ContactRequestResource::resendAction(),
                     ContactRequestResource::deleteAction(),
                 ])
                     ->icon(Heroicon::OutlinedEllipsisVertical)
                     ->label('Actions'),
             ])
-            ->toolbarActions([])
+            ->toolbarActions([
+                ContactRequestResource::resendBulkAction(),
+            ])
             ->defaultSort('created_at', 'desc')
             ->paginationPageOptions([10, 25, 50, 'all'])
             ->defaultPaginationPageOption(25)

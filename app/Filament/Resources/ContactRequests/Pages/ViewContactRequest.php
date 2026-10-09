@@ -18,6 +18,7 @@ class ViewContactRequest extends ViewRecord
     {
         return [
             ContactRequestResource::updateAction(),
+            ContactRequestResource::resendAction(),
         ];
     }
 }

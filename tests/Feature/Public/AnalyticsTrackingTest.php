@@ -187,7 +187,9 @@ class AnalyticsTrackingTest extends TestCase
         $this->seed(LegalPagesSeeder::class);
         $wording = require database_path('seeders/data/legal-analytics-wording.php');
 
-        // Put the pre-analytics sentences back, as on an already-published site.
+        // Undo the later CDN wording first, then put the pre-analytics
+        // sentences back, as on an already-published site.
+        $this->revertCdnWording();
         foreach ($wording as $slug => $pairs) {
             $this->rewriteBody($slug, fn (string $body): string => str_replace(
                 array_column($pairs, 1), array_column($pairs, 0), $body,
@@ -211,6 +213,82 @@ class AnalyticsTrackingTest extends TestCase
         $this->assertStringContainsString($wording['cookie-policy'][0][1], $cookie);
         $this->assertStringContainsString('<li>Edited by the owner.</li>', $cookie);
         $this->assertStringNotContainsString($wording['cookie-policy'][1][1], $cookie);
+    }
+
+    public function test_cloudflare_web_analytics_is_disclosed_as_cookieless_and_never_consent_gated(): void
+    {
+        $this->seed(LegalPagesSeeder::class);
+
+        $this->get('/cookie-policy')->assertOk()->assertDontSee('Cloudflare Web Analytics');
+
+        // Disclosed even with the site's own tools off: Cloudflare adds it, not the site.
+        $this->configure(['enabled' => false, 'cloudflare_web_analytics' => true]);
+
+        foreach (['/cookie-policy', '/privacy-policy'] as $url) {
+            $this->get($url)->assertOk()
+                ->assertSee('Cookieless measurement')
+                ->assertSee('Cloudflare Web Analytics')
+                ->assertSee('It sets no cookies')
+                ->assertSee('We do not currently use any analytics or marketing tools that set cookies')
+                ->assertDontSee('We do not currently use any analytics or marketing tools on this Website');
+        }
+
+        $home = $this->get('/')->getContent();
+        $this->assertStringNotContainsString('Cloudflare Web Analytics', $home, 'not offered as a consent choice in the banner');
+        $this->assertStringNotContainsString('cloudflareinsights', $home, 'the site never loads it itself');
+    }
+
+    public function test_admin_can_switch_the_cloudflare_disclosure_on(): void
+    {
+        Livewire::actingAs($this->admin)
+            ->test(AnalyticsTracking::class)
+            ->set('data.cloudflare_web_analytics', true)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertTrue((bool) app(AnalyticsSettings::class)->get('cloudflare_web_analytics'));
+    }
+
+    public function test_cdn_migration_rewords_published_policies_and_keeps_edited_text(): void
+    {
+        $this->seed(LegalPagesSeeder::class);
+        $wording = require database_path('seeders/data/legal-cdn-wording.php');
+
+        $this->revertCdnWording();
+        $this->rewriteBody('privacy-policy', fn (string $body): string => str_replace(
+            $wording['privacy-policy'][1][0], '<li>Hosting edited by the owner.</li>', $body,
+        ));
+
+        $migration = require database_path('migrations/2026_10_09_200000_disclose_cdn_in_legal_texts.php');
+        $migration->up();
+        $migration->up(); // idempotent
+
+        $cookie = $this->body('cookie-policy');
+        foreach ($wording['cookie-policy'] as [$old, $new]) {
+            $this->assertStringContainsString($new, $cookie);
+        }
+        $this->assertSame(1, substr_count($cookie, '<tr><td><code>__cf_bm</code>, <code>cf_clearance</code>'), 'the cookie row is added once');
+        $this->assertSame(1, substr_count($cookie, '<code>cookie_consent</code>'));
+
+        $privacy = $this->body('privacy-policy');
+        $this->assertStringContainsString($wording['privacy-policy'][0][1], $privacy);
+        $this->assertStringContainsString($wording['privacy-policy'][2][1], $privacy);
+        $this->assertStringContainsString('<li>Hosting edited by the owner.</li>', $privacy);
+        $this->assertStringNotContainsString('Cloudflare, whose content delivery network', $privacy);
+
+        $migration->down();
+        $this->assertStringContainsString($wording['cookie-policy'][0][0], $this->body('cookie-policy'));
+        $this->assertStringNotContainsString('__cf_bm', $this->body('cookie-policy'));
+        $this->assertStringContainsString($wording['privacy-policy'][2][0], $this->body('privacy-policy'));
+    }
+
+    private function revertCdnWording(): void
+    {
+        foreach (require database_path('seeders/data/legal-cdn-wording.php') as $slug => $pairs) {
+            $this->rewriteBody($slug, fn (string $body): string => str_replace(
+                array_column($pairs, 1), array_column($pairs, 0), $body,
+            ));
+        }
     }
 
     private function configure(array $values): void

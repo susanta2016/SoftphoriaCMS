@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ContactRequests;
 
 use App\Actions\Contact\DeleteContactRequestAction;
+use App\Actions\Contact\SubmitContactRequestAction;
 use App\Actions\Contact\UpdateContactRequestAction;
 use App\Enums\ContactRequestStatus;
 use App\Filament\Resources\ContactRequests\Pages\ListContactRequests;
@@ -11,8 +12,12 @@ use App\Filament\Resources\ContactRequests\Schemas\ContactRequestInfolist;
 use App\Filament\Resources\ContactRequests\Tables\ContactRequestsTable;
 use App\Models\ContactRequest;
 use App\Models\User;
+use App\Shared\Services\AuditLogService;
+use App\Shared\Services\Settings\SettingsRepository;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -20,6 +25,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
@@ -96,6 +102,105 @@ class ContactRequestResource extends Resource
                     ->success()
                     ->send();
             });
+    }
+
+    /**
+     * Sends a submission's emails again — for messages whose emails failed
+     * when they arrived (e.g. a mail-server outage). Reused by the List row
+     * actions and the View page header; resendBulkAction() does the same
+     * for a selection. Each resend is audit-logged.
+     */
+    public static function resendAction(): Action
+    {
+        return Action::make('resendEmails')
+            ->label('Resend emails')
+            ->icon(Heroicon::OutlinedPaperAirplane)
+            ->color('gray')
+            ->modalHeading(fn (ContactRequest $record): string => "Resend emails for \"{$record->name}\"")
+            ->modalDescription('Sends the "contact form submitted" emails again, using the current Email Templates and email settings.')
+            ->modalSubmitActionLabel('Resend')
+            ->schema(self::resendSchema())
+            ->fillForm(['recipients' => ['submitter', 'admins']])
+            ->action(fn (ContactRequest $record, array $data) => self::resend(collect([$record]), $data['recipients'] ?? []));
+    }
+
+    public static function resendBulkAction(): BulkAction
+    {
+        return BulkAction::make('resendEmails')
+            ->label('Resend emails')
+            ->icon(Heroicon::OutlinedPaperAirplane)
+            ->modalHeading('Resend emails for the selected messages')
+            ->modalDescription('Sends the "contact form submitted" emails again for each selected message, using the current Email Templates and email settings.')
+            ->modalSubmitActionLabel('Resend')
+            ->schema(self::resendSchema())
+            ->fillForm(['recipients' => ['submitter', 'admins']])
+            ->deselectRecordsAfterCompletion()
+            ->action(fn (Collection $records, array $data) => self::resend($records, $data['recipients'] ?? []));
+    }
+
+    /**
+     * @return array<int, CheckboxList>
+     */
+    private static function resendSchema(): array
+    {
+        return [
+            CheckboxList::make('recipients')
+                ->label('Send to')
+                ->options([
+                    'submitter' => 'The visitor (their receipt)',
+                    'admins' => 'Admins (new-message notification)',
+                ])
+                ->required()
+                ->minItems(1),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, ContactRequest>  $records
+     * @param  array<int, string>  $recipients
+     */
+    private static function resend(Collection $records, array $recipients): void
+    {
+        if (! app(SettingsRepository::class)->get('email', 'enabled', false)) {
+            Notification::make()
+                ->title('Email sending is switched off')
+                ->body('Turn on "Enable Email Sending" in Website Setup → Settings → Email first. Nothing was sent.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        /** @var User $actor */
+        $actor = Auth::user();
+        $submitter = in_array('submitter', $recipients, true);
+        $admins = in_array('admins', $recipients, true);
+        $total = ['sent' => 0, 'failed' => 0];
+
+        foreach ($records as $record) {
+            $result = app(SubmitContactRequestAction::class)->notify($record, $submitter, $admins);
+            $total['sent'] += $result['sent'];
+            $total['failed'] += $result['failed'];
+
+            app(AuditLogService::class)->record($actor, 'contact_request.emails_resent', $record, [
+                'recipients' => array_values($recipients),
+                ...$result,
+            ]);
+        }
+
+        $sent = $total['sent'].' '.str('email')->plural($total['sent']).' sent';
+
+        if ($total['failed'] > 0) {
+            Notification::make()
+                ->title($total['sent'] > 0 ? "{$sent}, {$total['failed']} failed" : 'The emails could not be sent')
+                ->body('Check the mail server settings in Website Setup → Settings → Email. The details are in the application log.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()->title($sent)->success()->send();
     }
 
     /**

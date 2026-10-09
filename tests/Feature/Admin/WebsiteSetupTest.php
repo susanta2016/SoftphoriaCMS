@@ -307,6 +307,18 @@ class WebsiteSetupTest extends TestCase
         $this->assertSame('log', config('mail.default'));
     }
 
+    public function test_smtp_connections_time_out_after_ten_seconds(): void
+    {
+        $this->assertSame(10, config('mail.mailers.smtp.timeout'), 'config/mail.php default');
+
+        config(['mail.mailers.smtp.timeout' => null]);
+        app(MailSettingsApplier::class)->applyFromArray(['enabled' => true, 'smtp_host' => 'smtp.example.com']);
+        $this->assertSame(MailSettingsApplier::TIMEOUT, config('mail.mailers.smtp.timeout'), 'admin email settings never leave it unbounded');
+
+        $transport = Mail::mailer('smtp')->getSymfonyTransport();
+        $this->assertSame(10.0, $transport->getStream()->getTimeout(), 'reaches the Symfony socket');
+    }
+
     public function test_mail_settings_applier_applies_smtp_configuration_when_enabled(): void
     {
         app(MailSettingsApplier::class)->applyFromArray([

@@ -20,6 +20,9 @@ use Throwable;
  * is always saved first — a broken SMTP config must never turn a
  * successful submission into a 500 for the visitor, per the platform's
  * save-before-notify rule.
+ *
+ * notify() is also what Admin → Contact Requests → "Resend emails" calls,
+ * for submissions whose emails failed (e.g. a mail-server outage).
  */
 class SubmitContactRequestAction
 {
@@ -41,7 +44,41 @@ class SubmitContactRequestAction
         }
         $contactRequest->save();
 
-        $variables = [
+        $this->notify($contactRequest);
+
+        return $contactRequest;
+    }
+
+    /**
+     * Sends the submitter's receipt and/or the admin notifications. A failed
+     * email is logged and counted, never thrown.
+     *
+     * @return array{sent: int, failed: int}
+     */
+    public function notify(ContactRequest $contactRequest, bool $submitter = true, bool $admins = true): array
+    {
+        $variables = $this->variables($contactRequest);
+        $result = ['sent' => 0, 'failed' => 0];
+
+        if ($submitter) {
+            $this->tally($result, $this->notifySubmitter($contactRequest, $variables));
+        }
+
+        if ($admins) {
+            foreach ($this->notifyAdmins($contactRequest, $variables) as $ok) {
+                $this->tally($result, $ok);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function variables(ContactRequest $contactRequest): array
+    {
+        return [
             'name' => $contactRequest->name,
             'email' => $contactRequest->email,
             'phone' => $contactRequest->phone ?? '',
@@ -53,51 +90,63 @@ class SubmitContactRequestAction
             'cta_label' => $contactRequest->cta_label ?? '',
             'referrer' => $contactRequest->referrer ?? '',
         ];
+    }
 
-        $this->notifySubmitter($contactRequest, $variables);
-        $this->notifyAdmins($contactRequest, $variables);
-
-        return $contactRequest;
+    /**
+     * @param  array{sent: int, failed: int}  $result
+     */
+    private function tally(array &$result, bool $ok): void
+    {
+        $result[$ok ? 'sent' : 'failed']++;
     }
 
     /**
      * @param  array<string, string>  $variables
      */
-    private function notifySubmitter(ContactRequest $contactRequest, array $variables): void
+    private function notifySubmitter(ContactRequest $contactRequest, array $variables): bool
     {
         try {
             $this->mailer->send('contact_form_submitted', EmailRecipientType::User, $contactRequest->email, $variables);
+
+            return true;
         } catch (Throwable $exception) {
             Log::warning('Contact request submitter receipt email failed to send', [
                 'contact_request_id' => $contactRequest->id,
                 'exception' => $exception->getMessage(),
             ]);
+
+            return false;
         }
     }
 
     /**
      * @param  array<string, string>  $variables
+     * @return list<bool> one result per admin
      */
-    private function notifyAdmins(ContactRequest $contactRequest, array $variables): void
+    private function notifyAdmins(ContactRequest $contactRequest, array $variables): array
     {
         $adminRole = Role::query()->where('slug', Role::ADMIN_SLUG)->first();
 
         if ($adminRole === null) {
-            return;
+            return [];
         }
 
-        $admins = $adminRole->users()->where('status', UserStatus::Active->value)->get();
+        $results = [];
 
-        foreach ($admins as $admin) {
+        foreach ($adminRole->users()->where('status', UserStatus::Active->value)->get() as $admin) {
             try {
                 $this->mailer->send('contact_form_submitted', EmailRecipientType::Admin, $admin->email, $variables);
+                $results[] = true;
             } catch (Throwable $exception) {
                 Log::warning('Contact request admin notification failed to send', [
                     'contact_request_id' => $contactRequest->id,
                     'admin_id' => $admin->id,
                     'exception' => $exception->getMessage(),
                 ]);
+                $results[] = false;
             }
         }
+
+        return $results;
     }
 }

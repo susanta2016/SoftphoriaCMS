@@ -6,11 +6,17 @@ use App\Enums\ContactRequestStatus;
 use App\Filament\Resources\ContactRequests\Pages\ListContactRequests;
 use App\Filament\Resources\ContactRequests\Pages\ViewContactRequest;
 use App\Filament\Resources\ContactRequests\Widgets\ContactRequestStatsWidget;
+use App\Models\AuditLog;
 use App\Models\ContactRequest;
 use App\Models\Role;
 use App\Models\User;
+use App\Shared\Mail\TemplatedNotificationMail;
+use App\Shared\Services\Settings\SettingsRepository;
+use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
+use RuntimeException;
 use Tests\TestCase;
 
 class ContactRequestResourceTest extends TestCase
@@ -192,6 +198,106 @@ class ContactRequestResourceTest extends TestCase
     /**
      * @param  array<string, mixed>  $overrides
      */
+    public function test_admin_can_resend_a_submissions_emails_to_chosen_recipients(): void
+    {
+        $this->enableEmail();
+        $admin = $this->admin();
+        $contactRequest = $this->createContactRequest(['email' => 'visitor@example.com']);
+
+        Livewire::actingAs($admin)
+            ->test(ListContactRequests::class)
+            ->callTableAction('resendEmails', $contactRequest, data: ['recipients' => ['submitter', 'admins']])
+            ->assertHasNoTableActionErrors()
+            ->assertNotified('2 emails sent');
+
+        Mail::assertSent(TemplatedNotificationMail::class, 2);
+        Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo('visitor@example.com'));
+        Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo($admin->email));
+
+        $log = AuditLog::query()->where('action', 'contact_request.emails_resent')->sole();
+        $this->assertSame($contactRequest->id, $log->entity_id);
+        $this->assertSame($admin->id, $log->user_id);
+    }
+
+    public function test_resend_can_target_only_the_admins_and_runs_from_the_view_page(): void
+    {
+        $this->enableEmail();
+        $admin = $this->admin();
+        $contactRequest = $this->createContactRequest(['email' => 'visitor@example.com']);
+
+        Livewire::actingAs($admin)
+            ->test(ViewContactRequest::class, ['record' => $contactRequest->getKey()])
+            ->callAction('resendEmails', data: ['recipients' => ['admins']])
+            ->assertNotified('1 email sent');
+
+        Mail::assertSent(TemplatedNotificationMail::class, 1);
+        Mail::assertNotSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo('visitor@example.com'));
+    }
+
+    public function test_resend_requires_at_least_one_recipient(): void
+    {
+        $this->enableEmail();
+        $contactRequest = $this->createContactRequest();
+
+        Livewire::actingAs($this->admin())
+            ->test(ListContactRequests::class)
+            ->callTableAction('resendEmails', $contactRequest, data: ['recipients' => []])
+            ->assertHasTableActionErrors(['recipients']);
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_selected_submissions_can_be_resent_in_bulk(): void
+    {
+        $this->enableEmail();
+        $admin = $this->admin();
+        $records = collect([$this->createContactRequest(['email' => 'a@example.com']), $this->createContactRequest(['email' => 'b@example.com'])]);
+        $untouched = $this->createContactRequest(['email' => 'c@example.com']);
+
+        Livewire::actingAs($admin)
+            ->test(ListContactRequests::class)
+            ->callTableBulkAction('resendEmails', $records, data: ['recipients' => ['submitter']])
+            ->assertNotified('2 emails sent');
+
+        Mail::assertSent(TemplatedNotificationMail::class, 2);
+        Mail::assertNotSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo($untouched->email));
+        $this->assertSame(2, AuditLog::query()->where('action', 'contact_request.emails_resent')->count());
+    }
+
+    public function test_resend_reports_failures_instead_of_throwing(): void
+    {
+        $this->enableEmail();
+        $contactRequest = $this->createContactRequest();
+        Mail::shouldReceive('to')->andThrow(new RuntimeException('Connection could not be established with host'));
+
+        Livewire::actingAs($this->admin())
+            ->test(ListContactRequests::class)
+            ->callTableAction('resendEmails', $contactRequest, data: ['recipients' => ['submitter']])
+            ->assertNotified('The emails could not be sent');
+    }
+
+    public function test_resend_sends_nothing_while_email_sending_is_switched_off(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+        $contactRequest = $this->createContactRequest();
+
+        Livewire::actingAs($this->admin())
+            ->test(ListContactRequests::class)
+            ->callTableAction('resendEmails', $contactRequest, data: ['recipients' => ['submitter', 'admins']])
+            ->assertNotified('Email sending is switched off');
+
+        Mail::assertNothingSent();
+        $this->assertSame(0, AuditLog::query()->where('action', 'contact_request.emails_resent')->count());
+    }
+
+    private function enableEmail(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+        app(SettingsRepository::class)->set('email', 'enabled', true);
+    }
+
     private function createContactRequest(array $overrides = []): ContactRequest
     {
         $contactRequest = new ContactRequest;

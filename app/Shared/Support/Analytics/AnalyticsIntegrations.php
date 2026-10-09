@@ -93,6 +93,42 @@ class AnalyticsIntegrations
         ];
     }
 
+    /**
+     * Measurement added outside this site's own code — by the CDN in front
+     * of it — which sets no cookies. The site can't consent-gate these
+     * (they are inserted after the page leaves the server), so they are
+     * never part of active()/the cookie banner; they are only disclosed in
+     * the policies, while switched on in Analytics & Tracking.
+     *
+     * @return array<string, array{label: string, provider: string, setting: string, purpose: string, data: string, privacy_url: string}>
+     */
+    public static function cookielessDefinitions(): array
+    {
+        return [
+            'cloudflare_web_analytics' => [
+                'label' => 'Cloudflare Web Analytics',
+                'provider' => 'Cloudflare, Inc.',
+                'setting' => 'cloudflare_web_analytics',
+                'purpose' => 'Counts page views and measures how quickly pages load, as aggregated statistics, through the content delivery network (CDN) that serves this Website.',
+                'data' => 'The page address, referring page, browser and device type, an approximate country derived from your IP address, and page-load timings. It sets no cookies, stores nothing on your device and does not identify or follow individual visitors.',
+                'privacy_url' => 'https://www.cloudflare.com/privacypolicy/',
+            ],
+        ];
+    }
+
+    /**
+     * The cookieless services switched on (see cookielessDefinitions()).
+     *
+     * @return array<string, array<string, string>>
+     */
+    public function cookieless(): array
+    {
+        return array_filter(
+            self::cookielessDefinitions(),
+            fn (array $definition): bool => (bool) $this->settings->get($definition['setting']),
+        );
+    }
+
     public function __construct(
         private readonly AnalyticsSettings $settings,
         private readonly SettingsRepository $siteSettings,
