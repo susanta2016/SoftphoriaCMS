@@ -2,6 +2,7 @@
 
 use App\Console\Commands\PruneSecurityDataCommand;
 use App\Console\Commands\PublishDuePagesCommand;
+use App\Http\CloudflareProxies;
 use App\Http\Middleware\CheckMaintenanceMode;
 use App\Http\Middleware\EnsureFeatureEnabled;
 use Illuminate\Console\Scheduling\Schedule;
@@ -22,6 +23,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             CheckMaintenanceMode::class,
         ]);
+
+        // Cloudflare in front of the site: read the visitor's IP and the
+        // https scheme from its forwarded headers — only when the request
+        // really comes from Cloudflare (see App\Http\CloudflareProxies).
+        // X-Forwarded-Host/Port are not trusted: Cloudflare doesn't set them.
+        $middleware->trustProxies(
+            at: CloudflareProxies::RANGES,
+            headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO,
+        );
 
         // feature:<key> — 404s a route whose frontend feature is switched
         // off on Admin → Website Setup → Features Activation.
