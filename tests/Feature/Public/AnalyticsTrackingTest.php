@@ -305,6 +305,65 @@ class AnalyticsTrackingTest extends TestCase
         $this->assertStringContainsString('<li>Hosting edited by the owner.</li>', $this->body('privacy-policy'));
     }
 
+    public function test_policy_wording_also_reaches_pages_saved_by_the_rich_text_editor(): void
+    {
+        $this->seed(LegalPagesSeeder::class);
+        $editor = fn (string $html): string => str_replace(
+            ["\n        ", '<li>', '</li>', '<td>'], ['', '<li><p>', '</p></li>', '<td rowspan="1" colspan="1">'], $html,
+        );
+
+        // As on softphoria.com: the pre-Cloudflare policies, re-saved by the editor.
+        $this->revertCdnWording();
+        foreach (['cookie-policy', 'privacy-policy'] as $slug) {
+            $this->rewriteBody($slug, $editor);
+        }
+        $this->assertStringContainsString('<li><p><strong>Hosting and infrastructure providers</strong>, such as Amazon Web Services', $this->body('privacy-policy'));
+
+        $migrations = array_map(fn (string $name) => require database_path("migrations/{$name}.php"), [
+            '2026_10_09_200000_disclose_cdn_in_legal_texts',
+            '2026_10_09_210000_name_the_actual_host_in_privacy_policy',
+            '2026_10_10_090000_apply_legal_wording_to_editor_formatted_pages',
+        ]);
+        foreach ([...$migrations, $migrations[2]] as $migration) { // the last one twice: idempotent
+            $migration->up();
+        }
+
+        $cdn = require database_path('seeders/data/legal-cdn-wording.php');
+        [[, $hosting]] = (require database_path('seeders/data/legal-hosting-wording.php'))['privacy-policy'];
+
+        $privacy = $this->body('privacy-policy');
+        $this->assertStringNotContainsString('Amazon Web Services', $privacy);
+        $this->assertSame(1, substr_count($privacy, $editor($hosting)));
+        $this->assertSame(1, substr_count($privacy, $editor($cdn['privacy-policy'][2][1])));
+        $this->assertStringContainsString($cdn['privacy-policy'][0][1], $privacy, 'the plain sentence, as before');
+
+        $cookie = $this->body('cookie-policy');
+        $this->assertSame(1, substr_count($cookie, $editor($cdn['cookie-policy'][1][1])), 'the Cloudflare cookie row, in editor format');
+        $this->assertSame(1, substr_count($cookie, '<code>cookie_consent</code>'));
+        $this->assertStringContainsString($cdn['cookie-policy'][0][1], $cookie);
+
+        $this->get('/cookie-policy')->assertOk()->assertSee('cf_clearance');
+        $this->get('/privacy-policy')->assertOk()->assertSee('Namecheap, which hosts the Website')->assertDontSee('Amazon Web Services');
+
+        $migrations[2]->down();
+        $this->assertStringContainsString($editor($cdn['privacy-policy'][1][0]), $this->body('privacy-policy'));
+        $this->assertStringNotContainsString('cf_clearance', $this->body('cookie-policy'));
+    }
+
+    public function test_the_editor_format_migration_leaves_edited_list_items_alone(): void
+    {
+        $this->seed(LegalPagesSeeder::class);
+        $this->revertCdnWording();
+        $this->rewriteBody('privacy-policy', fn (string $body): string => preg_replace(
+            '#<li><strong>Hosting and infrastructure providers</strong>.*?</li>#', '<li><p>Our own hosting text.</p></li>', $body,
+        ));
+
+        (require database_path('migrations/2026_10_10_090000_apply_legal_wording_to_editor_formatted_pages.php'))->up();
+
+        $this->assertStringContainsString('<li><p>Our own hosting text.</p></li>', $this->body('privacy-policy'));
+        $this->assertStringNotContainsString('Namecheap, which hosts', $this->body('privacy-policy'));
+    }
+
     private function revertCdnWording(): void
     {
         // The hosting wording (2026_10_09_210000) came after the CDN wording.
