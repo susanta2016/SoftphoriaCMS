@@ -82,7 +82,8 @@
                 @endforeach
             </nav>
 
-            <div class="flex shrink-0 items-center gap-2 sm:gap-4 lg:border-l lg:border-brand-line lg:pl-6">
+            {{-- The divider sets the account links apart from the menu; with only the button there is nothing to separate. --}}
+            <div @class(['flex shrink-0 items-center gap-2 sm:gap-4', 'lg:border-l lg:border-brand-line lg:pl-6' => $accountLinks])>
                 {{--
                     AUTH-002: these were dead "#" links until login/register
                     existed. @guest/@auth here are the only auth-state-aware
