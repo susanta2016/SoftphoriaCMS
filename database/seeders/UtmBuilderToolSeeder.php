@@ -59,9 +59,13 @@ class UtmBuilderToolSeeder extends Seeder
 HTML,
             'additional_content' => <<<'HTML'
 <h2>What are UTM parameters?</h2>
-<p>UTM parameters are short tags added to the end of a link. They do not change the page a visitor sees. When someone opens a tagged link, an analytics tool such as Google Analytics reads the tags and records where the visit came from: which website, newsletter or platform, which kind of channel and which campaign.</p>
-<p>Without them, a click from an email or a messaging app is often reported as a direct visit, because many apps do not say where the click came from. With them, you can compare channels and campaigns in your reports. In Google Analytics 4 the values appear in the Traffic acquisition report as session source, medium and campaign.</p>
-<p>A tagged link looks like this. Everything after the <code>?</code> is the query string, and each <code>utm_</code> pair is one tag, separated by <code>&amp;</code>:</p>
+<p>UTM parameters are short tags added to the end of a link. They do not change the page; they tell your analytics tool where a visit came from.</p>
+<ul>
+<li><strong>What they record.</strong> The source (such as newsletter), medium (such as email) and campaign (such as spring_sale) of each visit.</li>
+<li><strong>Why use them.</strong> Clicks from emails and messaging apps are often reported as direct visits. Tags let you compare channels and campaigns.</li>
+<li><strong>Where to see them.</strong> In Google Analytics 4, in the Traffic acquisition report as session source, medium and campaign.</li>
+</ul>
+<p>A tagged link looks like this; each <code>utm_</code> pair after the <code>?</code> is one tag:</p>
 <pre><code>https://www.example.com/pricing?utm_source=newsletter&amp;utm_medium=email&amp;utm_campaign=spring_sale</code></pre>
 <h2>UTM parameters explained</h2>
 <p>The builder supports the six standard UTM parameters. Google says to always use source, medium and campaign when you tag a link; a missing parameter shows as "(not set)" in reports.</p>
