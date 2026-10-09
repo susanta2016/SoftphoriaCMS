@@ -132,6 +132,8 @@ class ImageKbOptimizerToolTest extends TestCase
     {
         $writes = collect(RouteFacade::getRoutes()->getRoutes())
             ->filter(fn (Route $route): bool => array_intersect($route->methods(), ['POST', 'PUT', 'PATCH']) !== [])
+            // The SEO pre-launch checker's audit endpoint is that tool's, not an upload path.
+            ->reject(fn (Route $route): bool => $route->getName() === 'tools.seo-checker.audit')
             ->filter(fn (Route $route): bool => str_contains($route->uri(), 'tools') || str_contains($route->uri(), 'compress') || str_contains($route->uri(), 'optimi'))
             ->map(fn (Route $route): string => $route->uri())->values()->all();
 

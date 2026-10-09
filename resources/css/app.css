@@ -329,3 +329,13 @@
 @media (prefers-reduced-motion: reduce) {
     dialog[data-contact-modal] { animation: none !important; }
 }
+
+/* Website SEO checker: indeterminate progress bar while an audit runs. */
+@keyframes seo-progress {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(300%); }
+}
+.seo-progress-bar { animation: seo-progress 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+    .seo-progress-bar { animation: none; width: 100%; opacity: 0.4; }
+}

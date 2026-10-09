@@ -23,6 +23,7 @@ use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\ToolController;
+use App\Http\Controllers\WebsiteSeoCheckerController;
 use App\Http\Middleware\EnsureAccountCanComment;
 use App\Http\Middleware\EnsureAccountIsUsable;
 use App\Http\Middleware\EnsureAccountNotBlocked;
@@ -163,6 +164,16 @@ Route::prefix('tools')->name('tools.')->middleware('feature:tools')->group(funct
     Route::get('/', [ToolController::class, 'index'])->name('index');
     Route::get('/{tool}', [ToolController::class, 'show'])->where('tool', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('show');
 });
+
+// Website SEO/Metadata Pre-launch Checker: the one tool that needs the
+// server (it fetches the submitted page). JSON only, CSRF-protected,
+// throttled per visitor and in total (AppServiceProvider) and per target
+// site (controller). Outside the feature:tools group so the admin preview
+// works with Tools off; the controller allows it only while the tool is
+// live, or for admins. See app/Tools/SeoChecker for the SSRF guard.
+Route::post('/tools/website-seo-checker/audit', [WebsiteSeoCheckerController::class, 'audit'])
+    ->middleware('throttle:seo-checker')
+    ->name('tools.seo-checker.audit');
 
 // Public blog — every route 404s while Admin → Features Activation has
 // "Blog Posts" off; archives/comments/reports/reactions each also need their

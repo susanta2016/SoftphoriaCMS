@@ -6,11 +6,16 @@ use App\Enums\EmailRecipientType;
 use App\Shared\Services\Notifications\TemplatedMailer;
 use App\Shared\Support\Features\Features;
 use App\Shared\Support\Modules\ModuleRegistry;
+use App\Tools\SeoChecker\DnsHostResolver;
+use App\Tools\SeoChecker\HostResolver;
 use App\Tools\ToolRegistry;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Events\CommandStarting;
+use Illuminate\Http\Request;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
@@ -25,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleRegistry::class);
         $this->app->singleton(Features::class);
         $this->app->singleton(ToolRegistry::class);
+        $this->app->bind(HostResolver::class, DnsHostResolver::class);
 
         $this->app->make(ModuleRegistry::class)
             ->register(config('modules.enabled', []));
@@ -37,6 +43,29 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->routeResetPasswordThroughEmailTemplates();
         $this->guardDestructiveMigrations();
+        $this->limitSeoCheckerAudits();
+    }
+
+    /**
+     * throttle:seo-checker — each audit makes up to ~25 outbound requests,
+     * so a visitor gets a few per minute and a daily cap, and the whole site
+     * a per-minute ceiling (shared hosting). The per-target-site limit is in
+     * WebsiteSeoCheckerController.
+     */
+    private function limitSeoCheckerAudits(): void
+    {
+        RateLimiter::for('seo-checker', function (Request $request): array {
+            $tooMany = fn (Request $request, array $headers) => response()->json([
+                'status' => 'error',
+                'error' => ['code' => 'rate_limited', 'message' => 'You have run several checks in a short time. Please wait a little and try again.'],
+            ], 429, $headers);
+
+            return [
+                Limit::perMinute(5)->by('ip:'.$request->ip())->response($tooMany),
+                Limit::perDay(60)->by('day:'.$request->ip())->response($tooMany),
+                Limit::perMinute(30)->by('global')->response($tooMany),
+            ];
+        });
     }
 
     /**
