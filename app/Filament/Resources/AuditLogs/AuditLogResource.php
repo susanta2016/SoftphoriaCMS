@@ -18,8 +18,9 @@ use UnitEnum;
  * ADMIN-011 — read-only operational history for the existing audit_logs
  * table (DB-002), already written to by every mutating admin Action
  * (Users, Roles, Permissions, Media, Pages, Menus, Contact Requests,
- * Settings). This Resource is purely a viewer: no new writer, no new
- * schema, no CRUD. App\Filament\Widgets\RecentActivityWidget remains the
+ * Settings). This Resource is a viewer plus housekeeping: entries can be
+ * exported (CSV) and deleted (single row or checkbox bulk selection) via
+ * App\Actions\AuditLog\*, but never created or edited here. App\Filament\Widgets\RecentActivityWidget remains the
  * Dashboard's concise "last 10" summary; this Resource is the full
  * searchable/filterable history it links out to conceptually.
  */

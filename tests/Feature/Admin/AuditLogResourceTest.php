@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Actions\AuditLog\ExportAuditLogsAction;
 use App\Actions\Role\CreateRoleAction;
 use App\Filament\Resources\AuditLogs\Pages\ListAuditLogs;
 use App\Filament\Resources\AuditLogs\Pages\ViewAuditLog;
@@ -209,6 +210,86 @@ class AuditLogResourceTest extends TestCase
         Livewire::actingAs($admin)
             ->test(AuditLogStatsWidget::class)
             ->assertSuccessful();
+    }
+
+    public function test_admin_can_delete_a_single_entry_and_the_deletion_is_recorded(): void
+    {
+        $admin = $this->admin();
+        $entry = $this->makeAuditLog(['user_id' => $admin->id, 'action' => 'role.created', 'entity_type' => 'Role', 'entity_id' => 1]);
+        $kept = $this->makeAuditLog(['user_id' => $admin->id, 'action' => 'role.updated', 'entity_type' => 'Role', 'entity_id' => 1]);
+
+        Livewire::actingAs($admin)
+            ->test(ListAuditLogs::class)
+            ->callTableAction('delete', $entry);
+
+        $this->assertModelMissing($entry);
+        $this->assertModelExists($kept);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'audit_log.deleted', 'user_id' => $admin->id, 'entity_type' => 'AuditLog']);
+    }
+
+    public function test_admin_can_bulk_delete_checked_entries(): void
+    {
+        $admin = $this->admin();
+        $a = $this->makeAuditLog(['user_id' => $admin->id, 'action' => 'role.created', 'entity_type' => 'Role', 'entity_id' => 1]);
+        $b = $this->makeAuditLog(['user_id' => $admin->id, 'action' => 'role.created', 'entity_type' => 'Role', 'entity_id' => 2]);
+        $kept = $this->makeAuditLog(['user_id' => $admin->id, 'action' => 'role.created', 'entity_type' => 'Role', 'entity_id' => 3]);
+
+        Livewire::actingAs($admin)
+            ->test(ListAuditLogs::class)
+            ->callTableBulkAction('deleteSelected', [$a, $b]);
+
+        $this->assertModelMissing($a);
+        $this->assertModelMissing($b);
+        $this->assertModelExists($kept);
+
+        $purge = AuditLog::query()->where('action', 'audit_log.deleted')->firstOrFail();
+        $this->assertSame(2, $purge->metadata['count']);
+    }
+
+    public function test_admin_can_export_checked_entries_as_csv(): void
+    {
+        $admin = $this->admin();
+        $a = $this->makeAuditLog(['user_id' => $admin->id, 'action' => 'role.exported_one', 'entity_type' => 'Role', 'entity_id' => 1, 'metadata' => ['name' => '=cmd']]);
+        $this->makeAuditLog(['user_id' => $admin->id, 'action' => 'role.not_exported', 'entity_type' => 'Role', 'entity_id' => 2]);
+
+        Livewire::actingAs($admin)
+            ->test(ListAuditLogs::class)
+            ->callTableBulkAction('exportSelected', [$a])
+            ->assertFileDownloaded();
+
+        $csv = app(ExportAuditLogsAction::class)->handle(AuditLog::query()->whereKey($a->id));
+        ob_start();
+        $csv->sendContent();
+        $content = ob_get_clean();
+
+        $this->assertStringContainsString('role.exported_one', $content);
+        $this->assertStringNotContainsString('role.not_exported', $content);
+        $this->assertStringContainsString($admin->email, $content);
+    }
+
+    public function test_header_export_respects_current_filters(): void
+    {
+        $admin = $this->admin();
+        $this->makeAuditLog(['user_id' => $admin->id, 'action' => 'role.created', 'entity_type' => 'Role', 'entity_id' => 1]);
+
+        Livewire::actingAs($admin)
+            ->test(ListAuditLogs::class)
+            ->filterTable('entity_type', 'Role')
+            ->callAction('export')
+            ->assertFileDownloaded();
+    }
+
+    public function test_csv_cells_that_look_like_formulas_are_neutralised(): void
+    {
+        $admin = $this->admin();
+        $this->makeAuditLog(['user_id' => $admin->id, 'action' => '=HYPERLINK("x")', 'entity_type' => 'Role', 'entity_id' => 1]);
+
+        $response = app(ExportAuditLogsAction::class)->handle(AuditLog::query());
+        ob_start();
+        $response->sendContent();
+        $content = ob_get_clean();
+
+        $this->assertStringContainsString("'=HYPERLINK", $content);
     }
 
     private function createRoleAndGenerateAuditEntry(User $actor): Role
