@@ -61,3 +61,6 @@
 @if (! empty($seo['structured_data']))
     <script type="application/ld+json">{!! json_encode($seo['structured_data'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 @endif
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2063854153286945"
+     crossorigin="anonymous"></script>
