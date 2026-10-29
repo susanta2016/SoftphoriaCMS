@@ -249,4 +249,23 @@ return [
 
     'inspirational_resources_admin_create_enabled' => env('INSPIRATIONAL_RESOURCES_ADMIN_CREATE_ENABLED', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin "Force Login" (sign in as a member)
+    |--------------------------------------------------------------------------
+    |
+    | When true, Admin > Users offers a "Force Login" action that signs the
+    | admin OUT and signs the browser IN as the selected member (for support
+    | — seeing exactly what that member sees). The admin session is fully
+    | destroyed; there is no "switch back". Enforced server-side by
+    | App\Http\Controllers\Admin\ForceLoginController on every request (the
+    | endpoint 404s while off), not just by hiding the action. Admin
+    | accounts and blocked accounts can never be targets. Every use is
+    | written to audit_logs as `user.force_login`. Off by default — enable
+    | only when needed.
+    |
+    */
+
+    'force_login_enabled' => env('FORCE_LOGIN_ENABLED', false),
+
 ];

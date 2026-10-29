@@ -9,6 +9,7 @@ use App\Http\Controllers\Account\PasswordController as AccountPasswordController
 use App\Http\Controllers\Account\ProfileController as AccountProfileController;
 use App\Http\Controllers\Account\SubscriptionController as AccountSubscriptionController;
 use App\Http\Controllers\Account\TransactionController as AccountTransactionController;
+use App\Http\Controllers\Admin\ForceLoginController as AdminForceLoginController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -109,6 +110,14 @@ Route::post('/contact', [ContactController::class, 'store'])
 Route::get('/admin/media/{media}/stream', StreamMediaController::class)
     ->middleware('web')
     ->name('media.stream');
+
+// Admin > Users "Force Login" (config('features.force_login_enabled')).
+// POST + CSRF (web group) + auth + throttle here; the feature flag (404 when
+// off), admin authorization (403) and target eligibility are re-checked
+// inside ForceLoginController on every request.
+Route::post('/admin/force-login/{user}', AdminForceLoginController::class)
+    ->middleware(['auth', 'throttle:10,1'])
+    ->name('admin.users.force-login');
 
 // Public playback for a Hero section's "Watch Introduction" video (Range
 // requests supported for scrubbing). No auth — gated inside the controller

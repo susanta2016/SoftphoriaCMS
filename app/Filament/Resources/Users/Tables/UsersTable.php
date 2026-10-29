@@ -92,6 +92,7 @@ class UsersTable
                     UserResource::changeStatusAction(),
                     UserResource::sendPasswordResetLinkAction(),
                     UserResource::resendVerificationEmailAction(),
+                    UserResource::forceLoginAction(),
                 ])
                     ->icon(Heroicon::OutlinedEllipsisVertical)
                     ->label('Actions'),

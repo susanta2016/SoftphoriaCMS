@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users;
 
 use App\Actions\Users\ChangeUserStatusAction;
+use App\Actions\Users\ForceLoginAsUserAction;
 use App\Actions\Users\ForceLogoutAllSessionsAction;
 use App\Actions\Users\GenerateNewPasswordAction;
 use App\Actions\Users\ResendUserVerificationEmailAction;
@@ -294,6 +295,37 @@ class UserResource extends Resource
                         ->send();
                 }
             });
+    }
+
+    /**
+     * Admin "Force Login" (config('features.force_login_enabled')). Only
+     * offered while the flag is on, to an admin who may use the panel, for
+     * an eligible member (ForceLoginAsUserAction::isEligible()). The modal's
+     * confirm button is a real POST form to the admin.users.force-login
+     * route rather than a Livewire action, because the switch destroys the
+     * current session and the endpoint must enforce every check itself
+     * (ForceLoginController) — hiding this action is never the protection.
+     */
+    public static function forceLoginAction(): Action
+    {
+        return Action::make('forceLogin')
+            ->label('Force Login')
+            ->icon(Heroicon::OutlinedArrowRightEndOnRectangle)
+            ->color('danger')
+            ->visible(function (User $record): bool {
+                /** @var ?User $actor */
+                $actor = Auth::user();
+
+                return (bool) config('features.force_login_enabled')
+                    && $actor !== null
+                    && app(ForceLoginAsUserAction::class)->isEligible($record, $actor);
+            })
+            ->modalHeading(fn (User $record): string => "Force Login as {$record->name}?")
+            ->modalIcon(Heroicon::OutlinedExclamationTriangle)
+            ->modalIconColor('danger')
+            ->modalContent(fn (User $record) => view('filament.users.force-login-confirm', ['user' => $record]))
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Cancel');
     }
 
     public static function forceLogoutAllSessionsAction(): Action
