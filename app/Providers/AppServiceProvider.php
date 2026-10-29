@@ -36,24 +36,28 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->routeResetPasswordThroughEmailTemplates();
         $this->guardDestructiveMigrations();
-        $this->limitContactSubmissions();
+        $this->limitPublicFormSubmissions();
     }
 
     /**
-     * Contact Us submissions per visitor IP: 3 per 10 minutes and 20 per
-     * day — plenty for a real person, far below what a spam bot needs. The
-     * two limits use distinct keys so they're counted independently.
+     * Public submission forms (Contact Us, Inspirational Resources) per
+     * visitor IP: 3 per 10 minutes and 20 per day — plenty for a real
+     * person, far below what a spam bot needs. Each form has its own named
+     * limiter and keys, so one form never uses up the other's allowance,
+     * and the 10-minute and daily limits are counted independently.
      * Production nginx passes the visitor's real address to PHP-FPM (no CDN
      * or load balancer in front, verified 2026-10-29); if Cloudflare
      * proxying is ever enabled, trusted proxies must be configured first or
      * every visitor would share Cloudflare's IPs here.
      */
-    private function limitContactSubmissions(): void
+    private function limitPublicFormSubmissions(): void
     {
-        RateLimiter::for('contact-submit', fn (Request $request): array => [
-            Limit::perMinutes(10, 3)->by('contact-10m:'.$request->ip()),
-            Limit::perDay(20)->by('contact-day:'.$request->ip()),
-        ]);
+        foreach (['contact-submit' => 'contact', 'resource-submit' => 'resource'] as $limiter => $prefix) {
+            RateLimiter::for($limiter, fn (Request $request): array => [
+                Limit::perMinutes(10, 3)->by("{$prefix}-10m:".$request->ip()),
+                Limit::perDay(20)->by("{$prefix}-day:".$request->ip()),
+            ]);
+        }
     }
 
     /**

@@ -7,10 +7,12 @@ use App\Models\User;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use App\Shared\Mail\TemplatedNotificationMail;
 use App\Shared\Services\Notifications\TemplatedMailer;
+use App\Shared\Support\Spam\FormTimeTrap;
 use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Mockery;
+use Tests\Support\PassesFormTimeTrap;
 use Tests\TestCase;
 
 /**
@@ -24,7 +26,7 @@ use Tests\TestCase;
  */
 class InspirationalResourceSubmissionTest extends TestCase
 {
-    use RefreshDatabase;
+    use PassesFormTimeTrap, RefreshDatabase;
 
     public function test_the_form_page_is_publicly_accessible(): void
     {
@@ -55,6 +57,7 @@ class InspirationalResourceSubmissionTest extends TestCase
     public function test_a_guest_can_submit_the_form(): void
     {
         $response = $this->post(route('inspirational-resources.submit'), [
+            FormTimeTrap::FIELD => $this->formStartedToken(),
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'subject' => 'My Story',
@@ -85,6 +88,7 @@ class InspirationalResourceSubmissionTest extends TestCase
     public function test_choosing_other_stores_the_typed_in_category(): void
     {
         $this->post(route('inspirational-resources.submit'), [
+            FormTimeTrap::FIELD => $this->formStartedToken(),
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Other',
@@ -99,6 +103,7 @@ class InspirationalResourceSubmissionTest extends TestCase
     public function test_choosing_other_without_typing_a_category_fails(): void
     {
         $this->post(route('inspirational-resources.submit'), [
+            FormTimeTrap::FIELD => $this->formStartedToken(),
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Other',
@@ -112,6 +117,7 @@ class InspirationalResourceSubmissionTest extends TestCase
     public function test_a_category_outside_the_dropdown_is_rejected(): void
     {
         $this->post(route('inspirational-resources.submit'), [
+            FormTimeTrap::FIELD => $this->formStartedToken(),
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Testimony',
@@ -130,6 +136,7 @@ class InspirationalResourceSubmissionTest extends TestCase
             ->assertSeeInOrder(['Inspiration', 'Love', 'Faith', 'Forgiveness', 'Giving', 'Gratitude']);
 
         $this->post(route('inspirational-resources.submit'), [
+            FormTimeTrap::FIELD => $this->formStartedToken(),
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Books',
@@ -153,6 +160,7 @@ class InspirationalResourceSubmissionTest extends TestCase
     public function test_a_guest_can_submit_a_reference_url(): void
     {
         $response = $this->post(route('inspirational-resources.submit'), [
+            FormTimeTrap::FIELD => $this->formStartedToken(),
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Books',
@@ -170,6 +178,7 @@ class InspirationalResourceSubmissionTest extends TestCase
     public function test_an_invalid_reference_url_is_rejected(): void
     {
         $response = $this->post(route('inspirational-resources.submit'), [
+            FormTimeTrap::FIELD => $this->formStartedToken(),
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Books',
@@ -187,6 +196,7 @@ class InspirationalResourceSubmissionTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('inspirational-resources.submit'), [
+            FormTimeTrap::FIELD => $this->formStartedToken(),
             'category' => 'Books',
             'theme' => 'Gratitude',
             'message' => 'Something meaningful happened.',
@@ -227,6 +237,7 @@ class InspirationalResourceSubmissionTest extends TestCase
         $user = User::factory()->create(['name' => 'Real Name', 'email' => 'real@example.com']);
 
         $this->actingAs($user)->post(route('inspirational-resources.submit'), [
+            FormTimeTrap::FIELD => $this->formStartedToken(),
             'name' => 'Spoofed Name',
             'email' => 'spoofed@example.com',
             'category' => 'Books',
@@ -242,6 +253,7 @@ class InspirationalResourceSubmissionTest extends TestCase
     public function test_submitting_without_required_fields_is_rejected(): void
     {
         $response = $this->post(route('inspirational-resources.submit'), [
+            FormTimeTrap::FIELD => $this->formStartedToken(),
             'name' => 'Jane Doe',
         ]);
 
@@ -256,6 +268,7 @@ class InspirationalResourceSubmissionTest extends TestCase
         $admin = $this->admin();
 
         $this->post(route('inspirational-resources.submit'), [
+            FormTimeTrap::FIELD => $this->formStartedToken(),
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'category' => 'Books',
@@ -273,6 +286,7 @@ class InspirationalResourceSubmissionTest extends TestCase
         $admin = $this->admin();
 
         $this->post(route('inspirational-resources.submit'), [
+            FormTimeTrap::FIELD => $this->formStartedToken(),
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'subject' => 'My Story',
@@ -297,6 +311,7 @@ class InspirationalResourceSubmissionTest extends TestCase
         $this->app->instance(TemplatedMailer::class, $mailer);
 
         $response = $this->post(route('inspirational-resources.submit'), [
+            FormTimeTrap::FIELD => $this->formStartedToken(),
             'name' => 'Jane Doe',
             'email' => 'jane.resilient@example.com',
             'category' => 'Books',

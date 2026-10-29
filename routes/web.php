@@ -231,7 +231,7 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
 Route::get('/poetry-prose', [PoetryProseController::class, 'index'])->name('poetry-prose.index');
 // The Poetry/Prose "Submit Your Writing" form — registered before the
 // {poetryProse:slug} wildcard so /poetry-prose/submit always matches it.
-// Throttled the same as inspirational-resources.submit.
+// Throttled 6 per minute per IP.
 Route::get('/poetry-prose/submit', [PoetryProseSubmissionController::class, 'create'])->name('poetry-prose.create');
 Route::post('/poetry-prose/submit', [PoetryProseSubmissionController::class, 'store'])
     ->middleware('throttle:6,1')
@@ -261,11 +261,13 @@ Route::post('/poetry-prose/{poetryProse:slug}/reviews/{review}/flag', [PoetryPro
 // Writing" form, reached the same way Poetry/Prose's sidebar reaches it)
 // are registered before the {resourceSubmission:slug} wildcard so an exact
 // "/inspirational-resources/submit" request always matches them first. The
-// submit endpoint is throttled the same as register.free/newsletter.subscribe.
+// submit endpoint is throttled per IP by the 'resource-submit' limiter
+// (AppServiceProvider); see InspirationalResourceSubmissionController for the
+// other spam layers.
 Route::get('/inspirational-resources', [InspirationalResourceController::class, 'index'])->name('inspirational-resources.index');
 Route::get('/inspirational-resources/submit', [InspirationalResourceSubmissionController::class, 'create'])->name('inspirational-resources.create');
 Route::post('/inspirational-resources/submit', [InspirationalResourceSubmissionController::class, 'store'])
-    ->middleware('throttle:6,1')
+    ->middleware('throttle:resource-submit')
     ->name('inspirational-resources.submit');
 
 // The Gratitude Journal shared member feed — a READ-ONLY subpage of

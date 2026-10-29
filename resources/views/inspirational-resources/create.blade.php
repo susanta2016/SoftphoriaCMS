@@ -41,6 +41,20 @@
             <form method="POST" action="{{ route('inspirational-resources.submit') }}" class="mt-8 rounded-2xl bg-white p-6 shadow-xl ring-1 ring-brand-navy/5 sm:p-8">
                 @csrf
 
+                {{-- Time trap: when this form was served (encrypted) — see FormTimeTrap / InspirationalResourceSubmissionController::store(). --}}
+                <input type="hidden" name="{{ \App\Shared\Support\Spam\FormTimeTrap::FIELD }}" value="{{ app(\App\Shared\Support\Spam\FormTimeTrap::class)->issue() }}">
+
+                {{--
+                    Honeypot spam trap — visually hidden from real visitors
+                    (off-screen, never display:none, which some bots detect and
+                    skip) and excluded from tab order. A non-empty value is
+                    silently discarded by the controller.
+                --}}
+                <div class="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+                    <label for="hp_website">Website</label>
+                    <input type="text" id="hp_website" name="hp_website" tabindex="-1" autocomplete="off">
+                </div>
+
                 @auth
                     <p class="mb-5 text-sm text-brand-navy/60">
                         Submitting as <span class="font-medium text-brand-navy">{{ auth()->user()->name }}</span> ({{ auth()->user()->email }}).

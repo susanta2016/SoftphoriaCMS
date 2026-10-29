@@ -36,6 +36,13 @@ class ResourceSubmissionsTable
                 TextColumn::make('category')->searchable(),
                 TextColumn::make('theme')->placeholder('—'),
                 TextColumn::make('status')->badge()->sortable(),
+                // Search by IP to find (and bulk-delete) everything from one
+                // spam source; empty for admin-created or older submissions.
+                TextColumn::make('ip_address')
+                    ->label('IP')
+                    ->searchable()
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('created_at')
                     ->label('Submitted')
                     ->dateTime()

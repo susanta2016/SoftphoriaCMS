@@ -8,10 +8,13 @@ use App\Modules\InspirationalResources\Actions\CreateResourceSubmissionAction;
 use App\Modules\InspirationalResources\Models\ResourceSubmission;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
+use App\Shared\Support\Spam\FormTimeTrap;
+use App\Shared\Support\Spam\MaxLinks;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -22,6 +25,11 @@ use Illuminate\Validation\Rule;
  * public listing/detail pages this is separate from). A submission is a
  * private administrative record until an admin approves it; approving it
  * is what makes it appear on the public listing/detail pages.
+ *
+ * Spam protection matches Contact Us: honeypot (`hp_website`), link rules,
+ * time trap (FormTimeTrap), and the per-IP 'resource-submit' rate limiter
+ * (AppServiceProvider). Honeypot/time-trap hits are discarded silently and
+ * logged; genuine submissions record the sender's IP and user agent.
  */
 class InspirationalResourceSubmissionController extends Controller
 {
@@ -55,26 +63,51 @@ class InspirationalResourceSubmissionController extends Controller
         ]);
     }
 
-    public function store(Request $request, CreateResourceSubmissionAction $action): RedirectResponse
+    public function store(Request $request, CreateResourceSubmissionAction $action, FormTimeTrap $timeTrap): RedirectResponse
     {
         $user = Auth::user();
+        $silentSuccess = fn (): RedirectResponse => redirect()->route('inspirational-resources.create')
+            ->with('status', 'Thank you — your submission has been received.');
+
+        // Spam layers — same as Contact Us (see ContactController::store()).
+        // A real visitor never sees or fills in this field (it's visually
+        // hidden — see the view); a bot that fills every input is discarded
+        // silently with the normal success response.
+        if (filled($request->input('hp_website'))) {
+            $this->logDiscarded($request, 'honeypot');
+
+            return $silentSuccess();
+        }
 
         // A logged-in user never sees or fills in name/email on the form
         // (see inspirational-resources/create.blade.php's @guest block), so
-        // these aren't required from the request for them.
+        // these aren't required from the request for them. The subject
+        // becomes the public title once approved, so it may not carry links.
         $validator = Validator::make($request->all(), [
-            'name' => [$user ? 'sometimes' : 'required', 'string', 'max:255'],
+            'name' => [$user ? 'sometimes' : 'required', 'string', 'max:255', 'not_regex:/https?:\/\/|www\.|[<>]/i'],
             'email' => [$user ? 'sometimes' : 'required', 'string', 'email', 'max:255'],
-            'subject' => ['nullable', 'string', 'max:255'],
+            'subject' => ['nullable', 'string', 'max:255', 'not_regex:/https?:\/\/|www\./i'],
             'category' => ['required', 'string', Rule::in([...ResourceSubmission::CATEGORY_OPTIONS, ResourceSubmission::OTHER_CATEGORY])],
-            'category_other' => ['nullable', 'required_if:category,'.ResourceSubmission::OTHER_CATEGORY, 'string', 'max:255'],
+            'category_other' => ['nullable', 'required_if:category,'.ResourceSubmission::OTHER_CATEGORY, 'string', 'max:255', 'not_regex:/https?:\/\/|www\./i'],
             'theme' => ['required', 'string', Rule::in(ResourceSubmission::THEME_OPTIONS)],
-            'message' => ['required', 'string', 'max:5000'],
+            'message' => ['required', 'string', 'max:5000', new MaxLinks(3)],
             'reference_url' => ['nullable', 'url', 'max:2048'],
+        ], [
+            'name.not_regex' => 'Please enter just your name — no links or special characters.',
+            'subject.not_regex' => 'Please leave links out of the subject — use the reference link field instead.',
+            'category_other.not_regex' => 'Please leave links out of the category.',
         ]);
 
         if ($validator->fails()) {
             return redirect()->route('inspirational-resources.create')->withErrors($validator)->withInput();
+        }
+
+        // Checked after validation on purpose (same as Contact Us): a real
+        // visitor who gets corrected can resubmit straight away.
+        if (! $timeTrap->passes($request->input(FormTimeTrap::FIELD), FormTimeTrap::SUBMIT_MIN_SECONDS)) {
+            $this->logDiscarded($request, 'time-trap');
+
+            return $silentSuccess();
         }
 
         $data = $validator->validated();
@@ -98,10 +131,14 @@ class InspirationalResourceSubmissionController extends Controller
             $data['email'] = $user->email;
         }
 
-        $action->handle($data, $user);
+        $action->handle($data, $user, $request->ip(), $request->userAgent());
 
-        return redirect()->route('inspirational-resources.create')
-            ->with('status', 'Thank you — your submission has been received.');
+        return $silentSuccess();
+    }
+
+    private function logDiscarded(Request $request, string $reason): void
+    {
+        Log::info('Inspirational resource submission discarded as spam', ['reason' => $reason, 'ip' => $request->ip()]);
     }
 
     /**

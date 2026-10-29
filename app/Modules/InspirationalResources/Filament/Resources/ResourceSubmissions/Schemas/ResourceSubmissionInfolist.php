@@ -46,6 +46,13 @@ class ResourceSubmissionInfolist
                     ])
                     ->visible(fn (ResourceSubmission $record): bool => $record->reference_url !== null),
 
+                Section::make('Source')
+                    ->columns(2)
+                    ->schema([
+                        TextEntry::make('ip_address')->label('IP address')->placeholder('Not recorded')->copyable(),
+                        TextEntry::make('user_agent')->label('Browser (user agent)')->placeholder('Not recorded'),
+                    ]),
+
                 // Reviewer/timestamp info reuses the existing platform-wide
                 // audit_logs table (AuditLogService) rather than adding new
                 // reviewed_by/reviewed_at columns — every status transition

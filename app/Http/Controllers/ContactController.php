@@ -7,7 +7,7 @@ use App\Models\Media;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
 use App\Shared\Support\Spam\FormTimeTrap;
-use Closure;
+use App\Shared\Support\Spam\MaxLinks;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -71,7 +71,7 @@ class ContactController extends Controller
             'name' => ['required', 'string', 'max:255', 'not_regex:/https?:\/\/|www\.|[<>]/i'],
             'email' => ['required', 'string', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
-            'message' => ['required', 'string', 'max:5000', $this->linkLimit(3)],
+            'message' => ['required', 'string', 'max:5000', new MaxLinks(3)],
         ], [
             'name.not_regex' => 'Please enter just your name — no links or special characters.',
         ]);
@@ -92,19 +92,6 @@ class ContactController extends Controller
         $action->handle($validator->validated(), $request->ip(), $request->userAgent());
 
         return $silentSuccess();
-    }
-
-    /**
-     * Link-stuffed messages are the typical SEO-spam payload; a real
-     * message rarely needs more than a couple of links.
-     */
-    private function linkLimit(int $max): Closure
-    {
-        return function (string $attribute, mixed $value, Closure $fail) use ($max): void {
-            if (is_string($value) && preg_match_all('~https?://|www\.~i', $value) > $max) {
-                $fail("Please include no more than {$max} links in your message.");
-            }
-        };
     }
 
     private function logDiscarded(Request $request, string $reason): void

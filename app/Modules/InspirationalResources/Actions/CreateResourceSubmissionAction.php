@@ -30,13 +30,18 @@ class CreateResourceSubmissionAction
     public function __construct(private readonly TemplatedMailer $mailer) {}
 
     /**
+     * $ipAddress/$userAgent record the submission's source so spam that
+     * still gets through can be recognised in the admin panel.
+     *
      * @param  array<string, mixed>  $data
      */
-    public function handle(array $data, ?User $submitter): ResourceSubmission
+    public function handle(array $data, ?User $submitter, ?string $ipAddress = null, ?string $userAgent = null): ResourceSubmission
     {
         $submission = new ResourceSubmission;
         $submission->fill($data);
         $submission->user_id = $submitter?->getKey();
+        $submission->ip_address = $ipAddress;
+        $submission->user_agent = $userAgent !== null ? mb_substr($userAgent, 0, 512) : null;
         // Generated once here, never user-supplied — this is what an
         // Approved submission's public detail page URL uses (see
         // ResourceSubmission::sitemapEntries() / routes/web.php's
