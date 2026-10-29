@@ -41,9 +41,33 @@ class ForceLoginTest extends TestCase
         config(['features.force_login_enabled' => true]);
     }
 
+    /**
+     * The code default, independent of any developer's local .env (phpunit.xml
+     * also pins the flag off): with the variable entirely absent, the
+     * config entry must resolve to false.
+     */
     public function test_the_feature_is_disabled_by_default(): void
     {
-        $this->assertFalse((bool) config('features.force_login_enabled'));
+        $backup = [$_ENV['FORCE_LOGIN_ENABLED'] ?? null, $_SERVER['FORCE_LOGIN_ENABLED'] ?? null, getenv('FORCE_LOGIN_ENABLED')];
+        unset($_ENV['FORCE_LOGIN_ENABLED'], $_SERVER['FORCE_LOGIN_ENABLED']);
+        putenv('FORCE_LOGIN_ENABLED');
+
+        try {
+            $this->assertFalse((bool) (require config_path('features.php'))['force_login_enabled']);
+        } finally {
+            [$env, $server, $getenv] = $backup;
+            if ($env !== null) {
+                $_ENV['FORCE_LOGIN_ENABLED'] = $env;
+            }
+            if ($server !== null) {
+                $_SERVER['FORCE_LOGIN_ENABLED'] = $server;
+            }
+            if ($getenv !== false) {
+                putenv("FORCE_LOGIN_ENABLED={$getenv}");
+            }
+        }
+
+        $this->assertFalse((bool) config('features.force_login_enabled'), 'Tests run with the flag off unless a test enables it.');
     }
 
     public function test_when_disabled_the_action_is_hidden(): void
@@ -82,6 +106,26 @@ class ForceLoginTest extends TestCase
             ->assertTableActionHidden('forceLogin', $otherAdmin)
             ->assertTableActionHidden('forceLogin', $admin)
             ->assertTableActionHidden('forceLogin', $suspended);
+    }
+
+    /**
+     * Filament renders an action modal's window as a form element, so the
+     * confirmation content must never contain its own form — a nested form
+     * is dropped by the browser and the button silently did nothing (bug
+     * found in local/production 2026-10-29). The button instead builds a
+     * standalone POST form from these data attributes.
+     */
+    public function test_the_confirmation_modal_never_nests_a_form_and_targets_the_endpoint(): void
+    {
+        $member = $this->member();
+
+        $this->startSession();
+        $html = view('filament.users.force-login-confirm', ['user' => $member])->render();
+
+        $this->assertStringNotContainsString('<form', $html);
+        $this->assertStringContainsString('data-force-login-url="'.route('admin.users.force-login', $member).'"', $html);
+        $this->assertStringContainsString('data-force-login-token="'.csrf_token().'"', $html);
+        $this->assertStringContainsString("form.method = 'POST'", $html);
     }
 
     public function test_an_admin_switches_the_browser_to_the_member(): void
