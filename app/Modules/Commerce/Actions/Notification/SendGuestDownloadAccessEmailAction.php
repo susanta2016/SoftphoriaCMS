@@ -42,10 +42,17 @@ class SendGuestDownloadAccessEmailAction
 
         $accessUrl = route('downloads.guest.show', $order).'?'.http_build_query(['t' => $tokenPairs]);
 
+        // Same tokenized link, plus next=album-zip so the purchaser lands on
+        // the full-album ZIP once verified — it grants nothing extra. For an
+        // order with no Album, it's simply the normal access link.
+        $hasAlbum = $order->items->contains(fn ($item) => $item->album_id !== null);
+        $albumZipUrl = $hasAlbum ? route('downloads.guest.show', $order).'?'.http_build_query(['t' => $tokenPairs, 'next' => 'album-zip']) : $accessUrl;
+
         try {
             $this->mailer->send('guest_download_access', EmailRecipientType::User, $order->purchaser_email, [
                 ...OrderEmailVariables::for($order, $issuedEntitlements),
                 'download_access_url' => $accessUrl,
+                'album_zip_download_url' => $albumZipUrl,
             ]);
         } catch (Throwable $exception) {
             Log::warning('Guest download access email failed to send', [

@@ -5,7 +5,10 @@ namespace App\Actions\Registration;
 use App\Enums\UserStatus;
 use App\Models\EmailVerification;
 use App\Models\User;
+use App\Modules\Commerce\Actions\Order\ClaimGuestPurchasesAction;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * The only writer of `email_verified_at` and the
@@ -37,7 +40,7 @@ class VerifyEmailAction
             return null;
         }
 
-        return DB::transaction(function () use ($verification): User {
+        $user = DB::transaction(function () use ($verification): User {
             /** @var User $user */
             $user = $verification->user;
             $user->email_verified_at = now();
@@ -48,5 +51,28 @@ class VerifyEmailAction
 
             return $user;
         });
+
+        $this->claimGuestPurchases($user);
+
+        return $user;
+    }
+
+    /**
+     * Now that this address is proven, any earlier guest purchases made
+     * with it move into the account (ClaimGuestPurchasesAction). Runs after
+     * — never inside — the verification transaction, and a failure here is
+     * logged rather than thrown: it must never undo or block verification
+     * itself, and the next sign-in retries it anyway.
+     */
+    private function claimGuestPurchases(User $user): void
+    {
+        try {
+            app(ClaimGuestPurchasesAction::class)->handle($user);
+        } catch (Throwable $exception) {
+            Log::warning('Claiming guest purchases after email verification failed', [
+                'user_id' => $user->getKey(),
+                'exception' => $exception->getMessage(),
+            ]);
+        }
     }
 }

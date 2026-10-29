@@ -6,6 +6,7 @@ use App\Models\Media;
 use App\Models\User;
 use App\Modules\Commerce\Enums\DownloadAccessType;
 use App\Modules\Commerce\Enums\DownloadLogStatus;
+use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Track;
 use App\Modules\Podcast\Models\PodcastEpisode;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -23,12 +24,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * ever stores access_token_hash, so there is nothing secret for this table
  * (or DownloadLogResource) to leak.
  *
- * Exactly one of track_id/podcast_episode_id is set per row (see the
- * add_podcast_support_to_user_downloads_table migration) — a Track download
+ * Exactly one of track_id/album_id/podcast_episode_id is set per row (see the
+ * add_podcast_support_/add_album_id_to_user_downloads_table migrations) — a
+ * full-album ZIP download (AuthorizeAlbumZipDownloadAction) sets album_id
+ * with a Purchase access_type; a Track download
  * always has entitlement_id/access_type of Purchase or Membership; a
  * PodcastEpisode download is always Free with a null entitlement_id.
  */
-#[Fillable(['user_id', 'entitlement_id', 'access_type', 'track_id', 'podcast_episode_id', 'media_id', 'status', 'denial_reason', 'ip_address', 'user_agent'])]
+#[Fillable(['user_id', 'entitlement_id', 'access_type', 'track_id', 'album_id', 'podcast_episode_id', 'media_id', 'status', 'denial_reason', 'ip_address', 'user_agent'])]
 class DownloadLog extends Model
 {
     protected $table = 'user_downloads';
@@ -56,6 +59,11 @@ class DownloadLog extends Model
     public function track(): BelongsTo
     {
         return $this->belongsTo(Track::class);
+    }
+
+    public function album(): BelongsTo
+    {
+        return $this->belongsTo(Album::class)->withTrashed();
     }
 
     public function podcastEpisode(): BelongsTo

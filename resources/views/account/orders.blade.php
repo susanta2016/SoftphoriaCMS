@@ -28,24 +28,38 @@
                         <div class="mt-4 divide-y divide-brand-navy/5 border-t border-brand-navy/5">
                             @foreach ($order->items as $item)
                                 @php
-                                    $tracks = $item->album ? $item->album->tracks : collect([$item->single?->track])->filter();
+                                    // Decided per line item: a full-album purchase is
+                                    // ZIP-only (no per-track links); an individually
+                                    // purchased song (Single, or an Album-owned 'track'
+                                    // item) lists exactly that one song.
+                                    $isAlbumPurchase = $item->album_id !== null;
+                                    $tracks = match (true) {
+                                        $isAlbumPurchase => collect(),
+                                        $item->single_id !== null => collect([$item->single?->track])->filter(),
+                                        default => collect([$item->track])->filter(),
+                                    };
                                     $entitlement = $item->entitlement;
+                                    $entitlementActive = $entitlement && $entitlement->status() === EntitlementStatus::Active;
                                 @endphp
 
                                 <div class="py-3">
                                     <div class="flex items-center justify-between gap-4">
                                         <span class="text-sm font-medium text-brand-navy">{{ $item->item_title }}</span>
-                                        @if ($entitlement && $entitlement->max_downloads !== null)
+                                        @if ($entitlement && $entitlement->remainingDownloads() !== null)
                                             <span class="text-xs font-semibold tracking-wide text-brand-navy/50 uppercase">
                                                 {{ $entitlement->remainingDownloads() }} download{{ $entitlement->remainingDownloads() === 1 ? '' : 's' }} left
                                             </span>
                                         @endif
                                     </div>
 
+                                    @if ($entitlement?->expires_at)
+                                        <p class="mt-0.5 text-xs text-brand-navy/50">Access until {{ $entitlement->expires_at->format('M j, Y') }}</p>
+                                    @endif
+
                                     <div class="mt-2 space-y-1.5">
                                         @foreach ($tracks as $track)
                                             @php
-                                                $available = $entitlement && $entitlement->status() === EntitlementStatus::Active && $track->audio_media_id !== null;
+                                                $available = $entitlementActive && $track->audio_media_id !== null;
                                             @endphp
                                             <div class="flex items-center justify-between gap-4 text-sm text-brand-navy/70">
                                                 <span>{{ $track->title }}</span>
@@ -59,6 +73,19 @@
                                             </div>
                                         @endforeach
                                     </div>
+
+                                    @if ($isAlbumPurchase && $entitlement)
+                                        <div id="album-zip" class="mt-2 flex items-center justify-between gap-4 rounded-md bg-brand-navy/5 px-3 py-2 text-sm text-brand-navy">
+                                            <span>Full album (ZIP)</span>
+                                            @if ($entitlementActive)
+                                                <a href="{{ route('account.orders.album-zip', $entitlement) }}" class="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-brand-gold uppercase hover:text-brand-navy">
+                                                    Download ZIP
+                                                </a>
+                                            @else
+                                                <span class="text-xs font-medium text-brand-navy/40 uppercase">Unavailable</span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </div>
                             @endforeach
                         </div>

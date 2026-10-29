@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Account\AlbumZipDownloadController as AccountAlbumZipDownloadController;
 use App\Http\Controllers\Account\DashboardController;
 use App\Http\Controllers\Account\DownloadController as AccountDownloadController;
 use App\Http\Controllers\Account\GratitudeJournalController;
@@ -199,6 +200,11 @@ Route::middleware(['auth', EnsureAccountIsUsable::class])->prefix('account')->na
     // above, unchanged). Scoped entirely through Auth::user()->orders(); see
     // OrderController's own docblock.
     Route::get('/orders', AccountOrderController::class)->name('orders');
+    // Full-album ZIP for an Album purchase — ownership is enforced by
+    // AuthorizeAlbumZipDownloadAction (entitlement.user_id must be the
+    // signed-in user), never inferred from the {entitlement} parameter.
+    Route::get('/orders/album-zip/{entitlement:public_id}', AccountAlbumZipDownloadController::class)
+        ->name('orders.album-zip');
 
     // The registered member's own download history (Purchase + Pro
     // Membership downloads alike) — see DownloadController's own docblock
@@ -408,6 +414,9 @@ Route::get('/downloads/guest/{order:public_id}/items', [GuestDownloadController:
 Route::get('/downloads/guest/{order:public_id}/tracks/{track:slug}', [GuestDownloadController::class, 'download'])
     ->withoutScopedBindings()
     ->name('downloads.guest.track');
+Route::get('/downloads/guest/{order:public_id}/album-zip/{entitlement:public_id}', [GuestDownloadController::class, 'downloadAlbumZip'])
+    ->withoutScopedBindings()
+    ->name('downloads.guest.album-zip');
 
 // Unified site-wide search (Stage C search integration) — full results page
 // (paginated, async region-swap like every other public list page — see

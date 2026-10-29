@@ -136,7 +136,7 @@ return [
         'variables' => [
             'first_name', 'user_name', 'user_email', 'item_title', 'item_type', 'item_url', 'purchase_date', 'amount_paid',
             'order_id', 'order_items', 'order_total', 'account_orders_url', 'link_validity_window', 'link_expiry_date',
-            'max_downloads', 'site_name',
+            'max_downloads', 'album_zip_download_url', 'site_name',
         ],
         'default_subject' => 'Thank you for your order — {{item_title}}',
         'default_html_body' => <<<'HTML'
@@ -152,7 +152,9 @@ return [
 
             <a href="{{account_orders_url}}">Download / Listen Now →</a>
 
-            Your purchase is saved to your account, so you can always come back and access it from your <a href="{{account_orders_url}}">Music Library</a>. Your download access stays active until {{link_expiry_date}} ({{max_downloads}} downloads).
+            If your order includes a full album, you can also download the whole album as one ZIP file: <a href="{{album_zip_download_url}}">Download Full Album (ZIP) →</a>
+
+            Your purchase is saved to your account, so you can always come back and access it from your <a href="{{account_orders_url}}">Music Library</a>. Your download access stays active until {{link_expiry_date}} ({{max_downloads}} downloads of each song you bought, or of each full-album ZIP).
 
             If you'd like to go deeper, the story behind {{item_title}} — what inspired it, what it means — is waiting for you on <a href="{{item_url}}">its song page</a>.
 
@@ -169,7 +171,7 @@ return [
         'recipients' => ['user'],
         'variables' => [
             'first_name', 'user_name', 'user_email', 'item_title', 'item_type', 'purchase_date', 'amount_paid',
-            'order_id', 'order_items', 'order_total', 'download_access_url', 'link_validity_window',
+            'order_id', 'order_items', 'order_total', 'download_access_url', 'album_zip_download_url', 'link_validity_window',
             'link_expiry_date', 'max_downloads', 'register_url', 'site_name',
         ],
         'default_subject' => 'Your music from {{site_name}} is ready to download',
@@ -185,6 +187,8 @@ return [
             Order #{{order_id}}
 
             <a href="{{download_access_url}}">Download Now →</a>
+
+            If your order includes a full album, you can also download the whole album as one ZIP file: <a href="{{album_zip_download_url}}">Download Full Album (ZIP) →</a>
 
             This download link will stay active for {{link_validity_window}} (until {{link_expiry_date}}), so save this email or download your music soon.
 

@@ -30,7 +30,7 @@ class OrderController extends Controller
 
         $orders = $user->orders()
             ->where('status', OrderStatus::Paid)
-            ->with(['items.entitlement', 'items.album.tracks', 'items.single.track'])
+            ->with(['items.entitlement', 'items.album', 'items.single.track', 'items.track'])
             ->orderByDesc('paid_at')
             ->paginate(10);
 

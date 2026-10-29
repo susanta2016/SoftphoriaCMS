@@ -33,7 +33,7 @@ class DownloadController extends Controller
         $downloads = DownloadLog::query()
             ->where('user_id', $user->id)
             ->where('status', DownloadLogStatus::Succeeded)
-            ->with(['track.album', 'track.single'])
+            ->with(['track.album', 'track.single', 'album'])
             ->latest('created_at')
             ->paginate(15);
 

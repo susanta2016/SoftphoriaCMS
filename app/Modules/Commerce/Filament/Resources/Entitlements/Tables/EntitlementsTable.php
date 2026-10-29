@@ -36,7 +36,10 @@ class EntitlementsTable
                     ->color(fn (string $state): string => EntitlementStatus::from($state)->getColor()),
                 TextColumn::make('created_at')->label('Granted')->dateTime()->sortable(),
                 TextColumn::make('expires_at')->dateTime()->placeholder('Never')->sortable(),
-                TextColumn::make('downloads_used')->label('Used')->sortable(),
+                // An Album purchase's counter is its ZIP count; a song's is its own downloads.
+                TextColumn::make('downloads_used')
+                    ->label('Used')
+                    ->getStateUsing(fn (Entitlement $record): string => $record->isAlbumPurchase() ? $record->downloadsUsedCount().' (ZIP)' : (string) $record->downloadsUsedCount()),
                 TextColumn::make('max_downloads')->label('Limit')->placeholder('Unlimited'),
                 TextColumn::make('remaining')
                     ->getStateUsing(fn (Entitlement $record): string => $record->remainingDownloads() === null ? 'Unlimited' : (string) $record->remainingDownloads()),
@@ -51,10 +54,16 @@ class EntitlementsTable
                         return match ($value) {
                             'revoked' => $query->whereNotNull('revoked_at'),
                             'expired' => $query->whereNull('revoked_at')->whereNotNull('expires_at')->where('expires_at', '<', now()),
-                            'exhausted' => $query->whereNull('revoked_at')->whereColumn('downloads_used', '>=', 'max_downloads'),
+                            // Album purchases are limited by their ZIP counter, songs by
+                            // their own (Entitlement::downloadsUsedCount()).
+                            'exhausted' => $query->whereNull('revoked_at')->where(fn ($q) => $q
+                                ->where(fn ($song) => $song->whereNull('album_id')->whereColumn('downloads_used', '>=', 'max_downloads'))
+                                ->orWhere(fn ($album) => $album->whereNotNull('album_id')->whereColumn('zip_downloads_used', '>=', 'max_downloads'))),
                             'active' => $query->whereNull('revoked_at')
                                 ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>=', now()))
-                                ->where(fn ($q) => $q->whereNull('max_downloads')->orWhereColumn('downloads_used', '<', 'max_downloads')),
+                                ->where(fn ($q) => $q->whereNull('max_downloads')
+                                    ->orWhere(fn ($song) => $song->whereNull('album_id')->whereColumn('downloads_used', '<', 'max_downloads'))
+                                    ->orWhere(fn ($album) => $album->whereNotNull('album_id')->whereColumn('zip_downloads_used', '<', 'max_downloads'))),
                             default => $query,
                         };
                     }),

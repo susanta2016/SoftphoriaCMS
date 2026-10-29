@@ -31,15 +31,22 @@ class ResolveTrackAccessAction
             return new AccessGrant(DownloadAccessType::Membership, null);
         }
 
+        // Individually purchased songs only — an Album purchase is downloaded
+        // as its ZIP (AuthorizeAlbumZipDownloadAction), never track by track.
+        // If the same song was bought more than once (e.g. as a Single and as
+        // an Album-owned Track), an entitlement with downloads left wins over
+        // an exhausted one, so the exhausted one never masks the other.
         $entitlement = Entitlement::query()
             ->where('user_id', $user->getKey())
             ->whereNull('revoked_at')
+            ->whereNull('album_id')
             ->where(fn ($query) => $query
                 ->where('track_id', $track->getKey())
-                ->when($track->album_id !== null, fn ($q) => $q->orWhere('album_id', $track->album_id))
                 ->when($track->single_id !== null, fn ($q) => $q->orWhere('single_id', $track->single_id)))
             ->get()
-            ->first(fn (Entitlement $entitlement) => $entitlement->coversTrack($track) && ! $entitlement->isRevoked() && ! $entitlement->isExpired());
+            ->filter(fn (Entitlement $entitlement) => $entitlement->authorizesTrackDownload($track) && ! $entitlement->isRevoked() && ! $entitlement->isExpired())
+            ->sortBy(fn (Entitlement $entitlement) => $entitlement->isExhausted())
+            ->first();
 
         return $entitlement === null ? null : new AccessGrant(DownloadAccessType::Purchase, $entitlement);
     }
@@ -61,7 +68,7 @@ class ResolveTrackAccessAction
             return null;
         }
 
-        if (! $entitlement->coversTrack($track) || $entitlement->isRevoked() || $entitlement->isExpired()) {
+        if (! $entitlement->authorizesTrackDownload($track) || $entitlement->isRevoked() || $entitlement->isExpired()) {
             return null;
         }
 

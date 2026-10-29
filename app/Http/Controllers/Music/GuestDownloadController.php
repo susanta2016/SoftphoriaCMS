@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Music;
 
 use App\Http\Controllers\Controller;
 use App\Models\Media;
+use App\Modules\Commerce\Actions\Download\AuthorizeAlbumZipDownloadAction;
 use App\Modules\Commerce\Actions\Download\AuthorizeTrackDownloadAction;
 use App\Modules\Commerce\Actions\Download\VerifyGuestOrderAccessAction;
 use App\Modules\Commerce\Enums\OrderStatus;
+use App\Modules\Commerce\Models\Entitlement;
 use App\Modules\Commerce\Models\Order;
 use App\Modules\Commerce\Support\GuestOrderAccessSession;
 use App\Modules\Music\Models\Track;
@@ -47,6 +49,10 @@ class GuestDownloadController extends Controller
      */
     public function show(Request $request, Order $order, SettingsRepository $settings): View|RedirectResponse
     {
+        if ($claimed = $this->redirectIfClaimed($order)) {
+            return $claimed;
+        }
+
         abort_unless($order->status === OrderStatus::Paid && $order->isGuest(), 404);
 
         $rawTokens = $request->query('t', []);
@@ -54,11 +60,15 @@ class GuestDownloadController extends Controller
         if (is_array($rawTokens) && $rawTokens !== []) {
             GuestOrderAccessSession::storeTokens($order, $this->parseTokenPairs($order, $rawTokens));
 
+            if ($request->query('next') === 'album-zip') {
+                GuestOrderAccessSession::rememberAlbumZipIntent($order);
+            }
+
             return redirect()->route('downloads.guest.show', $order);
         }
 
         if (GuestOrderAccessSession::isVerified($order)) {
-            return redirect()->route('downloads.guest.items', $order);
+            return $this->redirectToItems($order);
         }
 
         $chrome = $this->siteChrome($settings);
@@ -79,6 +89,10 @@ class GuestDownloadController extends Controller
 
     public function verify(Request $request, Order $order, VerifyGuestOrderAccessAction $verifyAccess): RedirectResponse
     {
+        if ($claimed = $this->redirectIfClaimed($order)) {
+            return $claimed;
+        }
+
         abort_unless($order->status === OrderStatus::Paid && $order->isGuest(), 404);
 
         $data = $request->validate(['email' => ['required', 'email']]);
@@ -91,7 +105,7 @@ class GuestDownloadController extends Controller
 
         GuestOrderAccessSession::markVerified($order);
 
-        return redirect()->route('downloads.guest.items', $order);
+        return $this->redirectToItems($order);
     }
 
     /**
@@ -102,6 +116,10 @@ class GuestDownloadController extends Controller
      */
     public function items(Order $order, SettingsRepository $settings): View|RedirectResponse
     {
+        if ($claimed = $this->redirectIfClaimed($order)) {
+            return $claimed;
+        }
+
         abort_unless($order->status === OrderStatus::Paid && $order->isGuest(), 404);
 
         if (! GuestOrderAccessSession::isVerified($order)) {
@@ -120,7 +138,7 @@ class GuestDownloadController extends Controller
         return view('downloads.guest.items', [
             ...$chrome,
             'seo' => $seo,
-            'order' => $order->load('items.album.tracks', 'items.single.track', 'items.track', 'items.entitlement'),
+            'order' => $order->load('items.album', 'items.single.track', 'items.track', 'items.entitlement'),
         ]);
     }
 
@@ -130,6 +148,10 @@ class GuestDownloadController extends Controller
         AuthorizeTrackDownloadAction $authorize,
         Request $request,
     ): BinaryFileResponse|RedirectResponse {
+        if ($claimed = $this->redirectIfClaimed($order)) {
+            return $claimed;
+        }
+
         abort_unless($order->status === OrderStatus::Paid && $order->isGuest(), 404);
 
         if (! GuestOrderAccessSession::isVerified($order)) {
@@ -139,7 +161,7 @@ class GuestDownloadController extends Controller
         $entitlement = $order->load('items.entitlement')->items
             ->map(fn ($item) => $item->entitlement)
             ->filter()
-            ->first(fn ($entitlement) => $entitlement->coversTrack($track));
+            ->first(fn ($entitlement) => $entitlement->authorizesTrackDownload($track));
 
         $token = $entitlement !== null ? GuestOrderAccessSession::tokenFor($order, $entitlement->public_id) : null;
 
@@ -164,6 +186,86 @@ class GuestDownloadController extends Controller
             Storage::disk($media->disk)->path($media->path),
             $media->original_filename,
         );
+    }
+
+    /**
+     * The full-album ZIP, behind the same two gates as a single track: this
+     * browser session must be verified for this exact order, and must hold
+     * the emailed token for this exact entitlement. The entitlement must be
+     * one of this order's own items — a foreign entitlement public_id in the
+     * URL is rejected before AuthorizeAlbumZipDownloadAction (which re-checks
+     * the token hash, Album-ness, revocation and expiry itself) even runs.
+     */
+    public function downloadAlbumZip(
+        Order $order,
+        Entitlement $entitlement,
+        AuthorizeAlbumZipDownloadAction $authorize,
+        Request $request,
+    ): BinaryFileResponse|RedirectResponse {
+        if ($claimed = $this->redirectIfClaimed($order)) {
+            return $claimed;
+        }
+
+        abort_unless($order->status === OrderStatus::Paid && $order->isGuest(), 404);
+
+        if (! GuestOrderAccessSession::isVerified($order)) {
+            return redirect()->route('downloads.guest.show', $order);
+        }
+
+        $belongsToOrder = $order->items()->whereKey($entitlement->order_item_id)->exists();
+        $token = $belongsToOrder ? GuestOrderAccessSession::tokenFor($order, $entitlement->public_id) : null;
+
+        if ($token === null) {
+            return redirect()->route('downloads.guest.items', $order)
+                ->with('download_error', 'You don\'t have download access to this album.');
+        }
+
+        $result = $authorize->authorizeForGuest($entitlement, $token, $request->ip(), $request->userAgent());
+
+        if (! $result->authorized) {
+            return redirect()->route('downloads.guest.items', $order)->with('download_error', match ($result->denialReason) {
+                'limit_reached' => 'You\'ve reached the download limit for this album ZIP.',
+                'no_audio_asset' => 'This album has no downloadable files yet.',
+                default => 'You don\'t have download access to this album.',
+            });
+        }
+
+        return response()->download($result->zipPath, $result->filename, ['Content-Type' => 'application/zip'])
+            ->deleteFileAfterSend();
+    }
+
+    /**
+     * Once a guest order has been claimed into a verified account
+     * (ClaimGuestPurchasesAction), its emailed link sends the purchaser to
+     * their account library instead — same entitlements, same remaining
+     * quotas and expiry, reached through the signed-in path (the `auth`
+     * middleware there handles signing in first). Detected by the order now
+     * having a user while its entitlements still carry the guest token hash
+     * they were issued with.
+     */
+    private function redirectIfClaimed(Order $order): ?RedirectResponse
+    {
+        if ($order->isGuest() || $order->status !== OrderStatus::Paid) {
+            return null;
+        }
+
+        $wasGuestOrder = $order->items()
+            ->whereHas('entitlement', fn ($query) => $query->whereNotNull('access_token_hash'))
+            ->exists();
+
+        if (! $wasGuestOrder) {
+            return null;
+        }
+
+        return redirect()->route('account.orders')
+            ->with('status', 'This purchase is now saved to your account — sign in to download it.');
+    }
+
+    private function redirectToItems(Order $order): RedirectResponse
+    {
+        $url = route('downloads.guest.items', $order);
+
+        return redirect()->to(GuestOrderAccessSession::pullAlbumZipIntent($order) ? $url.'#album-zip' : $url);
     }
 
     /**

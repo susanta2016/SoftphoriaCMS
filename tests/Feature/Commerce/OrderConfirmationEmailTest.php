@@ -45,12 +45,13 @@ class OrderConfirmationEmailTest extends TestCase
 
     public function test_a_registered_purchasers_paid_order_sends_order_confirmation_only(): void
     {
+        $single = $this->readySingle();
         Mail::fake();
         $this->seed(EmailTemplateSeeder::class);
         $this->app->bind(StripeGatewayContract::class, FakeStripeGateway::class);
 
         $user = User::factory()->create();
-        $order = app(CreatePendingOrderAction::class)->handle($this->readySingle(), $user, $user->email);
+        $order = app(CreatePendingOrderAction::class)->handle($single, $user, $user->email);
 
         $this->payViaWebhook($order->public_id, 'evt_order_conf_1', 'cs_order_conf_1');
 
@@ -211,5 +212,74 @@ class OrderConfirmationEmailTest extends TestCase
         // Only the pre-existing pro_member_registered + email_verification
         // pair — never order_confirmation/guest_download_access.
         Mail::assertSent(TemplatedNotificationMail::class, 2);
+    }
+
+    public function test_the_default_guest_email_for_an_album_includes_both_the_access_link_and_a_zip_link(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+        $this->app->bind(StripeGatewayContract::class, FakeStripeGateway::class);
+
+        $album = $this->readyAlbum();
+        $order = app(CreatePendingOrderAction::class)->handle($album, null, 'guest@example.com', 'Jane Doe');
+
+        $this->payViaWebhook($order->public_id, 'evt_guest_album_zip', 'cs_guest_album_zip');
+
+        Mail::assertSent(TemplatedNotificationMail::class, function (TemplatedNotificationMail $mail) use ($order): bool {
+            $rendered = $mail->render();
+
+            return str_contains($rendered, 'Download Now')
+                && str_contains($rendered, 'Download Full Album (ZIP)')
+                && str_contains($rendered, e(route('downloads.guest.show', $order)))
+                && str_contains($rendered, 'next=album-zip')
+                && ! str_contains($rendered, '{{');
+        });
+    }
+
+    /**
+     * The ZIP-link wording was added to these two keys' *defaults* — a
+     * production row an admin has already customized (or one still holding
+     * the previous default) must be left exactly as it is on re-seed; only
+     * the code-owned available_variables list gains the new placeholder.
+     */
+    public function test_re_seeding_never_overwrites_customized_purchase_templates(): void
+    {
+        $this->seed(EmailTemplateSeeder::class);
+
+        foreach (['order_confirmation', 'guest_download_access'] as $key) {
+            EmailTemplate::query()->where('notification_key', $key)->update([
+                'subject' => "Custom subject for {$key}",
+                'html_body' => "<p>Admin-written body for {$key} {{item_title}}</p>",
+                'is_enabled' => false,
+                'available_variables' => ['item_title'],
+            ]);
+        }
+
+        $this->seed(EmailTemplateSeeder::class);
+
+        foreach (['order_confirmation', 'guest_download_access'] as $key) {
+            $template = EmailTemplate::query()->where('notification_key', $key)->sole();
+
+            $this->assertSame("Custom subject for {$key}", $template->subject);
+            $this->assertSame("<p>Admin-written body for {$key} {{item_title}}</p>", $template->html_body);
+            $this->assertFalse((bool) $template->is_enabled);
+            $this->assertContains('album_zip_download_url', $template->available_variables);
+        }
+    }
+
+    public function test_the_default_order_confirmation_for_an_album_links_to_the_account_zip_section(): void
+    {
+        Mail::fake();
+        $this->seed(EmailTemplateSeeder::class);
+        $this->app->bind(StripeGatewayContract::class, FakeStripeGateway::class);
+
+        $user = User::factory()->create(['status' => 'active']);
+        $album = $this->readyAlbum();
+        $order = app(CreatePendingOrderAction::class)->handle($album, $user, $user->email);
+
+        $this->payViaWebhook($order->public_id, 'evt_member_album_zip', 'cs_member_album_zip');
+
+        Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => str_contains($mail->render(), route('account.orders').'#album-zip')
+            && str_contains($mail->render(), 'Download Full Album (ZIP)'));
     }
 }

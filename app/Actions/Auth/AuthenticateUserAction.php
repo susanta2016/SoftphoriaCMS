@@ -4,8 +4,11 @@ namespace App\Actions\Auth;
 
 use App\Enums\UserStatus;
 use App\Models\User;
+use App\Modules\Commerce\Actions\Order\ClaimGuestPurchasesAction;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * The only place `Auth::attempt()` is called from the public site. A
@@ -26,7 +29,10 @@ class AuthenticateUserAction
         UserStatus::Deleted->value,
     ];
 
-    public function __construct(private readonly RecordLastLoginAction $recordLastLogin) {}
+    public function __construct(
+        private readonly RecordLastLoginAction $recordLastLogin,
+        private readonly ClaimGuestPurchasesAction $claimGuestPurchases,
+    ) {}
 
     /**
      * @throws ValidationException
@@ -64,6 +70,19 @@ class AuthenticateUserAction
         }
 
         $this->recordLastLogin->handle($user);
+
+        // A verified member who checked out as a guest (signed out) with
+        // their own account email gets that purchase in their library on
+        // the next sign-in. ClaimGuestPurchasesAction itself refuses an
+        // unverified account; a failure here never blocks signing in.
+        try {
+            $this->claimGuestPurchases->handle($user);
+        } catch (Throwable $exception) {
+            Log::warning('Claiming guest purchases at sign-in failed', [
+                'user_id' => $user->getKey(),
+                'exception' => $exception->getMessage(),
+            ]);
+        }
 
         return $user;
     }

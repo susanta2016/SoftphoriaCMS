@@ -25,7 +25,12 @@ class EntitlementAccessTest extends TestCase
 {
     use CreatesCommerceFixtures, RefreshDatabase;
 
-    public function test_album_purchase_grants_every_track_under_that_album(): void
+    /**
+     * Client-confirmed 2026-10-29: a full-album purchase is ZIP-only. It
+     * still covers (owns) every track under the album, but never resolves
+     * as individual-track download access — see AlbumZipDownloadTest.
+     */
+    public function test_album_purchase_covers_every_track_but_is_downloaded_only_as_a_zip(): void
     {
         $user = $this->admin();
         $album = $this->readyAlbum();
@@ -40,12 +45,16 @@ class EntitlementAccessTest extends TestCase
         ]);
 
         $order = app(CreatePendingOrderAction::class)->handle($album, $user, $user->email);
-        app(MarkOrderPaidAction::class)->handle($order, 'pi_1', 'evt_1');
+        $entitlement = app(MarkOrderPaidAction::class)->handle($order, 'pi_1', 'evt_1')[0]->entitlement;
+
+        $this->assertTrue($entitlement->coversTrack($album->tracks->first()));
+        $this->assertTrue($entitlement->coversTrack($secondTrack));
+        $this->assertTrue($user->ownsTrack($secondTrack));
 
         $resolver = app(ResolveTrackAccessAction::class);
 
-        $this->assertNotNull($resolver->forUser($album->tracks->first(), $user));
-        $this->assertNotNull($resolver->forUser($secondTrack, $user));
+        $this->assertNull($resolver->forUser($album->tracks->first(), $user));
+        $this->assertNull($resolver->forUser($secondTrack, $user));
     }
 
     public function test_a_track_from_a_different_album_cannot_be_downloaded_with_that_entitlement(): void

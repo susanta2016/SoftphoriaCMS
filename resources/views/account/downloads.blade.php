@@ -21,12 +21,14 @@
                 @foreach ($downloads as $download)
                     @php
                         $track = $download->track;
-                        $release = $track?->album ?? $track?->single;
+                        $release = $download->album ?? $track?->album ?? $track?->single;
                     @endphp
 
                     <div class="flex flex-wrap items-center justify-between gap-3 py-4">
                         <div class="min-w-0">
-                            @if ($track)
+                            @if ($download->album_id !== null)
+                                <span class="truncate text-sm font-medium text-brand-navy">Full album (ZIP)</span>
+                            @elseif ($track)
                                 <a href="{{ route('music.tracks.show', $track) }}" class="truncate text-sm font-medium text-brand-navy hover:text-brand-gold">{{ $track->title }}</a>
                             @else
                                 <span class="text-sm font-medium text-brand-navy/50">Track no longer available</span>

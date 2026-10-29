@@ -39,7 +39,7 @@ class EntitlementInfolist
                                 return "{$title} ({$type})";
                             }),
                         TextEntry::make('expires_at')->dateTime()->placeholder('Never'),
-                        TextEntry::make('downloads_used')->label('Downloads used'),
+                        TextEntry::make('downloads_used')->label('Downloads used')->state(fn ($record): int => $record->downloadsUsedCount()),
                         TextEntry::make('max_downloads')->label('Limit')->placeholder('Unlimited'),
                         TextEntry::make('revoked_at')->dateTime()->placeholder('No'),
                         TextEntry::make('revoked_reason')->label('Revoke reason')->placeholder('—'),

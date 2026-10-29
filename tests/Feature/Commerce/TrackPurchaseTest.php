@@ -243,7 +243,11 @@ class TrackPurchaseTest extends TestCase
 
     // -- Album purchase regression ------------------------------------------------
 
-    public function test_album_purchase_still_grants_every_track_under_the_album(): void
+    /**
+     * Client-confirmed 2026-10-29: an Album purchase still owns every track
+     * under it, but is downloaded only as one ZIP — never track by track.
+     */
+    public function test_album_purchase_owns_every_track_but_grants_no_individual_track_downloads(): void
     {
         $user = $this->admin();
         $album = $this->readyAlbum();
@@ -252,11 +256,14 @@ class TrackPurchaseTest extends TestCase
         $order = app(CreatePendingOrderAction::class)->handle($album, $user, $user->email);
         $this->assertNull($order->items->first()->track_id);
 
-        app(MarkOrderPaidAction::class)->handle($order, 'pi_1', 'evt_1');
+        $entitlement = app(MarkOrderPaidAction::class)->handle($order, 'pi_1', 'evt_1')[0]->entitlement;
+
+        $this->assertTrue($entitlement->isAlbumPurchase());
+        $this->assertTrue($user->ownsTrack($secondTrack));
 
         $resolver = app(ResolveTrackAccessAction::class);
-        $this->assertNotNull($resolver->forUser($album->tracks->first(), $user));
-        $this->assertNotNull($resolver->forUser($secondTrack, $user));
+        $this->assertNull($resolver->forUser($album->tracks->first(), $user));
+        $this->assertNull($resolver->forUser($secondTrack, $user));
     }
 
     // -- Additional regression ------------------------------------------------

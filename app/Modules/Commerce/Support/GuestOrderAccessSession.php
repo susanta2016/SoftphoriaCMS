@@ -53,6 +53,22 @@ class GuestOrderAccessSession
     }
 
     /**
+     * The emailed "Download the full album (ZIP)" link is the same tokenized
+     * access link plus next=album-zip — remembered here so that, once
+     * verified, the purchaser lands on the ZIP section of the items page.
+     * Purely navigational; grants nothing.
+     */
+    public static function rememberAlbumZipIntent(Order $order): void
+    {
+        session([self::key($order).'_album_zip_intent' => true]);
+    }
+
+    public static function pullAlbumZipIntent(Order $order): bool
+    {
+        return (bool) session()->pull(self::key($order).'_album_zip_intent', false);
+    }
+
+    /**
      * @return array{verified: bool, tokens: array<string, string>}
      */
     private static function stateFor(Order $order): array

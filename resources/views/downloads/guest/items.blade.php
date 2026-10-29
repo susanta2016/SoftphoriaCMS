@@ -22,31 +22,53 @@
             <div class="mt-8 space-y-6">
                 @foreach ($order->items as $item)
                     @php
-                        // A 'track' item purchase (an individually-bought
-                        // Album-owned track) exposes exactly that one track
-                        // here — never its parent Album's other tracks.
+                        // Decided per line item: a full-album purchase is
+                        // ZIP-only (no per-track links); an individually
+                        // purchased song (Single, or an Album-owned 'track'
+                        // item) exposes exactly that one song — never its
+                        // parent Album's other tracks.
+                        $isAlbumPurchase = $item->album_id !== null;
                         $tracks = match (true) {
-                            $item->album_id !== null => $item->album->tracks,
+                            $isAlbumPurchase => collect(),
                             $item->single_id !== null => collect([$item->single->track])->filter(),
                             default => collect([$item->track])->filter(),
                         };
                         $entitlement = $item->entitlement;
+                        $entitlementActive = $entitlement && $entitlement->status() === EntitlementStatus::Active;
                     @endphp
 
                     <div class="rounded-2xl border border-brand-navy/10 p-5">
                         <div class="flex items-center justify-between gap-4">
                             <h2 class="font-serif text-lg text-brand-navy">{{ $item->item_title }}</h2>
-                            @if ($entitlement && $entitlement->max_downloads !== null)
+                            @if ($entitlement && $entitlement->remainingDownloads() !== null)
                                 <span class="text-xs font-semibold tracking-wide text-brand-navy/50 uppercase">
                                     {{ $entitlement->remainingDownloads() }} download{{ $entitlement->remainingDownloads() === 1 ? '' : 's' }} left
                                 </span>
                             @endif
                         </div>
 
+                        @if ($entitlement?->expires_at)
+                            <p class="mt-1 text-xs text-brand-navy/50">Access until {{ $entitlement->expires_at->format('M j, Y') }}</p>
+                        @endif
+
+                        @if ($isAlbumPurchase && $entitlement)
+                            <div id="album-zip" class="mt-4 flex items-center justify-between gap-4 rounded-md bg-brand-navy/5 px-4 py-3 text-sm">
+                                <span class="text-brand-navy">Full album (ZIP)</span>
+
+                                @if ($entitlementActive)
+                                    <a href="{{ route('downloads.guest.album-zip', [$order, $entitlement]) }}" class="inline-flex items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-4 py-2 text-xs font-semibold tracking-wide text-brand-navy uppercase transition hover:bg-brand-gold/20">
+                                        Download ZIP
+                                    </a>
+                                @else
+                                    <span class="text-xs font-medium text-brand-navy/40 uppercase">Unavailable</span>
+                                @endif
+                            </div>
+                        @endif
+
                         <div class="mt-4 divide-y divide-brand-navy/5">
                             @foreach ($tracks as $track)
                                 @php
-                                    $available = $entitlement && $entitlement->status() === EntitlementStatus::Active && $track->audio_media_id !== null;
+                                    $available = $entitlementActive && $track->audio_media_id !== null;
                                 @endphp
                                 <div class="flex items-center justify-between gap-4 py-3 text-sm">
                                     <span class="text-brand-navy">{{ $track->title }}</span>

@@ -25,7 +25,7 @@ use Throwable;
  */
 #[Fillable([
     'order_item_id', 'user_id', 'purchaser_email', 'album_id', 'single_id', 'track_id',
-    'access_token_hash', 'max_downloads', 'downloads_used', 'expires_at',
+    'access_token_hash', 'max_downloads', 'downloads_used', 'zip_downloads_used', 'expires_at',
 ])]
 class Entitlement extends Model
 {
@@ -85,6 +85,45 @@ class Entitlement extends Model
     }
 
     /**
+     * Download mode is decided per purchased line item, never per order
+     * (client-confirmed 2026-10-29) — a mixed order simply holds one
+     * entitlement of each kind:
+     *  - an Album entitlement is downloaded only as one full-album ZIP, with
+     *    its own counter (zip_downloads_used); it never authorizes an
+     *    individual track download (see authorizesTrackDownload()).
+     *  - a Single/Track entitlement is one purchased song, downloaded
+     *    individually against its own counter (downloads_used).
+     * Every entitlement's max_downloads therefore always limits exactly one
+     * downloadable thing, so one item never consumes another's allowance.
+     */
+    public function isAlbumPurchase(): bool
+    {
+        return $this->album_id !== null;
+    }
+
+    /**
+     * Whether this entitlement lets its holder download $track as an
+     * individual file — only an individually purchased song (Single/Track),
+     * never an Album purchase, even though an Album covers its tracks
+     * (coversTrack()) for every non-download purpose.
+     */
+    public function authorizesTrackDownload(Track $track): bool
+    {
+        return ! $this->isAlbumPurchase() && $this->coversTrack($track);
+    }
+
+    /**
+     * This entitlement's one enforced counter — the ZIP count for an Album,
+     * the song's own count otherwise. On an older Album entitlement,
+     * downloads_used still holds its pre-ZIP individual-track history
+     * (informational only, never enforced again).
+     */
+    public function downloadsUsedCount(): int
+    {
+        return (int) ($this->isAlbumPurchase() ? $this->zip_downloads_used : $this->downloads_used);
+    }
+
+    /**
      * Whichever Track(s) this grants access to — an Album entitlement covers
      * every track under it (including trashed ones: a track pulled from sale
      * after purchase must not retroactively break an existing customer's
@@ -127,7 +166,7 @@ class Entitlement extends Model
 
     public function isExhausted(): bool
     {
-        return $this->max_downloads !== null && $this->downloads_used >= $this->max_downloads;
+        return $this->max_downloads !== null && $this->downloadsUsedCount() >= $this->max_downloads;
     }
 
     public function isActive(): bool
@@ -137,7 +176,7 @@ class Entitlement extends Model
 
     public function remainingDownloads(): ?int
     {
-        return $this->max_downloads === null ? null : max(0, $this->max_downloads - $this->downloads_used);
+        return $this->max_downloads === null ? null : max(0, $this->max_downloads - $this->downloadsUsedCount());
     }
 
     /**

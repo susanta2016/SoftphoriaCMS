@@ -61,7 +61,7 @@ class OrderInfolist
                             ->copyable(),
                         TextEntry::make('entitlement.downloads_used')
                             ->label('Downloads used')
-                            ->state(fn (Order $record): ?int => $record->items->first()?->entitlement?->downloads_used),
+                            ->state(fn (Order $record): ?int => $record->items->first()?->entitlement?->downloadsUsedCount()),
                         TextEntry::make('entitlement.max_downloads')
                             ->label('Limit')
                             ->state(fn (Order $record): ?int => $record->items->first()?->entitlement?->max_downloads)

@@ -262,6 +262,7 @@ class EditEmailTemplate extends EditRecord
             'order_total' => '1.29',
             'order_id' => 'SAMPLE-ORDER-ID',
             'download_access_url' => url('/#sample-download-link'),
+            'album_zip_download_url' => url('/#sample-album-zip-link'),
             'link_validity_window' => '30 days',
             'link_expiry_date' => now()->addDays(30)->format('F j, Y'),
             'max_downloads' => '5',

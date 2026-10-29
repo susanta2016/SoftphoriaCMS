@@ -29,10 +29,13 @@ class SendOrderConfirmationEmailAction
      */
     public function handle(Order $order, array $issuedEntitlements = []): void
     {
+        $hasAlbum = $order->items->contains(fn ($item) => $item->album_id !== null);
+
         try {
             $this->mailer->send('order_confirmation', EmailRecipientType::User, $order->purchaser_email, [
                 ...OrderEmailVariables::for($order, $issuedEntitlements),
                 'account_orders_url' => route('account.orders'),
+                'album_zip_download_url' => route('account.orders').($hasAlbum ? '#album-zip' : ''),
             ]);
         } catch (Throwable $exception) {
             Log::warning('Order confirmation email failed to send', [
