@@ -80,6 +80,9 @@
                     <form method="POST" action="{{ route('contact.submit') }}" class="rounded-2xl bg-white p-6 shadow-xl ring-1 ring-brand-navy/5 sm:p-8">
                         @csrf
 
+                        {{-- Time trap: when this form was served (encrypted) — see FormTimeTrap / ContactController::store(). --}}
+                        <input type="hidden" name="{{ \App\Shared\Support\Spam\FormTimeTrap::FIELD }}" value="{{ app(\App\Shared\Support\Spam\FormTimeTrap::class)->issue() }}">
+
                         {{--
                             Honeypot spam trap — visually hidden from real
                             visitors (off-screen, never via display:none/

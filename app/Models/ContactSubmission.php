@@ -13,5 +13,5 @@ use Illuminate\Database\Eloquent\Model;
  * never hand-built in the admin panel (mirrors ResourceSubmission's own
  * reasoning).
  */
-#[Fillable(['name', 'email', 'phone', 'message'])]
+#[Fillable(['name', 'email', 'phone', 'message', 'ip_address', 'user_agent'])]
 class ContactSubmission extends Model {}

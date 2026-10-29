@@ -25,11 +25,18 @@ class SubmitContactFormAction
     public function __construct(private readonly TemplatedMailer $mailer) {}
 
     /**
+     * $ipAddress/$userAgent record the submission's source so spam that
+     * still gets through can be recognised in the admin panel.
+     *
      * @param  array<string, mixed>  $data
      */
-    public function handle(array $data): ContactSubmission
+    public function handle(array $data, ?string $ipAddress = null, ?string $userAgent = null): ContactSubmission
     {
-        $submission = ContactSubmission::query()->create($data);
+        $submission = ContactSubmission::query()->create([
+            ...$data,
+            'ip_address' => $ipAddress,
+            'user_agent' => $userAgent !== null ? mb_substr($userAgent, 0, 512) : null,
+        ]);
 
         $variables = [
             'name' => $submission->name,

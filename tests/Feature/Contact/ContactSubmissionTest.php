@@ -6,21 +6,23 @@ use App\Models\ContactSubmission;
 use App\Models\Role;
 use App\Models\User;
 use App\Shared\Mail\TemplatedNotificationMail;
+use App\Shared\Support\Spam\FormTimeTrap;
 use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Tests\Support\PassesFormTimeTrap;
 use Tests\TestCase;
 
 /**
  * The public Contact Us page — an info section (admin-configured email/
  * address, Settings' Contact tab) plus a submission form. A submission is
  * always a private administrative record; the page itself is a normal,
- * indexable public page. Spam protection: a honeypot field
- * (ContactController::store()'s own docblock) plus route throttling.
+ * indexable public page. Spam protection is covered separately in
+ * ContactSpamProtectionTest.
  */
 class ContactSubmissionTest extends TestCase
 {
-    use RefreshDatabase;
+    use PassesFormTimeTrap, RefreshDatabase;
 
     public function test_the_page_is_publicly_accessible_with_contact_info_and_a_form(): void
     {
@@ -50,6 +52,7 @@ class ContactSubmissionTest extends TestCase
             'email' => 'jane@example.com',
             'phone' => '555-0100',
             'message' => 'Hello, I have a question.',
+            FormTimeTrap::FIELD => $this->formStartedToken(),
         ]);
 
         $response->assertRedirect(route('contact.index'));
@@ -67,6 +70,7 @@ class ContactSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'message' => 'No phone provided.',
+            FormTimeTrap::FIELD => $this->formStartedToken(),
         ]);
 
         $response->assertRedirect(route('contact.index'));
@@ -124,6 +128,7 @@ class ContactSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'message' => 'Hello, I have a question.',
+            FormTimeTrap::FIELD => $this->formStartedToken(),
         ]);
 
         Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo($admin->email));
@@ -138,6 +143,7 @@ class ContactSubmissionTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'message' => 'Hello, I have a question.',
+            FormTimeTrap::FIELD => $this->formStartedToken(),
         ]);
 
         Mail::assertSent(TemplatedNotificationMail::class, fn (TemplatedNotificationMail $mail): bool => $mail->hasTo('jane@example.com'));

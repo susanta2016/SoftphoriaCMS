@@ -95,12 +95,12 @@ Route::post('/webhooks/ses', SesWebhookController::class)
     ->name('newsletter.webhooks.ses');
 
 // Public Contact Us — info (admin-configured email/address, Settings'
-// Contact tab) plus a submission form. Throttled the same as
-// inspirational-resources.submit; a honeypot field is the other spam
-// defense (see ContactController::store()'s own docblock).
+// Contact tab) plus a submission form. Throttled per IP by the
+// 'contact-submit' limiter (AppServiceProvider); the honeypot, link rules
+// and time trap are the other spam defenses (see ContactController::store()).
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
 Route::post('/contact', [ContactController::class, 'store'])
-    ->middleware('throttle:6,1')
+    ->middleware('throttle:contact-submit')
     ->name('contact.submit');
 
 // ADMIN-005: admin-only audio/video playback for the Media Library. Auth is

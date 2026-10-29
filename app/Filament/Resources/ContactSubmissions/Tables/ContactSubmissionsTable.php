@@ -12,7 +12,7 @@ use Filament\Tables\Table;
  * List-only (mirrors ResourceSubmissionsTable) — submissions are created
  * exclusively by SubmitContactFormAction from the public form, never
  * hand-created in the admin panel. The only bulk action is Delete, for
- * clearing spam that slips past the honeypot/throttle.
+ * clearing spam that slips past the honeypot/time trap/throttle.
  */
 class ContactSubmissionsTable
 {
@@ -24,6 +24,13 @@ class ContactSubmissionsTable
                 TextColumn::make('email')->searchable(),
                 TextColumn::make('phone')->placeholder('—'),
                 TextColumn::make('message')->limit(60)->wrap(),
+                // Search by IP to find (and bulk-delete) everything from one
+                // spam source; empty for submissions made before IPs were recorded.
+                TextColumn::make('ip_address')
+                    ->label('IP')
+                    ->searchable()
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('created_at')
                     ->label('Submitted')
                     ->dateTime()

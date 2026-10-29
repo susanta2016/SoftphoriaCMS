@@ -6,9 +6,12 @@ use App\Enums\EmailRecipientType;
 use App\Shared\Services\Notifications\TemplatedMailer;
 use App\Shared\Support\Modules\ModuleRegistry;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Events\CommandStarting;
+use Illuminate\Http\Request;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
@@ -33,6 +36,24 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->routeResetPasswordThroughEmailTemplates();
         $this->guardDestructiveMigrations();
+        $this->limitContactSubmissions();
+    }
+
+    /**
+     * Contact Us submissions per visitor IP: 3 per 10 minutes and 20 per
+     * day — plenty for a real person, far below what a spam bot needs. The
+     * two limits use distinct keys so they're counted independently.
+     * Production nginx passes the visitor's real address to PHP-FPM (no CDN
+     * or load balancer in front, verified 2026-10-29); if Cloudflare
+     * proxying is ever enabled, trusted proxies must be configured first or
+     * every visitor would share Cloudflare's IPs here.
+     */
+    private function limitContactSubmissions(): void
+    {
+        RateLimiter::for('contact-submit', fn (Request $request): array => [
+            Limit::perMinutes(10, 3)->by('contact-10m:'.$request->ip()),
+            Limit::perDay(20)->by('contact-day:'.$request->ip()),
+        ]);
     }
 
     /**
