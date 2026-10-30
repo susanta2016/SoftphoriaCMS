@@ -268,4 +268,21 @@ return [
 
     'force_login_enabled' => env('FORCE_LOGIN_ENABLED', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Contact Submissions: Admin "Reply"
+    |--------------------------------------------------------------------------
+    |
+    | When true, Admin > Contact > Submissions offers a "Reply" action that
+    | emails the submitter (always the address stored on the submission —
+    | never editable) through the `contact_submission_reply` Email Template,
+    | and keeps every reply in contact_submission_replies. Enforced
+    | server-side by App\Actions\Contact\SendContactSubmissionReplyAction on
+    | every send, not just by hiding the action. Turning it off never
+    | removes reply history already recorded. Off by default.
+    |
+    */
+
+    'contact_submission_reply_enabled' => env('CONTACT_SUBMISSION_REPLY_ENABLED', false),
+
 ];

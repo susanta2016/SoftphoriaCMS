@@ -260,6 +260,47 @@ return [
         ],
     ],
 
+    // An admin's reply to a Contact Us submission
+    // (App\Actions\Contact\SendContactSubmissionReplyAction, gated by
+    // config('features.contact_submission_reply_enabled')). The subject is
+    // whatever the admin typed. Every variable except site_name/
+    // original_date is user- or admin-typed text: the action HTML-escapes it
+    // for the HTML body and passes it unescaped for the subject and the
+    // plain-text body. original_message arrives as one line with <br>s, so
+    // it can sit inside a single <blockquote> paragraph.
+    'contact_submission_reply' => [
+        'label' => 'Contact Form Reply (from Admin)',
+        'recipients' => ['user'],
+        'variables' => ['name', 'reply_subject', 'reply_message', 'original_message', 'original_date', 'site_name'],
+        'default_subject' => '{{reply_subject}}',
+        'default_html_body' => <<<'HTML'
+            Hi {{name}},
+
+            {{reply_message}}
+
+            <p style="margin:0 0 1em 0;">Warm regards,<br>The {{site_name}} team</p>
+
+            <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
+
+            <p style="margin:0 0 8px 0;font-size:13px;color:#6b7280;">On {{original_date}} you wrote:</p>
+
+            <blockquote style="margin:0;padding:0 0 0 12px;border-left:3px solid #e5e7eb;font-size:13px;color:#6b7280;">{{original_message}}</blockquote>
+            HTML,
+        'default_text_body' => <<<'TEXT'
+            Hi {{name}},
+
+            {{reply_message}}
+
+            Warm regards,
+            The {{site_name}} team
+
+            ---
+            On {{original_date}} you wrote:
+
+            {{original_message}}
+            TEXT,
+    ],
+
     'inspirational_resource_submitted' => [
         'label' => 'Inspirational Resource Submission',
         'recipients' => ['admin'],

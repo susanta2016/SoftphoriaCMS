@@ -52,9 +52,16 @@ class TemplatedMailer
      * null on the same disabled/missing conditions in both cases; the
      * caller decides the appropriate fallback.
      *
+     * $variables are inserted into the HTML body as-is. A caller passing
+     * user-typed text HTML-escapes it there, and gives the unescaped values
+     * as $plainTextVariables, used for the subject and the plain-text body
+     * (which would otherwise show the escaped entities). Null keeps the
+     * original behavior: $variables everywhere.
+     *
      * @param  array<string, string>  $variables
+     * @param  array<string, string>|null  $plainTextVariables
      */
-    public function renderAsMailable(string $notificationKey, EmailRecipientType $recipientType, array $variables = []): ?TemplatedNotificationMail
+    public function renderAsMailable(string $notificationKey, EmailRecipientType $recipientType, array $variables = [], ?array $plainTextVariables = null): ?TemplatedNotificationMail
     {
         $template = EmailTemplate::query()
             ->where('notification_key', $notificationKey)
@@ -66,7 +73,9 @@ class TemplatedMailer
             return null;
         }
 
-        $variables += ['site_name' => (string) $this->settings->get('general', 'site_name', config('app.name'))];
+        $siteName = ['site_name' => (string) $this->settings->get('general', 'site_name', config('app.name'))];
+        $variables += $siteName;
+        $plainTextVariables = $plainTextVariables === null ? $variables : $plainTextVariables + $siteName;
 
         $this->mailSettings->apply();
 
@@ -76,11 +85,11 @@ class TemplatedMailer
         // Plain-Text Fallback when filled, otherwise one derived from the
         // formatted HTML body — either way followed by the text footer.
         $textBody = filled($template->text_body)
-            ? $this->substitute($template->text_body, $variables)
+            ? $this->substitute($template->text_body, $plainTextVariables)
             : BrandedEmailLayout::htmlToText(self::formatHtmlBody($htmlBody));
 
         return new TemplatedNotificationMail(
-            $this->substitute($template->subject, $variables),
+            $this->substitute($template->subject, $plainTextVariables),
             self::renderEmailHtml($htmlBody),
             $this->layout->text($textBody),
             $this->settings->get('email', 'reply_to_email'),

@@ -11,6 +11,8 @@ class ViewContactSubmission extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            ContactSubmissionResource::replyAction(),
+        ];
     }
 }

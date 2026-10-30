@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ContactSubmissions\Tables;
 
+use App\Filament\Resources\ContactSubmissions\ContactSubmissionResource;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
@@ -39,6 +40,7 @@ class ContactSubmissionsTable
             ->searchable()
             ->recordActions([
                 ViewAction::make(),
+                ContactSubmissionResource::replyAction(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
