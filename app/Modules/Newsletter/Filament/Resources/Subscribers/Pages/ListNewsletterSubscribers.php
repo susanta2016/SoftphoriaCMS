@@ -7,6 +7,7 @@ use App\Modules\Newsletter\Actions\Subscribers\ImportSubscribersAction;
 use App\Modules\Newsletter\Exceptions\NewsletterException;
 use App\Modules\Newsletter\Filament\Resources\Subscribers\NewsletterSubscriberResource;
 use App\Modules\Newsletter\Models\NewsletterGroup;
+use App\Modules\Newsletter\Support\NewsletterFeature;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Checkbox;
@@ -53,7 +54,8 @@ class ListNewsletterSubscribers extends ListRecords
                 Select::make('groups')
                     ->label('Add everyone to these groups')
                     ->multiple()
-                    ->options(fn (): array => NewsletterGroup::query()->orderBy('name')->pluck('name', 'id')->all()),
+                    ->options(fn (): array => NewsletterGroup::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->visible(fn (): bool => NewsletterFeature::enabled()),
                 TextInput::make('source')
                     ->default('import')
                     ->maxLength(50),

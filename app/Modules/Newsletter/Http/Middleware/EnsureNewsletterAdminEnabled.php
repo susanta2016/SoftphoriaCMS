@@ -18,7 +18,7 @@ class EnsureNewsletterAdminEnabled
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! NewsletterFeature::enabled() && $request->is('admin/newsletter', 'admin/newsletter/*', 'admin/newsletter-*')) {
+        if (! NewsletterFeature::enabled() && $request->is('admin/newsletter', 'admin/newsletter/*')) {
             abort(404);
         }
 

@@ -5,6 +5,7 @@ namespace App\Modules\Newsletter\Filament\Resources\Subscribers\Tables;
 use App\Models\NewsletterSubscriber;
 use App\Modules\Newsletter\Enums\SubscriberStatus;
 use App\Modules\Newsletter\Models\NewsletterGroup;
+use App\Modules\Newsletter\Support\NewsletterFeature;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -46,7 +47,8 @@ class NewsletterSubscribersTable
                     ->label('Groups')
                     ->badge()
                     ->limitList(3)
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->visible(fn (): bool => NewsletterFeature::enabled()),
                 TextColumn::make('source')
                     ->placeholder('—')
                     ->toggleable(),
@@ -61,14 +63,18 @@ class NewsletterSubscribersTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->filters([
+            ->filters(array_filter([
                 SelectFilter::make('status')
                     ->options(collect(SubscriberStatus::cases())->mapWithKeys(fn (SubscriberStatus $status): array => [$status->value => $status->getLabel()])->all()),
-                SelectFilter::make('groups')
-                    ->relationship('groups', 'name')
-                    ->multiple()
-                    ->preload(),
-            ])
+                // Groups belong to Newsletter Marketing; without it the
+                // list is the plain subscriber list it was before.
+                NewsletterFeature::enabled()
+                    ? SelectFilter::make('groups')
+                        ->relationship('groups', 'name')
+                        ->multiple()
+                        ->preload()
+                    : null,
+            ]))
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
@@ -83,6 +89,7 @@ class NewsletterSubscribersTable
                             $records->each(fn (NewsletterSubscriber $subscriber) => $subscriber->groups()->syncWithoutDetaching([(int) $data['group_id']]));
                             Notification::make()->title('Added '.$records->count().' subscriber(s) to the group.')->success()->send();
                         })
+                        ->visible(fn (): bool => NewsletterFeature::enabled())
                         ->deselectRecordsAfterCompletion(),
                     BulkAction::make('removeFromGroup')
                         ->label('Remove from group')
@@ -92,6 +99,7 @@ class NewsletterSubscribersTable
                             $records->each(fn (NewsletterSubscriber $subscriber) => $subscriber->groups()->detach((int) $data['group_id']));
                             Notification::make()->title('Removed '.$records->count().' subscriber(s) from the group.')->success()->send();
                         })
+                        ->visible(fn (): bool => NewsletterFeature::enabled())
                         ->deselectRecordsAfterCompletion(),
                     DeleteBulkAction::make()
                         ->modalDescription('Deleting keeps their campaign history and any suppression — a suppressed address stays blocked if it is added again.'),

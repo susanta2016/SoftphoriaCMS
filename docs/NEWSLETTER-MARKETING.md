@@ -22,8 +22,12 @@ is the module's single on/off switch. No database setting can turn it on.
 | `NewsletterDeliveryService` / `NewsletterMailer` | throw, never send | send |
 | Data | untouched | untouched |
 
-**Always on, by decision (2026-10-30):** the existing footer signup + double
-opt-in confirmation link, the SES/SNS webhook (`/webhooks/ses`), the
+**Always on, by decision (2026-10-30/31):** the subscriber list itself —
+with the module off it is the top-level **Newsletter Subscribers** item at
+its original URL `/admin/newsletter-subscribers` (add, edit, import,
+unsubscribe/resubscribe, suppress, delete; no groups); with it on, the same
+page sits under Newsletter Marketing as **Subscribers**, with groups. Also
+the existing footer signup + double opt-in confirmation link, the SES/SNS webhook (`/webhooks/ses`), the
 unsubscribe link in sent emails and click redirects in sent emails. An
 admin-side switch must never stop someone unsubscribing from email they
 already received, or break links they already have. Tracking records

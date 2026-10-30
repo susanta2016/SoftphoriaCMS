@@ -40,7 +40,7 @@ class ImportSubscribersAction
      */
     public function handle(User $admin, string $path, array $groupIds, bool $consentConfirmed, string $source = 'import'): array
     {
-        $this->ensureAdmin($admin);
+        $this->ensureAdmin($admin, requiresModule: false);
 
         if (! $consentConfirmed) {
             throw NewsletterException::invalid('Confirm that everyone in the file agreed to receive the newsletter.');

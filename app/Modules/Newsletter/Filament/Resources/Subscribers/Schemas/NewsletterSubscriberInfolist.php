@@ -4,6 +4,7 @@ namespace App\Modules\Newsletter\Filament\Resources\Subscribers\Schemas;
 
 use App\Models\NewsletterSubscriber;
 use App\Modules\Newsletter\Enums\SubscriberStatus;
+use App\Modules\Newsletter\Support\NewsletterFeature;
 use App\Modules\Newsletter\Support\SuppressionList;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -29,7 +30,8 @@ class NewsletterSubscriberInfolist
                             ->badge()
                             ->formatStateUsing(fn (?string $state): string => SubscriberStatus::labelFor($state))
                             ->color(fn (?string $state): string => SubscriberStatus::colorFor($state)),
-                        TextEntry::make('groups.name')->label('Groups')->badge()->placeholder('No groups'),
+                        TextEntry::make('groups.name')->label('Groups')->badge()->placeholder('No groups')
+                            ->visible(fn (): bool => NewsletterFeature::enabled()),
                         TextEntry::make('source')->placeholder('—'),
                         TextEntry::make('created_at')->label('Added')->dateTime(),
                     ]),

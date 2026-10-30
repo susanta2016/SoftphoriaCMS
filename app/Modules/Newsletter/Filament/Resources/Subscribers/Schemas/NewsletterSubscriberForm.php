@@ -2,6 +2,7 @@
 
 namespace App\Modules\Newsletter\Filament\Resources\Subscribers\Schemas;
 
+use App\Modules\Newsletter\Support\NewsletterFeature;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
@@ -10,8 +11,8 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 /**
- * Profile + groups only. No status field: see
- * NewsletterSubscriberResource::subscriptionActions().
+ * Profile + groups only (groups only while Newsletter Marketing is on). No
+ * status field: see NewsletterSubscriberResource::subscriptionActions().
  */
 class NewsletterSubscriberForm
 {
@@ -39,6 +40,7 @@ class NewsletterSubscriberForm
                             ->preload()
                             ->searchable()
                             ->helperText('Group membership never overrides an unsubscribe or suppression.')
+                            ->visible(fn (): bool => NewsletterFeature::enabled())
                             ->columnSpanFull(),
                         TextInput::make('source')
                             ->default('admin')

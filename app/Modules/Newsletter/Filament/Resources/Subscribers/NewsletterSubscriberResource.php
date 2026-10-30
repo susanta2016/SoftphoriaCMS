@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Modules\Newsletter\Actions\Subscribers\ManageSubscriptionAction;
 use App\Modules\Newsletter\Enums\SubscriberStatus;
 use App\Modules\Newsletter\Exceptions\NewsletterException;
-use App\Modules\Newsletter\Filament\Concerns\GatedByNewsletterFeature;
 use App\Modules\Newsletter\Filament\Resources\Subscribers\Pages\CreateNewsletterSubscriber;
 use App\Modules\Newsletter\Filament\Resources\Subscribers\Pages\EditNewsletterSubscriber;
 use App\Modules\Newsletter\Filament\Resources\Subscribers\Pages\ListNewsletterSubscribers;
@@ -15,6 +14,7 @@ use App\Modules\Newsletter\Filament\Resources\Subscribers\Pages\ViewNewsletterSu
 use App\Modules\Newsletter\Filament\Resources\Subscribers\Schemas\NewsletterSubscriberForm;
 use App\Modules\Newsletter\Filament\Resources\Subscribers\Schemas\NewsletterSubscriberInfolist;
 use App\Modules\Newsletter\Filament\Resources\Subscribers\Tables\NewsletterSubscribersTable;
+use App\Modules\Newsletter\Support\NewsletterFeature;
 use App\Modules\Newsletter\Support\SuppressionList;
 use BackedEnum;
 use Closure;
@@ -29,33 +29,44 @@ use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 /**
- * Newsletter Marketing > Subscribers — the same newsletter_subscribers
- * table the footer signup writes. Profile and group membership are edited
- * through the form; whether someone may be emailed (consent, unsubscribe,
- * suppression) only through subscriptionActions(), which go through
- * ManageSubscriptionAction's rules and audit log. The email address can't
- * be changed after creation, so an address can't be swapped to sidestep a
- * suppression.
+ * The newsletter_subscribers table the footer signup writes. Profile (and,
+ * with the module on, group membership) is edited through the form;
+ * whether someone may be emailed (consent, unsubscribe, suppression) only
+ * through subscriptionActions(), which go through ManageSubscriptionAction's
+ * rules and audit log. The email address can't be changed after creation,
+ * so an address can't be swapped to sidestep a suppression.
+ *
+ * Not gated by NEWSLETTER_MARKETING_ENABLED: this list was live before the
+ * module existed. Off, it is the top-level "Newsletter Subscribers" item at
+ * its original URL, without groups; on, it sits under Newsletter Marketing
+ * as "Subscribers" with groups.
  */
 class NewsletterSubscriberResource extends Resource
 {
-    use GatedByNewsletterFeature;
-
     protected static ?string $model = NewsletterSubscriber::class;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Newsletter Marketing';
-
-    protected static ?int $navigationSort = 2;
-
-    protected static ?string $slug = 'newsletter/subscribers';
-
-    protected static ?string $navigationLabel = 'Subscribers';
+    protected static ?string $slug = 'newsletter-subscribers';
 
     protected static ?string $modelLabel = 'subscriber';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
     protected static ?string $recordTitleAttribute = 'email';
+
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        return NewsletterFeature::enabled() ? 'Newsletter Marketing' : null;
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return NewsletterFeature::enabled() ? 'Subscribers' : 'Newsletter Subscribers';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return NewsletterFeature::enabled() ? 2 : null;
+    }
 
     public static function form(Schema $schema): Schema
     {

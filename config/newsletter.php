@@ -11,9 +11,10 @@
 | and NewsletterDeliveryService refuses to send. No database setting can
 | turn it on — the Newsletter Settings page only holds defaults.
 |
-| Deliberately NOT gated (client decision, 2026-10-30): the existing footer
-| signup + double opt-in confirmation link and the SES/SNS webhook, which
-| were live before this module existed. Also not gated: the unsubscribe
+| Deliberately NOT gated (client decision, 2026-10-30/31): the subscriber
+| list (top-level "Newsletter Subscribers" without groups when off), the
+| footer signup + double opt-in confirmation link and the SES/SNS webhook —
+| all live before this module existed. Also not gated: the unsubscribe
 | link and click redirects in emails that were already sent — a recipient's
 | right to unsubscribe can't depend on an admin-side flag, and turning the
 | module off must not break links people already have.

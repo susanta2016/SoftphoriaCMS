@@ -42,7 +42,7 @@ class ManageSubscriptionAction
      */
     public function create(User $admin, string $email, ?string $firstName, ?string $lastName, array $groupIds, bool $consentConfirmed, string $source = 'admin', ?array $profileFields = null): NewsletterSubscriber
     {
-        $this->ensureAdmin($admin);
+        $this->ensureAdmin($admin, requiresModule: false);
 
         $email = NewsletterSubscriber::normalizeEmail($email);
 
@@ -85,7 +85,7 @@ class ManageSubscriptionAction
 
     public function unsubscribe(NewsletterSubscriber $subscriber, User $admin): void
     {
-        $this->ensureAdmin($admin);
+        $this->ensureAdmin($admin, requiresModule: false);
 
         $this->suppressions->suppress($subscriber->email, SuppressionReason::Unsubscribed, 'Unsubscribed by an admin', $admin);
         $this->auditLog->record($admin, 'newsletter_subscriber.unsubscribed', $subscriber);
@@ -93,7 +93,7 @@ class ManageSubscriptionAction
 
     public function resubscribe(NewsletterSubscriber $subscriber, User $admin, string $consentNote): void
     {
-        $this->ensureAdmin($admin);
+        $this->ensureAdmin($admin, requiresModule: false);
 
         if (trim($consentNote) === '') {
             throw NewsletterException::invalid('Record how this person gave consent again.');
@@ -118,7 +118,7 @@ class ManageSubscriptionAction
 
     public function suppress(NewsletterSubscriber $subscriber, User $admin, ?string $note = null): void
     {
-        $this->ensureAdmin($admin);
+        $this->ensureAdmin($admin, requiresModule: false);
 
         $this->suppressions->suppress($subscriber->email, SuppressionReason::Admin, $note, $admin);
         $this->auditLog->record($admin, 'newsletter_subscriber.suppressed', $subscriber, ['note' => $note]);
@@ -129,7 +129,7 @@ class ManageSubscriptionAction
      */
     public function liftSuppression(NewsletterSubscriber $subscriber, User $admin, string $reason): void
     {
-        $this->ensureAdmin($admin);
+        $this->ensureAdmin($admin, requiresModule: false);
 
         if (trim($reason) === '') {
             throw NewsletterException::invalid('Say why the suppression is being lifted.');

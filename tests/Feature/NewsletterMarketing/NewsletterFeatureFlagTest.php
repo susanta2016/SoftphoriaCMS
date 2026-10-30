@@ -10,6 +10,9 @@ use App\Modules\Newsletter\Actions\Campaigns\ScheduleCampaignAction;
 use App\Modules\Newsletter\Enums\CampaignRecipientStatus;
 use App\Modules\Newsletter\Enums\CampaignStatus;
 use App\Modules\Newsletter\Exceptions\NewsletterException;
+use App\Modules\Newsletter\Filament\Resources\Subscribers\Pages\CreateNewsletterSubscriber;
+use App\Modules\Newsletter\Filament\Resources\Subscribers\Pages\ListNewsletterSubscribers;
+use App\Modules\Newsletter\Filament\Resources\Subscribers\Pages\ViewNewsletterSubscriber;
 use App\Modules\Newsletter\Jobs\SendCampaignBatchJob;
 use App\Modules\Newsletter\Jobs\StartCampaignJob;
 use App\Modules\Newsletter\Mail\NewsletterCampaignMail;
@@ -24,6 +27,7 @@ use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -68,8 +72,6 @@ class NewsletterFeatureFlagTest extends TestCase
     {
         return [
             'dashboard' => ['/admin/newsletter'],
-            'subscribers' => ['/admin/newsletter/subscribers'],
-            'create subscriber' => ['/admin/newsletter/subscribers/create'],
             'groups' => ['/admin/newsletter/groups'],
             'templates' => ['/admin/newsletter/templates'],
             'campaigns' => ['/admin/newsletter/campaigns'],
@@ -104,8 +106,44 @@ class NewsletterFeatureFlagTest extends TestCase
 
         $admin = $this->admin();
         $this->actingAs($admin)->get("/admin/newsletter/campaigns/{$campaign->id}")->assertNotFound();
-        $this->actingAs($admin)->get("/admin/newsletter/subscribers/{$subscriber->id}")->assertNotFound();
         $this->actingAs($admin)->get("/admin/newsletter/groups/{$group->id}/edit")->assertNotFound();
+        // The subscriber list predates the module and is never gated.
+        $this->actingAs($admin)->get("/admin/newsletter-subscribers/{$subscriber->id}")->assertOk();
+    }
+
+    public function test_the_subscriber_list_stays_available_without_groups_when_disabled(): void
+    {
+        $subscriber = $this->subscriber('kept@example.com');
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->get('/admin/newsletter-subscribers')->assertOk()->assertSee('kept@example.com');
+        $this->actingAs($admin)->get('/admin/newsletter-subscribers/create')->assertOk()->assertDontSee('Group membership never overrides');
+        $this->actingAs($admin)->get("/admin/newsletter-subscribers/{$subscriber->id}/edit")->assertOk();
+
+        Livewire::actingAs($admin)
+            ->test(ListNewsletterSubscribers::class)
+            ->assertTableColumnHidden('groups.name')
+            ->assertTableBulkActionHidden('addToGroup');
+    }
+
+    public function test_subscribers_can_be_added_and_unsubscribed_while_disabled(): void
+    {
+        $admin = $this->admin();
+
+        Livewire::actingAs($admin)
+            ->test(CreateNewsletterSubscriber::class)
+            ->fillForm(['email' => 'offline@example.com', 'first_name' => 'Off', 'consent_confirmed' => true])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $subscriber = NewsletterSubscriber::query()->where('email', 'offline@example.com')->sole();
+        $this->assertSame('subscribed', $subscriber->status);
+
+        Livewire::actingAs($admin)
+            ->test(ViewNewsletterSubscriber::class, ['record' => $subscriber->getRouteKey()])
+            ->callAction('unsubscribe');
+
+        $this->assertSame('unsubscribed', $subscriber->fresh()->status);
     }
 
     // Filament builds the navigation once per application instance, so the
@@ -115,7 +153,10 @@ class NewsletterFeatureFlagTest extends TestCase
         $this->actingAs($this->admin())->get('/admin')->assertOk()
             ->assertDontSee('Newsletter Marketing')
             ->assertDontSee('Scheduled Campaigns')
-            ->assertDontSee('Subscriber Groups');
+            ->assertDontSee('Subscriber Groups')
+            // The pre-module subscriber list, as a top-level item.
+            ->assertSee('Newsletter Subscribers')
+            ->assertSee('/admin/newsletter-subscribers', false);
     }
 
     public function test_the_navigation_group_is_shown_when_enabled(): void
@@ -123,6 +164,7 @@ class NewsletterFeatureFlagTest extends TestCase
         $this->enable();
 
         $this->actingAs($this->admin())->get('/admin')->assertOk()
+            ->assertDontSee('Newsletter Subscribers')
             ->assertSee('Newsletter Marketing')
             ->assertSee('Subscriber Groups')
             ->assertSee('Email Templates')
