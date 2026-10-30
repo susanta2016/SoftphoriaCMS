@@ -24,6 +24,10 @@ class SubscribersRelationManager extends RelationManager
 {
     protected static string $relationship = 'subscribers';
 
+    // NewsletterSubscriber::groups(). Filament would otherwise guess
+    // "newsletterGroups" from the owner model name for the Attach action.
+    protected static ?string $inverseRelationship = 'groups';
+
     protected static ?string $title = 'Members';
 
     public function table(Table $table): Table

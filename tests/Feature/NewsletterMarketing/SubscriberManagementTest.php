@@ -11,6 +11,7 @@ use App\Modules\Newsletter\Exceptions\NewsletterException;
 use App\Modules\Newsletter\Filament\Resources\Groups\Pages\CreateNewsletterGroup;
 use App\Modules\Newsletter\Filament\Resources\Groups\Pages\EditNewsletterGroup;
 use App\Modules\Newsletter\Filament\Resources\Groups\Pages\ListNewsletterGroups;
+use App\Modules\Newsletter\Filament\Resources\Groups\RelationManagers\SubscribersRelationManager;
 use App\Modules\Newsletter\Filament\Resources\Subscribers\Pages\CreateNewsletterSubscriber;
 use App\Modules\Newsletter\Filament\Resources\Subscribers\Pages\EditNewsletterSubscriber;
 use App\Modules\Newsletter\Filament\Resources\Subscribers\Pages\ListNewsletterSubscribers;
@@ -293,6 +294,30 @@ class SubscriberManagementTest extends TestCase
         $this->assertModelMissing($group);
         $this->assertModelExists($subscriber);
         $this->assertSame(0, $subscriber->groups()->count());
+    }
+
+    public function test_subscribers_are_added_to_and_removed_from_a_group_on_its_page(): void
+    {
+        $group = $this->group();
+        $first = $this->subscriber('first@example.com');
+        $second = $this->subscriber('second@example.com');
+        $admin = $this->admin();
+
+        Livewire::actingAs($admin)
+            ->test(SubscribersRelationManager::class, ['ownerRecord' => $group, 'pageClass' => EditNewsletterGroup::class])
+            ->assertSuccessful()
+            ->callTableAction('attach', data: ['recordId' => [$first->id, $second->id]])
+            ->assertHasNoTableActionErrors()
+            ->assertCanSeeTableRecords([$first, $second]);
+
+        $this->assertEqualsCanonicalizing([$first->id, $second->id], $group->subscribers()->pluck('newsletter_subscribers.id')->all());
+
+        Livewire::actingAs($admin)
+            ->test(SubscribersRelationManager::class, ['ownerRecord' => $group, 'pageClass' => EditNewsletterGroup::class])
+            ->callTableAction('detach', $first);
+
+        $this->assertSame([$second->id], $group->subscribers()->pluck('newsletter_subscribers.id')->all());
+        $this->assertModelExists($first);
     }
 
     public function test_a_group_used_by_a_scheduled_campaign_cannot_be_deleted(): void
