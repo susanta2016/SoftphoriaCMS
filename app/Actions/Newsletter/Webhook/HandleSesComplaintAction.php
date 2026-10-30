@@ -3,6 +3,8 @@
 namespace App\Actions\Newsletter\Webhook;
 
 use App\Models\NewsletterSubscriber;
+use App\Modules\Newsletter\Enums\SuppressionReason;
+use App\Modules\Newsletter\Support\SuppressionList;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -17,6 +19,8 @@ use Illuminate\Support\Str;
  */
 class HandleSesComplaintAction
 {
+    public function __construct(private readonly SuppressionList $suppressions) {}
+
     /**
      * @param  array<string, mixed>  $sesMessage  the decoded SES notification body
      */
@@ -34,7 +38,13 @@ class HandleSesComplaintAction
         $reason = Str::limit((string) ($complaint['complaintFeedbackType'] ?? 'complaint'), 255, '');
 
         foreach ((array) ($complaint['complainedRecipients'] ?? []) as $recipient) {
-            $this->suppress((string) ($recipient['emailAddress'] ?? ''), $eventAt, $reason);
+            $email = (string) ($recipient['emailAddress'] ?? '');
+            $this->suppress($email, $eventAt, $reason);
+
+            // Global suppression list — see HandleSesBounceAction.
+            if (trim($email) !== '') {
+                $this->suppressions->suppress($email, SuppressionReason::Complaint, $reason);
+            }
         }
     }
 

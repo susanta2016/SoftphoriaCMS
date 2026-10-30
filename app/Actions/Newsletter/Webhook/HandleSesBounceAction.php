@@ -3,6 +3,8 @@
 namespace App\Actions\Newsletter\Webhook;
 
 use App\Models\NewsletterSubscriber;
+use App\Modules\Newsletter\Enums\SuppressionReason;
+use App\Modules\Newsletter\Support\SuppressionList;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -18,6 +20,8 @@ use Illuminate\Support\Str;
  */
 class HandleSesBounceAction
 {
+    public function __construct(private readonly SuppressionList $suppressions) {}
+
     /**
      * @param  array<string, mixed>  $sesMessage  the decoded SES notification body
      */
@@ -45,7 +49,15 @@ class HandleSesBounceAction
         $reason = Str::limit((string) ($bounce['bounceSubType'] ?? $bounceType), 255, '');
 
         foreach ((array) ($bounce['bouncedRecipients'] ?? []) as $recipient) {
-            $this->suppress((string) ($recipient['emailAddress'] ?? ''), $eventAt, $reason);
+            $email = (string) ($recipient['emailAddress'] ?? '');
+            $this->suppress($email, $eventAt, $reason);
+
+            // Global suppression list (Newsletter Marketing) — kept even for
+            // an address with no subscriber row, so it can't be re-added
+            // and mailed later.
+            if (trim($email) !== '') {
+                $this->suppressions->suppress($email, SuppressionReason::HardBounce, $reason);
+            }
         }
     }
 

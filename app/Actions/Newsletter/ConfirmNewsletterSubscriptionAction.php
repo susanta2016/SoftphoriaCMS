@@ -4,6 +4,7 @@ namespace App\Actions\Newsletter;
 
 use App\Enums\EmailRecipientType;
 use App\Models\NewsletterSubscriber;
+use App\Modules\Newsletter\Support\SuppressionList;
 use App\Shared\Services\Notifications\TemplatedMailer;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -20,7 +21,10 @@ use Throwable;
  */
 class ConfirmNewsletterSubscriptionAction
 {
-    public function __construct(private readonly TemplatedMailer $mailer) {}
+    public function __construct(
+        private readonly TemplatedMailer $mailer,
+        private readonly SuppressionList $suppressions,
+    ) {}
 
     /**
      * @return NewsletterSubscriber|null the now-subscribed row, or null if
@@ -55,6 +59,11 @@ class ConfirmNewsletterSubscriptionAction
         $subscriber->confirmation_token_hash = null;
         $subscriber->confirmation_expires_at = null;
         $subscriber->save();
+
+        // Confirming is fresh consent: lift a previous unsubscribe on the
+        // global suppression list (never a bounce/complaint — the signup
+        // form already refused those).
+        $this->suppressions->liftUnsubscribe($subscriber->email);
 
         try {
             $this->mailer->send('newsletter_subscribed', EmailRecipientType::User, $subscriber->email, [

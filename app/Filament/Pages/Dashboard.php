@@ -23,9 +23,12 @@ class Dashboard extends BaseDashboard
      */
     public function getWidgets(): array
     {
+        // Newsletter Marketing's widgets belong on its own dashboard
+        // (App\Modules\Newsletter\Filament\Pages\NewsletterDashboard).
         return array_filter(
             parent::getWidgets(),
-            fn ($widget): bool => $widget !== SystemStatusWidget::class,
+            fn ($widget): bool => $widget !== SystemStatusWidget::class
+                && ! (is_string($widget) && str_starts_with($widget, 'App\\Modules\\Newsletter\\')),
         );
     }
 }

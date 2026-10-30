@@ -35,6 +35,7 @@
         <env name="SESSION_DRIVER" value="array"/>
         <env name="FORCE_LOGIN_ENABLED" value="false"/>
         <env name="CONTACT_SUBMISSION_REPLY_ENABLED" value="false"/>
+        <env name="NEWSLETTER_MARKETING_ENABLED" value="false"/>
         <env name="SCOUT_DRIVER" value="database"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>

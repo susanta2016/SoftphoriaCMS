@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Newsletter;
 use App\Actions\Newsletter\Webhook\HandleSesBounceAction;
 use App\Actions\Newsletter\Webhook\HandleSesComplaintAction;
 use App\Http\Controllers\Controller;
+use App\Modules\Newsletter\Actions\HandleSesCampaignEventAction;
 use Aws\Sns\Exception\InvalidSnsMessageException;
 use Aws\Sns\Message;
 use Aws\Sns\MessageValidator;
@@ -39,6 +40,7 @@ class SesWebhookController extends Controller
         private readonly MessageValidator $validator,
         private readonly HandleSesBounceAction $handleBounce,
         private readonly HandleSesComplaintAction $handleComplaint,
+        private readonly HandleSesCampaignEventAction $handleCampaignEvent,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -124,10 +126,15 @@ class SesWebhookController extends Controller
         match ($eventType) {
             'Bounce' => $this->handleBounce->handle($sesEvent),
             'Complaint' => $this->handleComplaint->handle($sesEvent),
+            'Delivery', 'Open', 'Click', 'Reject', 'DeliveryDelay', 'Rendering Failure', 'Send' => null,
             default => Log::info('Newsletter SES webhook: unsupported event type ignored', [
                 'event_type' => $eventType,
             ]),
         };
+
+        // Newsletter Marketing campaign reporting (delivery, bounce,
+        // complaint, open, click…) — a no-op for non-campaign mail.
+        $this->handleCampaignEvent->handle($sesEvent);
 
         return response('OK', 200);
     }

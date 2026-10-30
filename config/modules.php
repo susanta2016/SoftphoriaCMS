@@ -3,6 +3,7 @@
 use App\Modules\Commerce\Providers\CommerceServiceProvider;
 use App\Modules\InspirationalResources\Providers\InspirationalResourcesServiceProvider;
 use App\Modules\Music\Providers\MusicServiceProvider;
+use App\Modules\Newsletter\Providers\NewsletterServiceProvider;
 use App\Modules\Podcast\Providers\PodcastServiceProvider;
 use App\Modules\PoetryProse\Providers\PoetryProseServiceProvider;
 use App\Modules\Search\Providers\SearchServiceProvider;
@@ -38,6 +39,7 @@ return [
         PoetryProseServiceProvider::class,
         InspirationalResourcesServiceProvider::class,
         SearchServiceProvider::class,
+        NewsletterServiceProvider::class,
     ],
 
 ];

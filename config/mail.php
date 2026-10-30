@@ -75,6 +75,19 @@ return [
             'channel' => env('MAIL_LOG_CHANNEL'),
         ],
 
+        // Newsletter Marketing campaigns only (config('newsletter.mailer') =
+        // "newsletter") — a dedicated bulk-sending connection, e.g. the
+        // Amazon SES SMTP interface, kept separate from transactional mail.
+        'newsletter' => [
+            'transport' => 'smtp',
+            'scheme' => env('NEWSLETTER_SMTP_SCHEME'),
+            'host' => env('NEWSLETTER_SMTP_HOST', '127.0.0.1'),
+            'port' => env('NEWSLETTER_SMTP_PORT', 587),
+            'username' => env('NEWSLETTER_SMTP_USERNAME'),
+            'password' => env('NEWSLETTER_SMTP_PASSWORD'),
+            'timeout' => 30,
+        ],
+
         'array' => [
             'transport' => 'array',
         ],

@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Dashboard;
+use App\Modules\Newsletter\Http\Middleware\EnsureNewsletterAdminEnabled;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -54,6 +55,10 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 NavigationGroup::make('Podcast')
                     ->icon(Heroicon::OutlinedMicrophone),
+                // Only has items while NEWSLETTER_MARKETING_ENABLED is on;
+                // an empty group isn't rendered.
+                NavigationGroup::make('Newsletter Marketing')
+                    ->icon(Heroicon::OutlinedEnvelope),
                 NavigationGroup::make('Website Setup')
                     ->icon(Heroicon::OutlinedCog6Tooth),
             ])
@@ -95,6 +100,9 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+            // 404s admin/newsletter* while NEWSLETTER_MARKETING_ENABLED is
+            // off — persistent, so Livewire requests are covered too.
+            ->middleware([EnsureNewsletterAdminEnabled::class], isPersistent: true)
             ->authMiddleware([
                 Authenticate::class,
             ]);

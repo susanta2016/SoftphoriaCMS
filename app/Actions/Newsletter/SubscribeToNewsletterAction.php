@@ -5,6 +5,7 @@ namespace App\Actions\Newsletter;
 use App\Enums\EmailRecipientType;
 use App\Enums\NewsletterSubscriptionOutcome;
 use App\Models\NewsletterSubscriber;
+use App\Modules\Newsletter\Support\SuppressionList;
 use App\Shared\Services\Notifications\TemplatedMailer;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -23,7 +24,10 @@ use Throwable;
  */
 class SubscribeToNewsletterAction
 {
-    public function __construct(private readonly TemplatedMailer $mailer) {}
+    public function __construct(
+        private readonly TemplatedMailer $mailer,
+        private readonly SuppressionList $suppressions,
+    ) {}
 
     public function handle(string $email, ?string $name = null): NewsletterSubscriptionOutcome
     {
@@ -32,6 +36,14 @@ class SubscribeToNewsletterAction
         $subscriber = NewsletterSubscriber::query()->where('email', $email)->first();
 
         if ($subscriber !== null && in_array($subscriber->status, NewsletterSubscriber::SUPPRESSED_STATUSES, true)) {
+            return NewsletterSubscriptionOutcome::Suppressed;
+        }
+
+        // The global suppression list (Newsletter Marketing) also covers
+        // addresses with no subscriber row, e.g. one deleted after a hard
+        // bounce. A plain unsubscribe there doesn't block: double opt-in
+        // below is fresh consent and lifts it on confirmation.
+        if ($this->suppressions->blocksResubscribe($email)) {
             return NewsletterSubscriptionOutcome::Suppressed;
         }
 
@@ -50,7 +62,7 @@ class SubscribeToNewsletterAction
         // previously unsubscribed address signing up again — all three go
         // through the same pending + confirmation-email path so an
         // unsubscribe can never be silently undone by a resubmission.
-        $subscriber ??= new NewsletterSubscriber(['email' => $email]);
+        $subscriber ??= new NewsletterSubscriber(['email' => $email, 'source' => 'footer']);
         $subscriber->name = $name ?: $subscriber->name;
         $subscriber->status = 'pending';
         $subscriber->consented_at = null;
