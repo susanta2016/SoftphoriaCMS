@@ -20,7 +20,10 @@ return new class extends Migration
     {
         Schema::create('newsletter_delivery_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('newsletter_campaign_recipient_id')->constrained()->cascadeOnDelete();
+            // Explicit FK name: the generated one exceeds MySQL's 64-char limit.
+            $table->foreignId('newsletter_campaign_recipient_id');
+            $table->foreign('newsletter_campaign_recipient_id', 'nl_delivery_logs_recipient_foreign')
+                ->references('id')->on('newsletter_campaign_recipients')->cascadeOnDelete();
             $table->foreignId('newsletter_campaign_id')->constrained()->cascadeOnDelete();
             $table->unsignedTinyInteger('attempt');
             $table->string('status', 20);

@@ -47,8 +47,9 @@ return new class extends Migration
             $table->timestamp('unsubscribed_at')->nullable();
             $table->timestamps();
 
-            $table->unique(['newsletter_campaign_id', 'email']);
-            $table->index(['newsletter_campaign_id', 'status']);
+            // Explicit names: the generated ones exceed MySQL's 64-char limit.
+            $table->unique(['newsletter_campaign_id', 'email'], 'nl_recipients_campaign_email_unique');
+            $table->index(['newsletter_campaign_id', 'status'], 'nl_recipients_campaign_status_index');
             $table->index('newsletter_subscriber_id');
         });
     }
