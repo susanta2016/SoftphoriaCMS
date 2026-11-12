@@ -121,26 +121,69 @@
             </section>
         @endif
 
-        {{-- Project gallery (only when images were added in the CMS) --}}
+        {{-- Project gallery (only when images were added in the CMS): a
+             scroll-snap carousel; clicking an image opens it full size in a
+             lightbox dialog. See [data-gallery] in resources/js/app.js. --}}
         @if ($gallery->isNotEmpty())
-            <section class="bg-brand-mist py-16 sm:py-20" aria-labelledby="gallery-heading">
+            @php
+                $galleryImages = $gallery->values()->map(fn ($image, $index) => [
+                    'url' => \Illuminate\Support\Facades\Storage::disk($image->disk)->url($image->path),
+                    'alt' => $image->alt_text ?: $item->title.' — image '.($index + 1),
+                ]);
+                $arrowButton = 'flex h-11 w-11 items-center justify-center rounded-full border border-brand-line bg-white text-brand-navy shadow-xs shadow-brand-navy/5 transition hover:border-brand-accent hover:text-brand-accent disabled:pointer-events-none disabled:opacity-40';
+            @endphp
+            <section class="bg-brand-mist py-16 sm:py-20" aria-labelledby="gallery-heading" data-gallery>
                 <div class="mx-auto max-w-6xl px-4 sm:px-6">
-                    <p class="text-xs font-semibold tracking-[0.18em] text-brand-accent uppercase">Gallery</p>
-                    <h2 id="gallery-heading" class="mt-2 text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl">Project gallery</h2>
-                    <ul @class(['mt-8 grid gap-6 sm:grid-cols-2', 'lg:grid-cols-3' => $gallery->count() >= 3])>
-                        @foreach ($gallery as $image)
-                            <li>
-                                <img
-                                    src="{{ \Illuminate\Support\Facades\Storage::disk($image->disk)->url($image->path) }}"
-                                    alt="{{ $image->alt_text ?: $item->title.' — image '.$loop->iteration }}"
-                                    loading="lazy"
-                                    decoding="async"
-                                    class="aspect-[16/10] w-full rounded-2xl border border-brand-line bg-white object-cover shadow-xs shadow-brand-navy/5"
-                                >
+                    <div class="flex items-end justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-semibold tracking-[0.18em] text-brand-accent uppercase">Gallery</p>
+                            <h2 id="gallery-heading" class="mt-2 text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl">Project gallery</h2>
+                        </div>
+                        <div class="flex gap-2" data-gallery-controls hidden>
+                            <button type="button" data-gallery-prev class="{{ $arrowButton }}" aria-label="Previous images">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
+                            <button type="button" data-gallery-next class="{{ $arrowButton }}" aria-label="Next images">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <ul data-gallery-track class="mt-8 -mx-1 flex snap-x snap-mandatory gap-6 overflow-x-auto scroll-smooth scroll-px-1 px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Project images">
+                        @foreach ($galleryImages as $image)
+                            <li class="w-full shrink-0 snap-start sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)]">
+                                <button type="button" data-gallery-open="{{ $loop->index }}" class="group block w-full overflow-hidden rounded-2xl border border-brand-line bg-white shadow-xs shadow-brand-navy/5 focus-visible:ring-4 focus-visible:ring-brand-accent/30 focus-visible:outline-none" aria-label="View larger: {{ $image['alt'] }}">
+                                    <img src="{{ $image['url'] }}" alt="{{ $image['alt'] }}" loading="lazy" decoding="async" class="aspect-[16/10] w-full cursor-zoom-in object-cover object-top transition duration-300 group-hover:scale-[1.03]">
+                                </button>
                             </li>
                         @endforeach
                     </ul>
                 </div>
+
+                {{-- Gallery images are often full-page screenshots, so the
+                     lightbox shows them full width and scrolls vertically
+                     rather than shrinking a tall page to fit the screen. --}}
+                <dialog data-gallery-lightbox aria-label="{{ $item->title }} gallery" class="m-0 h-dvh max-h-none w-screen max-w-none overflow-y-auto overscroll-contain bg-transparent p-0 backdrop:bg-brand-navy-dark/90 backdrop:backdrop-blur-sm open:animate-[contact-modal-in_0.25s_ease-out]">
+                    <figure class="mx-auto flex min-h-full max-w-5xl flex-col items-center justify-center gap-3 px-4 py-16 sm:px-20">
+                        <figcaption class="text-center text-sm text-white/80">
+                            <span data-gallery-caption></span>
+                            <span data-gallery-counter class="ml-2 text-white/50"></span>
+                        </figcaption>
+                        <img data-gallery-image src="" alt="" class="h-auto w-auto max-w-full rounded-2xl bg-white shadow-2xl">
+                    </figure>
+                    <button type="button" data-gallery-close aria-label="Close" class="fixed top-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-6 w-6" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg>
+                    </button>
+                    @if ($galleryImages->count() > 1)
+                        <button type="button" data-gallery-step="-1" aria-label="Previous image" class="fixed bottom-4 left-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-brand-navy-dark/70 text-white backdrop-blur transition hover:bg-brand-navy-dark sm:top-1/2 sm:bottom-auto sm:left-6 sm:-translate-y-1/2 sm:bg-white/10 sm:hover:bg-white/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-6 w-6" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <button type="button" data-gallery-step="1" aria-label="Next image" class="fixed right-4 bottom-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-brand-navy-dark/70 text-white backdrop-blur transition hover:bg-brand-navy-dark sm:top-1/2 sm:right-6 sm:bottom-auto sm:-translate-y-1/2 sm:bg-white/10 sm:hover:bg-white/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-6 w-6" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                    @endif
+                    <script type="application/json" data-gallery-images>@json($galleryImages)</script>
+                </dialog>
             </section>
         @endif
 

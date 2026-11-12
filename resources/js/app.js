@@ -1087,3 +1087,76 @@ document.addEventListener('DOMContentLoaded', () => {
         activate(consent);
     });
 });
+
+// Portfolio project gallery (resources/views/portfolio/show.blade.php): a
+// scroll-snap carousel with prev/next buttons, and a lightbox <dialog> that
+// shows the clicked image full size (arrow keys / buttons step, Esc closes).
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-gallery]').forEach((gallery) => {
+        const track = gallery.querySelector('[data-gallery-track]');
+        const controls = gallery.querySelector('[data-gallery-controls]');
+        const prev = gallery.querySelector('[data-gallery-prev]');
+        const next = gallery.querySelector('[data-gallery-next]');
+
+        const updateControls = () => {
+            const overflowing = track.scrollWidth > track.clientWidth + 1;
+            controls.hidden = !overflowing;
+            prev.disabled = track.scrollLeft <= 1;
+            next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 1;
+        };
+
+        // One "page" of slides at a time.
+        prev.addEventListener('click', () => track.scrollBy({ left: -track.clientWidth }));
+        next.addEventListener('click', () => track.scrollBy({ left: track.clientWidth }));
+        track.addEventListener('scroll', updateControls, { passive: true });
+        window.addEventListener('resize', updateControls);
+        updateControls();
+
+        const dialog = gallery.querySelector('dialog[data-gallery-lightbox]');
+        if (!dialog || typeof dialog.showModal !== 'function') return;
+
+        const images = JSON.parse(dialog.querySelector('[data-gallery-images]').textContent || '[]');
+        const image = dialog.querySelector('[data-gallery-image]');
+        const caption = dialog.querySelector('[data-gallery-caption]');
+        const counter = dialog.querySelector('[data-gallery-counter]');
+        let current = 0;
+
+        const show = (index) => {
+            current = (index + images.length) % images.length;
+            image.src = images[current].url;
+            image.alt = images[current].alt;
+            caption.textContent = images[current].alt;
+            counter.textContent = images.length > 1 ? `${current + 1} / ${images.length}` : '';
+            dialog.scrollTop = 0;
+        };
+
+        gallery.querySelectorAll('[data-gallery-open]').forEach((button) => {
+            button.addEventListener('click', () => {
+                show(Number(button.dataset.galleryOpen));
+                dialog.showModal();
+            });
+        });
+
+        dialog.querySelectorAll('[data-gallery-step]').forEach((button) => {
+            button.addEventListener('click', () => show(current + Number(button.dataset.galleryStep)));
+        });
+        dialog.querySelector('[data-gallery-close]').addEventListener('click', () => dialog.close());
+
+        dialog.addEventListener('keydown', (event) => {
+            if (images.length < 2) return;
+            if (event.key === 'ArrowLeft') show(current - 1);
+            if (event.key === 'ArrowRight') show(current + 1);
+        });
+
+        // A click on the backdrop (anywhere but the image or a button) closes it.
+        dialog.addEventListener('click', (event) => {
+            if (!event.target.closest('img, button')) dialog.close();
+        });
+
+        // Bring the image the visitor ended on into view in the carousel.
+        dialog.addEventListener('close', () => {
+            gallery.querySelector(`[data-gallery-open="${current}"]`)?.closest('li')
+                ?.scrollIntoView({ block: 'nearest', inline: 'start' });
+        });
+    });
+});
