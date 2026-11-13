@@ -1,7 +1,7 @@
 @php
     use Illuminate\Support\Str;
 
-    $durationLabel = fn (?int $seconds): ?string => $seconds ? intdiv($seconds, 60).' min' : null;
+    $durationLabel = \App\Modules\Podcast\Support\EpisodeDuration::label(...);
 
     $queryWithout = fn (string $key, mixed $value = null): string => request()->fullUrlWithQuery(
         $value === null ? [$key => null] : [$key => $value]

@@ -19,6 +19,7 @@ use App\Modules\Music\Models\SongStory;
 use App\Modules\Music\Models\Track;
 use App\Modules\Music\Support\DailyListenQuota;
 use App\Modules\Music\Support\LandingAutoplayTrackResolver;
+use App\Modules\Music\Support\ReleaseCatalogue;
 use App\Modules\Podcast\Enums\PodcastEpisodeStatus;
 use App\Modules\Podcast\Enums\PodcastStatus;
 use App\Modules\Podcast\Models\PodcastEpisode;
@@ -30,7 +31,6 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -386,39 +386,21 @@ class MusicController extends Controller implements Sitemapable
             ->get();
     }
 
+    /**
+     * The query itself lives in ReleaseCatalogue so the Inclusive CMS page's
+     * Music section reuses the exact same published-release filter/order.
+     */
     private function paginatedCatalogue(?string $type, string $search, string $sort): LengthAwarePaginator
     {
-        $albumsQuery = Album::query()->published()
-            ->when($search !== '', fn ($q) => $q->where('title', 'like', '%'.$search.'%'))
-            ->select([
-                'id', DB::raw("'album' as release_type"), 'public_id', 'title', 'slug',
-                'cover_media_id', 'release_date', 'is_featured',
-                DB::raw("(select count(*) from tracks where tracks.album_id = albums.id and tracks.status = 'published') as track_count"),
-            ]);
+        $catalogue = app(ReleaseCatalogue::class);
 
-        $singlesQuery = Single::query()->published()
-            ->when($search !== '', fn ($q) => $q->where('title', 'like', '%'.$search.'%'))
-            ->select([
-                'id', DB::raw("'single' as release_type"), 'public_id', 'title', 'slug',
-                'cover_media_id', 'release_date', 'is_featured',
-                DB::raw('1 as track_count'),
-            ]);
-
-        $union = match ($type) {
-            'album' => $albumsQuery->toBase(),
-            'single' => $singlesQuery->toBase(),
-            default => $albumsQuery->toBase()->unionAll($singlesQuery->toBase()),
-        };
-
-        $direction = $sort === 'oldest' ? 'asc' : 'desc';
-
-        $paginator = DB::query()->fromSub($union, 'releases')
-            ->orderBy('release_date', $direction)
-            ->orderByDesc('id')
+        $paginator = $catalogue->query($type, $search, $sort)
             ->paginate(12)
             ->withQueryString();
 
-        return $this->hydrateCovers($paginator);
+        $paginator->setCollection($catalogue->attachCovers($paginator->getCollection()));
+
+        return $paginator;
     }
 
     /**
@@ -447,30 +429,6 @@ class MusicController extends Controller implements Sitemapable
             ->filter(fn (PodcastEpisode $episode): bool => $episode->status === PodcastEpisodeStatus::Published
                 && $episode->podcast?->status === PodcastStatus::Published)
             ->values();
-    }
-
-    private function hydrateCovers(LengthAwarePaginator $paginator): LengthAwarePaginator
-    {
-        $paginator->setCollection($this->attachCovers($paginator->getCollection()));
-
-        return $paginator;
-    }
-
-    /**
-     * @param  Collection<int, object>  $rows
-     * @return Collection<int, object>
-     */
-    private function attachCovers(Collection $rows): Collection
-    {
-        $coverIds = $rows->pluck('cover_media_id')->filter()->unique();
-        $covers = Media::query()->whereIn('id', $coverIds)->get()->keyBy('id');
-
-        return $rows->map(function (object $row) use ($covers) {
-            $row->cover = $covers->get($row->cover_media_id);
-            $row->release_date = $row->release_date ? Carbon::parse($row->release_date) : null;
-
-            return $row;
-        });
     }
 
     /**

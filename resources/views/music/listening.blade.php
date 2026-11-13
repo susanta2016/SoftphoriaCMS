@@ -6,8 +6,8 @@
     // Cross-content suggestion cards reuse podcast.partials.episode-card
     // verbatim (App\Http\Controllers\Music\MusicController::
     // podcastSuggestionsFor()) — same duration-label shape that partial
-    // already expects, defined identically to podcast/index.blade.php's own.
-    $episodeDurationLabel = fn (?int $seconds): ?string => $seconds ? intdiv($seconds, 60).' min' : null;
+    // already expects — the shared EpisodeDuration label every Podcast view uses.
+    $episodeDurationLabel = \App\Modules\Podcast\Support\EpisodeDuration::label(...);
 
     $coverUrl = $release['cover'] ? Storage::disk($release['cover']->disk)->url($release['cover']->path) : null;
     $topBannerUrl = $topBanner ? Storage::disk($topBanner->disk)->url($topBanner->path) : null;

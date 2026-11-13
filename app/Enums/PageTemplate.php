@@ -13,6 +13,12 @@ use Filament\Support\Contracts\HasLabel;
  * opening line), so this must never grow an entry for one of those; they
  * are never `pages` rows. Backed by the existing pages.template string
  * column — no schema change.
+ *
+ * Inclusive (client-requested 2026-11-13) is not a module page: it is a
+ * normal CMS Page whose Featured Content sections aggregate the latest
+ * published Music/Poetry-Prose/Podcast records by reference (rendered by
+ * pages/inclusive.blade.php via InclusivePageContent) — it owns no content
+ * of its own.
  */
 enum PageTemplate: string implements HasLabel
 {
@@ -23,6 +29,7 @@ enum PageTemplate: string implements HasLabel
     case Contact = 'contact';
     case Archive = 'archive';
     case Custom = 'custom';
+    case Inclusive = 'inclusive';
 
     public function getLabel(): string
     {
@@ -34,6 +41,7 @@ enum PageTemplate: string implements HasLabel
             self::Contact => 'Contact Page',
             self::Archive => 'Archive/Landing Page',
             self::Custom => 'Custom Structured Page',
+            self::Inclusive => 'Inclusive Page (Music, Writing & Podcast)',
         };
     }
 

@@ -5,7 +5,7 @@
     $bannerUrl = $heroBanner ? Storage::disk($heroBanner->disk)->url($heroBanner->path) : null;
     $featuredThumbnailUrl = $featured?->thumbnailUrl();
 
-    $durationLabel = fn (?int $seconds): ?string => $seconds ? intdiv($seconds, 60).' min' : null;
+    $durationLabel = \App\Modules\Podcast\Support\EpisodeDuration::label(...);
 
     // Decorative only — Category has no icon field, so each topic card cycles
     // through a small fixed set of icons by position rather than showing the

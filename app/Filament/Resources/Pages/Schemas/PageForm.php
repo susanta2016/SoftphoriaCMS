@@ -14,6 +14,7 @@ use App\Filament\Support\Seo\SeoFields;
 use App\Models\Page;
 use App\Models\PageRevision;
 use App\Models\User;
+use App\Shared\Support\Pages\InclusivePageContent;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -288,8 +289,20 @@ class PageForm
             Select::make('content_json.module_key')
                 ->label('Module')
                 ->options(ModuleKey::options())
-                ->helperText('The Community module\'s card on the homepage uses the Heading/Subheading/Button fields above. Any other module shows placeholder content until it is implemented.')
+                ->live()
+                ->helperText('The Community module\'s card on the homepage uses the Heading/Subheading/Button fields above. On an Inclusive page, choose Music, Poetry/Prose or Podcast to show that module\'s latest published items (Heading/Subheading above; Button = the "View all" link, which defaults to the module\'s own listing page when left blank).')
                 ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::FeaturedContent->value),
+            TextInput::make('content_json.items_to_show')
+                ->label('Items to show')
+                ->numeric()
+                ->integer()
+                ->minValue(InclusivePageContent::MIN_ITEMS)
+                ->maxValue(InclusivePageContent::MAX_ITEMS)
+                ->default(InclusivePageContent::DEFAULT_ITEMS)
+                ->placeholder((string) InclusivePageContent::DEFAULT_ITEMS)
+                ->helperText('Inclusive page only — how many of the latest published items this section shows ('.InclusivePageContent::MIN_ITEMS.'–'.InclusivePageContent::MAX_ITEMS.', default '.InclusivePageContent::DEFAULT_ITEMS.').')
+                ->visible(fn (Get $get): bool => $get('section_type') === PageSectionType::FeaturedContent->value
+                    && InclusivePageContent::isAggregatableModule($get('content_json.module_key'))),
 
             Placeholder::make('inert_notice')
                 ->hiddenLabel()

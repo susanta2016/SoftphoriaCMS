@@ -57,7 +57,8 @@ class PageContentRenderer
             'description' => $page->summary,
             'canonical' => SeoFields::autoCanonicalUrl($page->slug),
             'image' => $page->featuredImage,
-            'type' => 'article',
+            // A landing/listing page, like music.index/podcast.index.
+            'type' => $page->template === PageTemplate::Inclusive ? 'website' : 'article',
             'published_at' => $page->publish_at ?? $page->created_at,
             'modified_at' => $page->updated_at,
             'author_name' => $page->author?->name,
@@ -71,15 +72,24 @@ class PageContentRenderer
             $seo['title'] = 'Preview: '.$seo['title'];
         }
 
-        $view = $page->template === PageTemplate::About ? 'pages.about' : 'pages.show';
-
-        return view($view, [
+        $data = [
             'page' => $page,
             'seo' => $seo,
             'siteName' => $siteName,
             'tagline' => $tagline,
             'logo' => $logo,
             'showChrome' => ! $isMaintenancePage,
-        ]);
+        ];
+
+        if ($page->template === PageTemplate::Inclusive) {
+            return view('pages.inclusive', [
+                ...$data,
+                'inclusiveSections' => app(InclusivePageContent::class)->sections($page),
+            ]);
+        }
+
+        $view = $page->template === PageTemplate::About ? 'pages.about' : 'pages.show';
+
+        return view($view, $data);
     }
 }

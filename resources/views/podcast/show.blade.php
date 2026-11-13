@@ -4,7 +4,7 @@
 
     $artworkUrl = $episode->thumbnailUrl();
     $bannerUrl = $heroBanner ? Storage::disk($heroBanner->disk)->url($heroBanner->path) : null;
-    $durationLabel = $episode->duration_seconds ? intdiv($episode->duration_seconds, 60).' min' : null;
+    $durationLabel = \App\Modules\Podcast\Support\EpisodeDuration::label($episode->duration_seconds);
 @endphp
 
 <x-layouts.site :seo="$seo">

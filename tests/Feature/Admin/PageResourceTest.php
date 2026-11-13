@@ -98,7 +98,7 @@ class PageResourceTest extends TestCase
     public function test_page_templates_are_limited_to_the_closed_phase_1_set(): void
     {
         $this->assertSame(
-            ['standard', 'about', 'faq', 'legal', 'contact', 'archive', 'custom'],
+            ['standard', 'about', 'faq', 'legal', 'contact', 'archive', 'custom', 'inclusive'],
             array_column(PageTemplate::cases(), 'value'),
         );
     }
