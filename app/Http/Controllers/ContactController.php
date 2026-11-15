@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Contact\SubmitContactFormAction;
+use App\Models\ContactBan;
 use App\Models\Media;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
@@ -24,8 +25,9 @@ use Illuminate\Support\Facades\Validator;
  *   in the message;
  * - a time trap (FormTimeTrap): a submission sent back faster than a human
  *   could fill the form in, or without a valid token, is a bot;
- * - the per-IP 'contact-submit' rate limiter (AppServiceProvider).
- * Honeypot and time-trap hits are discarded silently (same success
+ * - the per-IP 'contact-submit' rate limiter (AppServiceProvider);
+ * - admin bans by IP / email / name (ContactBan).
+ * Honeypot, ban and time-trap hits are discarded silently (same success
  * response, nothing saved or emailed) and logged with their IP. Genuine
  * submissions record the sender's IP and user agent for the admin panel.
  */
@@ -63,6 +65,18 @@ class ContactController extends Controller
         // signal that it was caught.
         if (filled($request->input('hp_website'))) {
             $this->logDiscarded($request, 'honeypot');
+
+            return $silentSuccess();
+        }
+
+        // Senders banned from the admin panel (Contact → Banned Senders) by
+        // IP, email or name — discarded the same silent way.
+        if (ContactBan::isBanned(
+            is_string($request->input('name')) ? $request->input('name') : null,
+            is_string($request->input('email')) ? $request->input('email') : null,
+            $request->ip(),
+        )) {
+            $this->logDiscarded($request, 'banned');
 
             return $silentSuccess();
         }
