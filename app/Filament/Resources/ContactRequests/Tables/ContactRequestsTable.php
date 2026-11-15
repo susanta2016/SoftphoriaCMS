@@ -6,6 +6,7 @@ use App\Enums\ContactRequestStatus;
 use App\Filament\Resources\ContactRequests\ContactRequestResource;
 use App\Shared\Support\Contact\LeadContext;
 use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -60,7 +61,11 @@ class ContactRequestsTable
                     ->label('Actions'),
             ])
             ->toolbarActions([
-                ContactRequestResource::resendBulkAction(),
+                BulkActionGroup::make([
+                    ContactRequestResource::resendBulkAction(),
+                    ContactRequestResource::banSendersBulkAction(),
+                    ContactRequestResource::deleteBulkAction(),
+                ]),
             ])
             ->defaultSort('created_at', 'desc')
             ->paginationPageOptions([10, 25, 50, 'all'])

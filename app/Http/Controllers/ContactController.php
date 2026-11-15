@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Contact\SubmitContactRequestAction;
+use App\Models\ContactBan;
 use App\Models\Media;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Contact\ContactDetailMasker;
@@ -31,7 +32,9 @@ use Illuminate\Validation\Rule;
  *   submission, nothing saved, no email), so a bot gets no signal;
  * - stricter validation (no links in name/subject, a link cap in the
  *   message, a fixed category list);
- * - the POST routes are throttled (see routes/web.php).
+ * - the POST routes are throttled (see routes/web.php);
+ * - senders an admin banned by IP / email / name (ContactBan) are also
+ *   discarded silently.
  *
  * The site's own email/phone/WhatsApp are never rendered in full: pages
  * show a masked form and reveal() hands out the real value on demand (see
@@ -95,6 +98,18 @@ class ContactController extends Controller
         // signal that it was caught.
         if (filled($request->input('hp_website'))) {
             $this->logDiscarded($request, 'honeypot');
+
+            return $silentSuccess();
+        }
+
+        // Senders banned from the admin Contact Requests page by IP, email
+        // or name — discarded the same silent way.
+        if (ContactBan::isBanned(
+            is_string($request->input('name')) ? $request->input('name') : null,
+            is_string($request->input('email')) ? $request->input('email') : null,
+            $request->ip(),
+        )) {
+            $this->logDiscarded($request, 'banned');
 
             return $silentSuccess();
         }

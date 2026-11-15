@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ContactRequests\Pages;
 
 use App\Filament\Resources\ContactRequests\ContactRequestResource;
+use App\Filament\Resources\ContactRequests\Widgets\BannedSendersWidget;
 use App\Filament\Resources\ContactRequests\Widgets\ContactRequestStatsWidget;
 use Filament\Resources\Pages\ListRecords;
 
@@ -24,6 +25,13 @@ class ListContactRequests extends ListRecords
     {
         return [
             ContactRequestStatsWidget::class,
+        ];
+    }
+
+    protected function getFooterWidgets(): array
+    {
+        return [
+            BannedSendersWidget::class,
         ];
     }
 }

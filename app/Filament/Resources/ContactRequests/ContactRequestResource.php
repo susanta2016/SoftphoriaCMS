@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ContactRequests;
 
+use App\Actions\Contact\BanContactSendersAction;
 use App\Actions\Contact\DeleteContactRequestAction;
 use App\Actions\Contact\SubmitContactRequestAction;
 use App\Actions\Contact\UpdateContactRequestAction;
@@ -10,6 +11,7 @@ use App\Filament\Resources\ContactRequests\Pages\ListContactRequests;
 use App\Filament\Resources\ContactRequests\Pages\ViewContactRequest;
 use App\Filament\Resources\ContactRequests\Schemas\ContactRequestInfolist;
 use App\Filament\Resources\ContactRequests\Tables\ContactRequestsTable;
+use App\Models\ContactBan;
 use App\Models\ContactRequest;
 use App\Models\User;
 use App\Shared\Services\AuditLogService;
@@ -20,6 +22,8 @@ use Filament\Actions\BulkAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -27,6 +31,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 use UnitEnum;
 
 /**
@@ -207,6 +212,94 @@ class ContactRequestResource extends Resource
      * Soft-deletes — see DeleteContactRequestAction. No "still in use"
      * guard is needed (nothing else references contact_requests rows).
      */
+    /**
+     * Each ticked criterion becomes its own ContactBan, and a future
+     * submission is blocked when ANY of its IP / email / name matches one.
+     * Name is off by default: a common name could block genuine visitors.
+     * Bans are listed and lifted in the "Banned senders" section below the
+     * table (Widgets\BannedSendersWidget).
+     */
+    public static function banSendersBulkAction(): BulkAction
+    {
+        return BulkAction::make('banSenders')
+            ->label('Ban senders')
+            ->icon(Heroicon::OutlinedNoSymbol)
+            ->color('danger')
+            ->modalHeading('Ban the selected senders')
+            ->modalDescription('Banned senders can no longer submit the Contact Us form — their attempts are silently discarded. Review or lift bans in the "Banned senders" section at the bottom of this page.')
+            ->modalSubmitActionLabel('Ban')
+            ->schema([
+                CheckboxList::make('criteria')
+                    ->label('Ban by')
+                    ->options(ContactBan::TYPES)
+                    ->descriptions([
+                        ContactBan::TYPE_IP => 'Blocks every submission from the same IP address.',
+                        ContactBan::TYPE_EMAIL => 'Blocks every submission using the same email address.',
+                        ContactBan::TYPE_NAME => 'Blocks every submission using the exact same name — careful with common names.',
+                    ])
+                    ->default([ContactBan::TYPE_IP, ContactBan::TYPE_EMAIL])
+                    ->required(),
+                TextInput::make('reason')
+                    ->label('Reason (optional)')
+                    ->default('Spam')
+                    ->maxLength(255),
+                Toggle::make('delete_requests')
+                    ->label('Also delete the selected messages')
+                    ->default(true),
+            ])
+            ->action(function (Collection $records, array $data, Component $livewire): void {
+                /** @var User $actor */
+                $actor = Auth::user();
+
+                $created = app(BanContactSendersAction::class)->handle(
+                    $records,
+                    $data['criteria'] ?? [],
+                    $data['reason'] ?? null,
+                    $actor,
+                    (bool) ($data['delete_requests'] ?? false),
+                );
+
+                // Refreshes the "Banned senders" section below the table.
+                $livewire->dispatch('contact-bans-updated');
+
+                Notification::make()
+                    ->success()
+                    ->title($created === 1 ? '1 new ban added' : "{$created} new bans added")
+                    ->body($created === 0 ? 'The selected senders were already banned.' : null)
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
+    }
+
+    /**
+     * Bulk counterpart of deleteAction(): every row goes through
+     * DeleteContactRequestAction (soft delete + audit entry), never a raw
+     * query delete.
+     */
+    public static function deleteBulkAction(): BulkAction
+    {
+        return BulkAction::make('deleteSelected')
+            ->label('Delete selected')
+            ->icon(Heroicon::OutlinedTrash)
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading('Delete the selected messages?')
+            ->modalSubmitActionLabel('Delete')
+            ->action(function (Collection $records): void {
+                /** @var User $actor */
+                $actor = Auth::user();
+                $action = app(DeleteContactRequestAction::class);
+
+                $records->each(fn (ContactRequest $record) => $action->handle($record, $actor));
+
+                Notification::make()
+                    ->title($records->count() === 1 ? '1 message deleted' : "{$records->count()} messages deleted")
+                    ->success()
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
+    }
+
     public static function deleteAction(): Action
     {
         return Action::make('delete')
