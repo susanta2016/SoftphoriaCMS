@@ -54,8 +54,10 @@ class GratitudeJournalReminderFrequencyTest extends TestCase
             ->assertSee('How many reminders would you like to receive each week?')
             ->assertSee('name="gratitude_reminders_enabled" value="1"'."\n".'                                    checked', false)
             ->assertSee('class="mt-5 " data-gratitude-reminder-frequency', false)
-            ->assertSee('<option value="7" selected>7 reminders per week (Daily)</option>', false)
+            ->assertSee('value="7" selected', false)
+            ->assertSee('7 reminders per week (Daily)')
             ->assertSee('1 reminder per week')
+            ->assertSee("You'll get a reminder every day.")
             ->assertSee('Save Preference')
             ->assertDontSee('name="gratitude_reminder_frequency"', false);
     }
@@ -81,7 +83,44 @@ class GratitudeJournalReminderFrequencyTest extends TestCase
             ->assertSee('class="mt-5 hidden" data-gratitude-reminder-frequency', false)
             ->assertSee('name="gratitude_reminders_enabled" value="0"'."\n".'                                    checked', false)
             // The kept frequency is still pre-selected for when they switch On.
-            ->assertSee('<option value="3" selected>', false);
+            ->assertSee('value="3" selected', false);
+    }
+
+    /**
+     * @return array<string, array{int, string}>
+     */
+    public static function daySummaries(): array
+    {
+        return [
+            '1' => [1, "You'll get a reminder every Monday."],
+            '2' => [2, "You'll get reminders on Monday and Thursday each week."],
+            '3' => [3, "You'll get reminders on Monday, Wednesday and Friday each week."],
+            '4' => [4, "You'll get reminders on Monday, Wednesday, Friday and Sunday each week."],
+            '5' => [5, "You'll get reminders on Monday, Tuesday, Thursday, Friday and Saturday each week."],
+            '6' => [6, "You'll get a reminder every day from Monday to Saturday."],
+            '7' => [7, "You'll get a reminder every day."],
+        ];
+    }
+
+    /**
+     * The days line must always match the real sending schedule, so it is
+     * tested against SCHEDULE's own days rather than only fixed strings.
+     */
+    #[DataProvider('daySummaries')]
+    public function test_the_page_tells_the_member_which_days_their_frequency_sends_on(int $perWeek, string $summary): void
+    {
+        $this->assertSame($summary, GratitudeReminderPreference::daysSummary($perWeek));
+
+        $user = User::factory()->create();
+        (new UpdateGratitudeReminderFrequencyAction)->handle($user, new GratitudeReminderPreference(true, $perWeek));
+
+        $this->actingAs($user)->get(route('account.gratitude-journal.index'))
+            ->assertOk()
+            // Shown for the saved choice …
+            ->assertSee('data-gratitude-reminder-days>'.e($summary).'</p>', false)
+            // … and carried on every option so the line updates on change.
+            ->assertSee('data-days-summary="'.e(GratitudeReminderPreference::daysSummary(1)).'"', false)
+            ->assertSee('data-days-summary="'.e(GratitudeReminderPreference::daysSummary(7)).'"', false);
     }
 
     /**
@@ -109,7 +148,7 @@ class GratitudeJournalReminderFrequencyTest extends TestCase
 
         $this->actingAs($user)->get(route('account.gratitude-journal.index'))
             ->assertOk()
-            ->assertSee('<option value="'.$perWeek.'" selected>', false)
+            ->assertSee('value="'.$perWeek.'" selected', false)
             ->assertSee('class="mt-5 " data-gratitude-reminder-frequency', false);
     }
 

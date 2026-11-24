@@ -186,12 +186,18 @@
                         <label for="gratitude_reminders_per_week" class="block text-sm text-brand-navy/70">How many reminders would you like to receive each week?</label>
                         <select
                             id="gratitude_reminders_per_week" name="gratitude_reminders_per_week"
+                            aria-describedby="gratitude-reminder-days"
+                            data-gratitude-reminder-per-week
                             class="mt-2 block w-full max-w-xs rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
                         >
                             @foreach ($reminderPerWeekOptions as $perWeek)
-                                <option value="{{ $perWeek }}" @selected($selectedPerWeek === $perWeek)>{{ \App\Shared\Support\Users\GratitudeReminderPreference::optionLabel($perWeek) }}</option>
+                                <option
+                                    value="{{ $perWeek }}" @selected($selectedPerWeek === $perWeek)
+                                    data-days-summary="{{ \App\Shared\Support\Users\GratitudeReminderPreference::daysSummary($perWeek) }}"
+                                >{{ \App\Shared\Support\Users\GratitudeReminderPreference::optionLabel($perWeek) }}</option>
                             @endforeach
                         </select>
+                        <p id="gratitude-reminder-days" class="mt-2 text-xs text-brand-navy/60" aria-live="polite" data-gratitude-reminder-days>{{ \App\Shared\Support\Users\GratitudeReminderPreference::daysSummary($selectedPerWeek) }}</p>
                     </div>
 
                     <div class="mt-5">

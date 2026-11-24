@@ -116,6 +116,18 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         toggles.forEach((toggle) => toggle.addEventListener('change', sync));
+
+        // Keep the "which days" line in step with the chosen number.
+        const perWeek = form.querySelector('[data-gratitude-reminder-per-week]');
+        const days = form.querySelector('[data-gratitude-reminder-days]');
+
+        perWeek?.addEventListener('change', () => {
+            const summary = perWeek.selectedOptions[0]?.dataset.daysSummary;
+
+            if (days && summary) {
+                days.textContent = summary;
+            }
+        });
     });
 });
 

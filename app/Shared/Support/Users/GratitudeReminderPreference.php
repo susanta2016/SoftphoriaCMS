@@ -143,6 +143,25 @@ final readonly class GratitudeReminderPreference
     }
 
     /**
+     * Plain-English summary of which days a frequency sends on, shown
+     * under the selector so members know what they are choosing.
+     */
+    public static function daysSummary(int $perWeek): string
+    {
+        $days = array_map(
+            fn (int $iso): string => Carbon::create(2023, 1, 1 + $iso)->format('l'), // 2023-01-02 is a Monday
+            self::SCHEDULE[$perWeek] ?? self::SCHEDULE[self::DEFAULT_PER_WEEK],
+        );
+
+        return match (count($days)) {
+            1 => "You'll get a reminder every {$days[0]}.",
+            6 => "You'll get a reminder every day from Monday to Saturday.",
+            7 => "You'll get a reminder every day.",
+            default => "You'll get reminders on ".implode(', ', array_slice($days, 0, -1)).' and '.end($days).' each week.',
+        };
+    }
+
+    /**
      * Fills the existing template's "This is your {{frequency_label}}
      * reminder" sentence. Daily/Weekly are unchanged from before, so
      * migrated members get exactly the same email.
