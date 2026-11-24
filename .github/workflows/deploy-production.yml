@@ -62,6 +62,14 @@ jobs:
             sleep 2
             done
 
+            # Compiled Blade views live on the persistent storage volume and
+            # can outlive a deploy (a stale copy once 500'd the Gratitude
+            # Journal page). Clear them once the new app is up, then reload
+            # PHP-FPM so OPcache (validate_timestamps=0) drops any stale copy.
+            echo "==> Clearing compiled views..."
+            docker compose -f docker-compose.prod.yml exec -T app php artisan view:clear
+            docker compose -f docker-compose.prod.yml exec -T app sh -c 'kill -USR2 1'
+
             echo "==> Starting Nginx, queue and scheduler..."
             docker compose -f docker-compose.prod.yml up -d --force-recreate nginx queue scheduler
 
