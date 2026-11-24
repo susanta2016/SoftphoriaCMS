@@ -3,10 +3,10 @@
 namespace Tests\Feature\GratitudeJournal;
 
 use App\Actions\GratitudeJournal\UpdateGratitudeReminderFrequencyAction;
-use App\Enums\GratitudeReminderFrequency;
 use App\Enums\UserStatus;
 use App\Models\User;
 use App\Shared\Mail\TemplatedNotificationMail;
+use App\Shared\Support\Users\GratitudeReminderPreference;
 use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -37,16 +37,16 @@ class GratitudeJournalReminderTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->assertSame(GratitudeReminderFrequency::Daily, $user->gratitudeReminderFrequency());
+        $this->assertEquals(new GratitudeReminderPreference(true, 7), $user->gratitudeReminderPreference());
     }
 
     public function test_a_member_can_set_a_weekly_preference(): void
     {
         $user = User::factory()->create();
 
-        (new UpdateGratitudeReminderFrequencyAction)->handle($user, GratitudeReminderFrequency::Weekly);
+        (new UpdateGratitudeReminderFrequencyAction)->handle($user, new GratitudeReminderPreference(true, 1));
 
-        $this->assertSame(GratitudeReminderFrequency::Weekly, $user->fresh()->gratitudeReminderFrequency());
+        $this->assertEquals(new GratitudeReminderPreference(true, 1), $user->fresh()->gratitudeReminderPreference());
     }
 
     public function test_a_daily_reminder_is_sent_to_a_member_with_the_default_preference(): void
@@ -65,7 +65,7 @@ class GratitudeJournalReminderTest extends TestCase
         Mail::fake();
         $this->seed(EmailTemplateSeeder::class);
         $user = User::factory()->create(['status' => UserStatus::Active->value]);
-        (new UpdateGratitudeReminderFrequencyAction)->handle($user, GratitudeReminderFrequency::Weekly);
+        (new UpdateGratitudeReminderFrequencyAction)->handle($user, new GratitudeReminderPreference(true, 1));
 
         // 2023-01-01 12:00 UTC is a Sunday — no reminder yet.
         Carbon::setTestNow('2023-01-01 12:00:00');
@@ -83,7 +83,7 @@ class GratitudeJournalReminderTest extends TestCase
         Mail::fake();
         $this->seed(EmailTemplateSeeder::class);
         $user = User::factory()->create(['status' => UserStatus::Active->value]);
-        (new UpdateGratitudeReminderFrequencyAction)->handle($user, GratitudeReminderFrequency::None);
+        (new UpdateGratitudeReminderFrequencyAction)->handle($user, new GratitudeReminderPreference(false));
 
         $this->artisan('gratitude-journal:send-reminders')->assertExitCode(0);
 
@@ -119,10 +119,10 @@ class GratitudeJournalReminderTest extends TestCase
         Carbon::setTestNow('2023-01-02 12:00:00'); // a Monday
 
         $userA = User::factory()->create(['status' => UserStatus::Active->value]);
-        (new UpdateGratitudeReminderFrequencyAction)->handle($userA, GratitudeReminderFrequency::Weekly);
+        (new UpdateGratitudeReminderFrequencyAction)->handle($userA, new GratitudeReminderPreference(true, 1));
 
         $userB = User::factory()->create(['status' => UserStatus::Active->value]);
-        (new UpdateGratitudeReminderFrequencyAction)->handle($userB, GratitudeReminderFrequency::Weekly);
+        (new UpdateGratitudeReminderFrequencyAction)->handle($userB, new GratitudeReminderPreference(true, 1));
 
         $this->artisan('gratitude-journal:send-reminders')->assertExitCode(0);
 

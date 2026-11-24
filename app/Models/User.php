@@ -3,7 +3,6 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Enums\GratitudeReminderFrequency;
 use App\Modules\Commerce\Models\DownloadLog;
 use App\Modules\Commerce\Models\Entitlement;
 use App\Modules\Commerce\Models\Order;
@@ -11,6 +10,7 @@ use App\Modules\Commerce\Models\Subscription;
 use App\Modules\Music\Models\Album;
 use App\Modules\Music\Models\Single;
 use App\Modules\Music\Models\Track;
+use App\Shared\Support\Users\GratitudeReminderPreference;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -117,17 +117,16 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * Reads `gratitude_reminder_frequency` out of the existing
-     * UserPreference.preferences JSON blob (Gratitude Journal audit §7 —
-     * no dedicated column/table). Defaults to Daily, per the client's
-     * confirmed default, for a member who has never set a preference (i.e.
-     * no UserPreference row at all yet).
+     * Reads the Gratitude Journal reminder preference (On/Off + per week)
+     * out of the existing UserPreference.preferences JSON blob (Gratitude
+     * Journal audit §7: no dedicated column or table). A member who has never set a
+     * preference keeps the client-confirmed default, On at 7 per week
+     * (the old Daily default). A legacy Daily/Weekly/None value is mapped
+     * as described in GratitudeReminderPreference.
      */
-    public function gratitudeReminderFrequency(): GratitudeReminderFrequency
+    public function gratitudeReminderPreference(): GratitudeReminderPreference
     {
-        $value = $this->preferences?->preferences['gratitude_reminder_frequency'] ?? null;
-
-        return GratitudeReminderFrequency::tryFrom((string) $value) ?? GratitudeReminderFrequency::Daily;
+        return GratitudeReminderPreference::fromStored($this->preferences?->preferences);
     }
 
     public function downloads(): HasMany

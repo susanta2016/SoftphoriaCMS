@@ -102,6 +102,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     });
+
+    // Reminder Preference: the "how many per week" selector shows only
+    // while reminders are On. The server renders the initial state; the
+    // select keeps its value while hidden, so switching back On restores it.
+    document.querySelectorAll('[data-gratitude-reminder-form]').forEach((form) => {
+        const frequency = form.querySelector('[data-gratitude-reminder-frequency]');
+        const toggles = form.querySelectorAll('[data-gratitude-reminder-toggle]');
+
+        const sync = () => {
+            const on = form.querySelector('[data-gratitude-reminder-toggle]:checked')?.value === '1';
+            frequency?.classList.toggle('hidden', !on);
+        };
+
+        toggles.forEach((toggle) => toggle.addEventListener('change', sync));
+    });
 });
 
 // The homepage "Latest Gratitude" carousel (resources/views/home.blade.php)

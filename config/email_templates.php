@@ -624,11 +624,11 @@ return [
     'gratitude_journal_reminder' => [
         'label' => 'Gratitude Journal Reminder',
         'recipients' => ['user'],
-        // Sent by SendGratitudeJournalRemindersCommand on the Daily/Weekly
-        // cadence a member chose in their Gratitude Journal preferences
-        // (never to a member who chose None) — see that command's own
-        // docblock and App\Actions\GratitudeJournal\
-        // UpdateGratitudeReminderFrequencyAction.
+        // Sent by SendGratitudeJournalRemindersCommand on the 1–7 per week
+        // a member chose in their Gratitude Journal preferences (never
+        // while reminders are Off). frequency_label is "Daily", "Weekly",
+        // "Twice-Weekly", "Three-Times-Weekly" … — see
+        // App\Shared\Support\Users\GratitudeReminderPreference::emailLabel().
         'variables' => ['user_name', 'journal_url', 'frequency_label', 'site_name'],
         'default_subject' => '{{site_name}} — A Gentle Reminder for Your Gratitude Journal',
         'default_html_body' => <<<'HTML'

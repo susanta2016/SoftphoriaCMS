@@ -55,7 +55,7 @@
             </form>
         </div>
 
-        @php $reminderTabActive = $errors->has('gratitude_reminder_frequency'); @endphp
+        @php $reminderTabActive = $errors->hasAny(['gratitude_reminders_enabled', 'gratitude_reminders_per_week']); @endphp
         <div class="rounded-2xl bg-white shadow-xl ring-1 ring-brand-navy/5" data-gratitude-tabs>
             <div class="flex border-b border-brand-navy/10 px-2 sm:px-4" role="tablist">
                 <button
@@ -151,24 +151,50 @@
             </div>
 
             <div class="p-6 sm:p-8 {{ $reminderTabActive ? '' : 'hidden' }}" data-gratitude-tab-panel="reminder">
-                <p class="text-sm text-brand-navy/70">How often would you like an email reminder to write in your Gratitude Journal?</p>
-
-                <form method="POST" action="{{ route('account.gratitude-journal.reminder') }}" class="mt-4">
+                @php
+                    $remindersOn = (string) old('gratitude_reminders_enabled', $reminder->enabled ? '1' : '0') === '1';
+                    $selectedPerWeek = (int) old('gratitude_reminders_per_week', $reminder->perWeek);
+                @endphp
+                <form method="POST" action="{{ route('account.gratitude-journal.reminder') }}" data-gratitude-reminder-form>
                     @csrf
                     @method('PUT')
-                    <div class="flex flex-wrap gap-4">
-                        @foreach ($reminderFrequencies as $frequency)
+                    <fieldset>
+                        <legend class="text-sm text-brand-navy/70">Would you like to receive email reminders to write in your Gratitude Journal?</legend>
+                        <div class="mt-3 flex flex-wrap gap-4">
                             <label class="flex items-center gap-2 text-sm text-brand-navy">
                                 <input
-                                    type="radio" name="gratitude_reminder_frequency" value="{{ $frequency->value }}"
-                                    @checked($reminderFrequency === $frequency)
+                                    type="radio" name="gratitude_reminders_enabled" value="1"
+                                    @checked($remindersOn)
+                                    data-gratitude-reminder-toggle
                                     class="border-brand-navy/30 text-brand-gold focus:ring-brand-gold"
                                 >
-                                {{ $frequency->getLabel() }}
+                                On
                             </label>
-                        @endforeach
+                            <label class="flex items-center gap-2 text-sm text-brand-navy">
+                                <input
+                                    type="radio" name="gratitude_reminders_enabled" value="0"
+                                    @checked(! $remindersOn)
+                                    data-gratitude-reminder-toggle
+                                    class="border-brand-navy/30 text-brand-gold focus:ring-brand-gold"
+                                >
+                                Off
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <div class="mt-5 {{ $remindersOn ? '' : 'hidden' }}" data-gratitude-reminder-frequency>
+                        <label for="gratitude_reminders_per_week" class="block text-sm text-brand-navy/70">How many reminders would you like to receive each week?</label>
+                        <select
+                            id="gratitude_reminders_per_week" name="gratitude_reminders_per_week"
+                            class="mt-2 block w-full max-w-xs rounded-md border border-brand-navy/20 px-3.5 py-2.5 text-sm text-brand-navy shadow-sm focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
+                        >
+                            @foreach ($reminderPerWeekOptions as $perWeek)
+                                <option value="{{ $perWeek }}" @selected($selectedPerWeek === $perWeek)>{{ \App\Shared\Support\Users\GratitudeReminderPreference::optionLabel($perWeek) }}</option>
+                            @endforeach
+                        </select>
                     </div>
-                    <div class="mt-4">
+
+                    <div class="mt-5">
                         <button
                             type="submit"
                             class="rounded-md border border-brand-navy/20 px-6 py-3 text-sm font-semibold tracking-wide text-brand-navy uppercase transition hover:border-brand-gold hover:text-brand-gold"

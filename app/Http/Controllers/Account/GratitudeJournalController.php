@@ -7,13 +7,13 @@ use App\Actions\GratitudeJournal\DeleteGratitudeJournalEntryAction;
 use App\Actions\GratitudeJournal\UpdateGratitudeJournalEntryAction;
 use App\Actions\GratitudeJournal\UpdateGratitudeReminderFrequencyAction;
 use App\Enums\GratitudeJournalVisibility;
-use App\Enums\GratitudeReminderFrequency;
 use App\Enums\LightPostSource;
 use App\Http\Controllers\Controller;
 use App\Models\LightPost;
 use App\Models\Media;
 use App\Shared\Services\Settings\SettingsRepository;
 use App\Shared\Support\Seo\SeoTagBuilder;
+use App\Shared\Support\Users\GratitudeReminderPreference;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -61,8 +61,8 @@ class GratitudeJournalController extends Controller
             'seo' => $seo,
             'entries' => $entries,
             'maxLength' => (int) config('features.gratitude_journal_max_length'),
-            'reminderFrequency' => $user->gratitudeReminderFrequency(),
-            'reminderFrequencies' => GratitudeReminderFrequency::cases(),
+            'reminder' => $user->gratitudeReminderPreference(),
+            'reminderPerWeekOptions' => array_keys(GratitudeReminderPreference::SCHEDULE),
             'visibilityOptions' => GratitudeJournalVisibility::cases(),
         ]);
     }
@@ -110,17 +110,34 @@ class GratitudeJournalController extends Controller
         return redirect()->route('account.gratitude-journal.index')->with('status', 'Your Gratitude Journal entry has been deleted.');
     }
 
+    /**
+     * On/Off plus 1–7 reminders per week. The per-week value is required
+     * only when On. When Off it is optional, and the member's
+     * currently saved frequency is kept if none is sent, so switching back
+     * On later restores it.
+     */
     public function updateReminderFrequency(Request $request, UpdateGratitudeReminderFrequencyAction $action): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
-            'gratitude_reminder_frequency' => ['required', 'string', 'in:daily,weekly,none'],
+            'gratitude_reminders_enabled' => ['required', 'in:0,1'],
+            'gratitude_reminders_per_week' => ['required_if:gratitude_reminders_enabled,1', 'nullable', 'integer', 'between:1,7'],
+        ], [
+            'gratitude_reminders_enabled.required' => 'Please choose whether you would like email reminders.',
+            'gratitude_reminders_enabled.in' => 'Please choose whether you would like email reminders.',
+            'gratitude_reminders_per_week.*' => 'Please choose between 1 and 7 reminders per week.',
         ]);
 
         if ($validator->fails()) {
-            return redirect()->route('account.gratitude-journal.index')->withErrors($validator);
+            return redirect()->route('account.gratitude-journal.index')->withErrors($validator)->withInput();
         }
 
-        $action->handle(Auth::user(), GratitudeReminderFrequency::from($validator->validated()['gratitude_reminder_frequency']));
+        $data = $validator->validated();
+        $user = Auth::user();
+
+        $action->handle($user, new GratitudeReminderPreference(
+            (string) $data['gratitude_reminders_enabled'] === '1',
+            (int) ($data['gratitude_reminders_per_week'] ?? $user->gratitudeReminderPreference()->perWeek),
+        ));
 
         return redirect()->route('account.gratitude-journal.index')->with('status', 'Your reminder preference has been updated.');
     }
